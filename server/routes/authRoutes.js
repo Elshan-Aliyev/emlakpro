@@ -1,16 +1,22 @@
-// server/routes/userRoutes.js
+// server/routes/authRoutes.js
 const express = require('express');
 const router = express.Router();
+const { register, login, getMe, updateMe, changePassword } = require('../controllers/authController');
 const verifyToken = require('../middleware/authMiddleware');
-const { getUsers, updateUser, deleteUser } = require('../controllers/userController');
 
-// GET /api/users
-router.get('/', verifyToken, getUsers);
+// POST /api/auth/register
+router.post('/register', register);
 
-// PUT /api/users/:id
-router.put('/:id', verifyToken, updateUser);
+// POST /api/auth/login
+router.post('/login', login);
 
-// DELETE /api/users/:id
-router.delete('/:id', verifyToken, deleteUser);
+// GET /api/auth/me
+router.get('/me', verifyToken, getMe);
+
+// PUT /api/auth/me
+router.put('/me', verifyToken, updateMe);
+
+// PUT /api/auth/change-password
+router.put('/change-password', verifyToken, changePassword);
 
 module.exports = router;

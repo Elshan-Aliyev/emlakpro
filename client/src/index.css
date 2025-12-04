@@ -11,3 +11,29 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Global Responsive Button Rules */
+button, .btn, input[type="submit"], input[type="button"] {
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: fit-content;
+  padding: 8px 16px;
+}
+
+/* Prevent content overlap */
+* {
+  box-sizing: border-box;
+}
+
+/* Flex container button spacing */
+.button-group, .filter-bar-content, .search-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.button-group > *, .filter-bar-content > * {
+  flex-shrink: 0;
+}

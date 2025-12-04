@@ -1,0 +1,370 @@
+### ==================== AUTHENTICATION ====================
+
+### Register New User
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Test",
+  "lastName": "User",
+  "email": "test@example.com",
+  "password": "password123",
+  "role": "registered"
+}
+
+### Login User
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+### Login as Admin (if exists)
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "admin123"
+}
+
+### ==================== USERS ====================
+
+@token = YOUR_TOKEN_HERE
+
+### Get All Users (Admin)
+GET http://localhost:5000/api/users
+Authorization: Bearer {{token}}
+
+### Get User by ID
+GET http://localhost:5000/api/users/USER_ID_HERE
+Authorization: Bearer {{token}}
+
+### Update User
+PATCH http://localhost:5000/api/users/USER_ID_HERE
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Updated Name",
+  "phone": "+994501234567",
+  "bio": "Real estate professional"
+}
+
+### Update User Role (Admin Only)
+PATCH http://localhost:5000/api/users/USER_ID_HERE
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "role": "realtor"
+}
+
+### Deactivate User (Admin Only)
+DELETE http://localhost:5000/api/users/USER_ID_HERE
+Authorization: Bearer {{token}}
+
+### ==================== PROPERTIES/LISTINGS ====================
+
+### Get All Properties (Public)
+GET http://localhost:5000/api/properties
+
+### Get Properties with Filters
+GET http://localhost:5000/api/properties?type=buy&category=residential&city=Baku&minPrice=100000&maxPrice=500000
+
+### Get Single Property
+GET http://localhost:5000/api/properties/PROPERTY_ID_HERE
+
+### Create New Property
+POST http://localhost:5000/api/properties
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Beautiful 3BR Apartment in City Center",
+  "description": "Modern apartment with stunning views",
+  "type": "buy",
+  "category": "residential",
+  "price": 250000,
+  "currency": "$",
+  "location": "Baku City Center",
+  "address": {
+    "street": "123 Nizami Street",
+    "city": "Baku",
+    "province": "Baku",
+    "postalCode": "1000",
+    "country": "Azerbaijan"
+  },
+  "coordinates": {
+    "lat": 40.4093,
+    "lng": 49.8671
+  },
+  "bedrooms": 3,
+  "bathrooms": 2,
+  "builtUpArea": 150,
+  "status": "active",
+  "isFSBO": false,
+  "images": [
+    {
+      "url": "https://example.com/image1.jpg",
+      "altText": "Living room"
+    }
+  ]
+}
+
+### Create Rental Property
+POST http://localhost:5000/api/properties
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Cozy 2BR Apartment for Rent",
+  "description": "Perfect for families",
+  "type": "rent",
+  "category": "residential",
+  "subCategory": "long-term",
+  "price": 1200,
+  "monthlyRent": 1200,
+  "currency": "$",
+  "location": "Yasamal District",
+  "address": {
+    "street": "45 Jafar Jabbarli",
+    "city": "Baku",
+    "province": "Baku"
+  },
+  "bedrooms": 2,
+  "bathrooms": 1,
+  "builtUpArea": 80,
+  "status": "active"
+}
+
+### Update Property
+PATCH http://localhost:5000/api/properties/PROPERTY_ID_HERE
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Updated Property Title",
+  "price": 260000,
+  "status": "pending"
+}
+
+### Delete Property (Admin Only)
+DELETE http://localhost:5000/api/properties/PROPERTY_ID_HERE
+Authorization: Bearer {{token}}
+
+### ==================== IMAGES ====================
+
+### Upload Image
+POST http://localhost:5000/api/images
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="image"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test-image.jpg
+------WebKitFormBoundary
+Content-Disposition: form-data; name="type"
+
+listing
+------WebKitFormBoundary
+Content-Disposition: form-data; name="altText"
+
+Beautiful property image
+------WebKitFormBoundary--
+
+### Get All Images
+GET http://localhost:5000/api/images
+Authorization: Bearer {{token}}
+
+### Get Images by Type
+GET http://localhost:5000/api/images?type=hero
+Authorization: Bearer {{token}}
+
+### Get Hero Background Images
+GET http://localhost:5000/api/images?type=hero&heroCategory=buy_residential
+Authorization: Bearer {{token}}
+
+### Get Single Image
+GET http://localhost:5000/api/images/IMAGE_ID_HERE
+
+### Update Image Metadata
+PATCH http://localhost:5000/api/images/IMAGE_ID_HERE
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "altText": "Updated alt text",
+  "title": "Updated title",
+  "heroCategory": "buy_commercial"
+}
+
+### Delete Image
+DELETE http://localhost:5000/api/images/IMAGE_ID_HERE
+Authorization: Bearer {{token}}
+
+### Bulk Delete Images (Admin)
+POST http://localhost:5000/api/images/bulk-delete
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "imageIds": ["id1", "id2", "id3"]
+}
+
+### ==================== SETTINGS ====================
+
+### Get All Settings (Public)
+GET http://localhost:5000/api/settings
+
+### Get Settings by Category
+GET http://localhost:5000/api/settings?category=currency
+
+### Get Single Setting
+GET http://localhost:5000/api/settings/defaultCurrency
+
+### Update Setting (Admin)
+PATCH http://localhost:5000/api/settings/defaultCurrency
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "value": "€",
+  "label": "Default Currency",
+  "description": "Currency symbol used throughout the application",
+  "isPublic": true
+}
+
+### Create New Setting (Admin)
+PATCH http://localhost:5000/api/settings/customSetting
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "value": "custom value",
+  "label": "Custom Setting",
+  "category": "general",
+  "valueType": "string"
+}
+
+### Bulk Update Settings (Admin)
+POST http://localhost:5000/api/settings/bulk-update
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "settings": [
+    {
+      "key": "defaultCurrency",
+      "value": "$"
+    },
+    {
+      "key": "maxImageSize",
+      "value": 10,
+      "category": "images"
+    },
+    {
+      "key": "propertiesPerPage",
+      "value": 20
+    }
+  ]
+}
+
+### Initialize Default Settings (Superadmin)
+POST http://localhost:5000/api/settings/initialize
+Authorization: Bearer {{token}}
+
+### Delete Setting (Superadmin)
+DELETE http://localhost:5000/api/settings/customSetting
+Authorization: Bearer {{token}}
+
+### ==================== ADMIN ====================
+
+### Get Admin Dashboard Stats
+GET http://localhost:5000/api/admin/stats
+Authorization: Bearer {{token}}
+
+### Get All Listings (Admin View)
+GET http://localhost:5000/api/admin/listings
+Authorization: Bearer {{token}}
+
+### Get Listings with Search
+GET http://localhost:5000/api/admin/listings?search=apartment&status=active
+Authorization: Bearer {{token}}
+
+### Approve Property
+PUT http://localhost:5000/api/admin/properties/PROPERTY_ID_HERE/approve
+Authorization: Bearer {{token}}
+
+### Reject Property
+PUT http://localhost:5000/api/admin/properties/PROPERTY_ID_HERE/reject
+Authorization: Bearer {{token}}
+
+### Bulk Approve Properties
+POST http://localhost:5000/api/admin/properties/bulk-approve
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "propertyIds": ["id1", "id2", "id3"]
+}
+
+### Bulk Delete Properties
+POST http://localhost:5000/api/admin/properties/bulk-delete
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "propertyIds": ["id1", "id2", "id3"]
+}
+
+### Get Recent Activity
+GET http://localhost:5000/api/admin/activity
+Authorization: Bearer {{token}}
+
+### ==================== TESTING SCENARIOS ====================
+
+### Scenario 1: Complete User Registration Flow
+# 1. Register
+# 2. Login
+# 3. Create Property
+# 4. Upload Images
+# 5. View Own Properties
+
+### Scenario 2: Admin Management Flow
+# 1. Login as Admin
+# 2. Get Dashboard Stats
+# 3. View All Listings
+# 4. Approve/Reject Listings
+# 5. Manage Users
+
+### Scenario 3: Settings Configuration
+# 1. Login as Superadmin
+# 2. Initialize Default Settings
+# 3. Update Currency Settings
+# 4. Configure Hero Images
+# 5. Set Site Preferences
+
+### ==================== NOTES ====================
+
+# To use this file:
+# 1. Install REST Client extension in VS Code
+# 2. Replace {{token}} with actual JWT token after login
+# 3. Replace ID placeholders with actual MongoDB ObjectIds
+# 4. Click "Send Request" above each HTTP request
+
+# Token Format:
+# Copy the token from login response and paste in @token variable above
+
+# Common HTTP Status Codes:
+# 200 - Success
+# 201 - Created
+# 400 - Bad Request
+# 401 - Unauthorized
+# 403 - Forbidden
+# 404 - Not Found
+# 500 - Server Error

@@ -1,37 +1,183 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import Navigation from './pages/Navigation';
-import Home from './pages/Home';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import MainLayout from './layouts/MainLayout';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Public Pages
+import HomeNew from './pages/HomeNew';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
-import Properties from './pages/Properties';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import PropertyDetail from './pages/PropertyDetail';
+import NotFound from './pages/NotFound';
+import Search from './pages/Search';
+import Agents from './pages/Agents';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
+import Help from './pages/Help';
+import Messages from './pages/Messages';
+import VerificationApplication from './pages/VerificationApplication';
+
+// User Dashboard
+import AccountDashboard from './pages/AccountDashboard';
+import AccountProfile from './pages/AccountProfile';
+import AccountListings from './pages/AccountListings';
+import AccountSaved from './pages/AccountSaved';
+import AccountSettings from './pages/AccountSettings';
 import CreateProperty from './pages/CreateProperty';
 import UpdateProperty from './pages/UpdateProperty';
-import PropertyList from './pages/PropertyList';
-import Profile from './pages/Profile';
-import Users from './pages/Users';
-import UserList from './pages/UserList';
-import UpdateUser from './pages/UpdateUser';
-import DeleteUser from './pages/DeleteUser';
-import NotFound from './pages/NotFound';
+
+// Admin Pages
+import AdminDashboard from './pages/AdminDashboard';
+import AdminListings from './pages/AdminListings';
+import AdminUsers from './pages/AdminUsers';
+import AdminSettings from './pages/AdminSettings';
 
 function App() {
   return (
-    <div>
-      <Navigation />
+    <div className="App">
       <Routes>
-        <Route path="/" element={<Home />} />
+        {/* Public Routes */}
+        <Route path="/" element={<MainLayout><HomeNew /></MainLayout>} />
+        <Route path="/search" element={<MainLayout><Search /></MainLayout>} />
+        <Route path="/agents" element={<MainLayout><Agents /></MainLayout>} />
+        <Route path="/listing/:id" element={<MainLayout><PropertyDetail /></MainLayout>} />
+        <Route path="/properties/:id" element={<MainLayout><PropertyDetail /></MainLayout>} />
+        
+        {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/properties" element={<Properties />} />
-        <Route path="/properties/create" element={<CreateProperty />} />
-        <Route path="/properties/update/:id" element={<UpdateProperty />} />
-        <Route path="/properties/list" element={<PropertyList />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/users" element={<Users />} />
-        <Route path="/users/list" element={<UserList />} />
-        <Route path="/users/update/:id" element={<UpdateUser />} />
-        <Route path="/users/delete/:id" element={<DeleteUser />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
+        
+        {/* Protected User Routes */}
+        <Route
+          path="/account"
+          element={
+            <ProtectedRoute>
+              <MainLayout><AccountDashboard /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/account/profile"
+          element={
+            <ProtectedRoute>
+              <MainLayout><AccountProfile /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/account/listings"
+          element={
+            <ProtectedRoute>
+              <MainLayout><AccountListings /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/account/saved"
+          element={
+            <ProtectedRoute>
+              <MainLayout><AccountSaved /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/account/settings"
+          element={
+            <ProtectedRoute>
+              <MainLayout><AccountSettings /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/verification/apply"
+          element={
+            <ProtectedRoute>
+              <MainLayout><VerificationApplication /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/properties/create"
+          element={
+            <ProtectedRoute>
+              <MainLayout><CreateProperty /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/properties/update/:id"
+          element={
+            <ProtectedRoute>
+              <MainLayout><UpdateProperty /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Protected Admin Routes */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requireAdmin>
+              <MainLayout><AdminDashboard /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/admin/listings"
+          element={
+            <ProtectedRoute requireAdmin>
+              <MainLayout><AdminListings /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute requireAdmin>
+              <MainLayout><AdminUsers /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/admin/settings"
+          element={
+            <ProtectedRoute requireAdmin>
+              <MainLayout><AdminSettings /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Messages Route */}
+        <Route
+          path="/messages"
+          element={<ProtectedRoute><MainLayout><Messages /></MainLayout></ProtectedRoute>}
+        />
+        
+        {/* Public Info Pages */}
+        <Route path="/privacy" element={<MainLayout><Privacy /></MainLayout>} />
+        <Route path="/terms" element={<MainLayout><Terms /></MainLayout>} />
+        <Route path="/help" element={<MainLayout><Help /></MainLayout>} />
+        
+        {/* Legacy Redirects */}
+        <Route path="/properties" element={<Navigate to="/" replace />} />
+        <Route path="/dashboard" element={<Navigate to="/account" replace />} />
+        <Route path="/profile" element={<Navigate to="/account/profile" replace />} />
+        
+        {/* 404 - Not Found */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>

@@ -1,0 +1,106 @@
+/* PropertyMap.css */
+.custom-marker {
+  transition: all 0.2s ease;
+}
+
+.custom-marker:hover {
+  z-index: 1000 !important;
+}
+
+/* Force popup to appear above everything */
+div.mapboxgl-popup,
+.mapboxgl-popup.property-hover-popup,
+.property-hover-popup {
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Constrain popup to viewport with margins */
+div.mapboxgl-popup {
+  max-height: calc(100vh - 80px) !important;
+  max-width: calc(100vw - 40px) !important;
+}
+
+/* Ensure popup stays within bounds */
+.mapboxgl-popup-content > div.popup-card-content {
+  max-height: calc(100vh - 120px) !important;
+  overflow: hidden !important;
+}
+
+div.mapboxgl-popup-content,
+.property-hover-popup .mapboxgl-popup-content {
+  padding: 0 !important;
+  border-radius: 12px !important;
+  overflow: visible !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border: none !important;
+  pointer-events: auto !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 10000 !important;
+  max-height: none !important;
+}
+
+/* Our custom content div should have white background */
+.mapboxgl-popup-content > div {
+  background: white !important;
+  border-radius: 12px !important;
+}
+
+.property-hover-popup {
+  z-index: 500 !important;
+}
+
+.property-hover-popup .mapboxgl-popup-content {
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 12px !important;
+}
+
+.property-hover-popup .mapboxgl-popup-tip {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.mapboxgl-popup-close-button {
+  font-size: 22px;
+  padding: 10px;
+  color: #666;
+  background: white;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  right: 8px !important;
+  top: 8px !important;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+  pointer-events: auto !important;
+}
+
+.mapboxgl-popup-close-button:hover {
+  background: #f5f5f5;
+  color: #333;
+  transform: scale(1.1);
+}
+
+/* Hide all popup tips */
+.mapboxgl-popup-anchor-top .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-left .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+  display: none !important;
+}

@@ -14,19 +14,88 @@
 }
 
 .App-header {
-  background-color: #282c34;
+  background-color: var(--bg, #F5F7FA);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-  color: white;
+  color: var(--brand-shadow, #333333);
 }
 
-.App-link {
-  color: #61dafb;
+:root {
+  /* Legacy brand variables - now mapped to theme system */
+  --brand-primary: var(--theme-button, var(--theme-primary));
+  --brand-accent: var(--theme-button, var(--theme-primary));
+  --brand-shadow: #333333;
+  --bg: var(--theme-background-low, #F5F7FA);
 }
+
+/* Responsive search/hero helpers */
+.hero-search-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.hero-search-container {
+  width: 75%;
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+  justify-content: center;
+}
+.left-area {
+  flex: 0 0 140px; /* wider left column */
+  min-width: 96px;
+  box-sizing: border-box;
+}
+.toggle-full {
+  display: flex;
+  width: 100%;
+  height: clamp(36px,4.5vw,48px);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--brand-primary);
+}
+.toggle-full button {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+}
+.input-grid-buy { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; width: 100%; }
+.input-grid-rent-long { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 12px; align-items: end; width: 100%; }
+.input-grid-rent-short { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 12px; align-items: end; width: 100%; }
+.input-field { padding: 12px; border-radius: 6px; border: none; width: 100%; box-sizing: border-box; height: clamp(40px,4.2vw,56px); }
+.search-btn { display:flex; align-items:center; justify-content:center; border-radius:0 6px 6px 0; background:var(--brand-accent); color:#fff; border:none; cursor:pointer; width: clamp(40px,5vw,56px); height: clamp(40px,4.2vw,56px); align-self: end; margin-left: -12px; }
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .hero-search-container { width: 92%; }
+  .left-area { flex: 0 0 30%; }
+  .input-grid-rent-long { grid-template-columns: 1fr 1fr auto; }
+  .input-grid-rent-short { grid-template-columns: 1fr 1fr 1fr auto; }
+}
+
+@media (max-width: 640px) {
+  .left-area { flex: 0 0 100%; }
+  .hero-search-container { flex-direction: column; align-items: stretch; width: 94%; }
+  .input-grid-buy, .input-grid-rent-long, .input-grid-rent-short { grid-template-columns: 1fr auto; }
+}
+
+/* Global link and button defaults that follow the brand */
+nav a { color: var(--brand-primary); text-decoration: none; }
+button { font-family: inherit; }
+
+body { background: var(--bg); color: var(--brand-shadow); }
+
 
 @keyframes App-logo-spin {
   from {
@@ -35,4 +104,139 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Hero and Home-specific styles */
+.hero {
+  height: 420px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: #fff;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+.hero-top {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: min(880px, 92%);
+  gap: 12px;
+}
+.mode-toggle {
+  display: inline-flex;
+  width: 240px;
+  border-radius: 999px;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: var(--brand-primary);
+  order: -1;
+}
+.mode-indicator { display: none; }
+.mode-btn {
+  flex: 1 1 0;
+  padding: 8px 18px;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 500;
+  background: var(--brand-primary);
+}
+.mode-btn:first-child { border-top-left-radius: 999px; border-bottom-left-radius: 999px; }
+.mode-btn:last-child { border-top-right-radius: 999px; border-bottom-right-radius: 999px; }
+.mode-btn.active { background: var(--brand-accent); font-weight: 700; }
+.top-links { color: #fff; display: flex; gap: 12px; align-items: center; }
+.term-column .term-label { display: none; }
+.right-area { flex: 1 1 0; max-width: 100%; }
+.field-col { display: flex; flex-direction: column; }
+.field-label { font-size: 12px; color: #fff; margin-bottom: 6px; padding-left: 12px; }
+.content-wrap { padding: 20px; }
+.featured-list { display: flex; gap: 12px; flex-wrap: wrap; list-style: none; padding: 0; margin: 0; }
+.featured-card { width: 230px; border: 1px solid rgba(30,78,140,0.08); border-radius: 6px; padding: 8px; box-sizing: border-box; background: #fff; }
+.featured-card a { text-decoration: none; color: inherit; display: block; }
+.featured-title { font-weight: bold; }
+.featured-location { font-size: 12px; color: var(--brand-shadow); margin-top: 4px; }
+.toggle-full button.active { background: var(--brand-accent); }
+
+/* Vertical Buy/Rent toggle on the left of the search */
+.vertical-toggle { display: flex; flex-direction: column; gap: 0; align-items: stretch; width: 100%; height: 100%; }
+.vertical-toggle-inner { display:flex; flex-direction: column; background: var(--brand-primary); border-radius: 8px; overflow: hidden; height: 100%; }
+.vertical-toggle-inner { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.vertical-toggle-inner button { flex: 1 1 0; padding: 10px 8px; border: none; background: transparent; color: #fff; cursor: pointer; height: clamp(44px,6vw,64px); }
+.vertical-toggle-inner button.active { background: var(--brand-accent); font-weight: 700; }
+
+/* Category/term toggle placed above the Location label and attached to the input */
+.category-row { margin-bottom: 8px; }
+.category-toggle { display: inline-flex; width: 18em; max-width: 100%; border-radius: 6px; overflow: hidden; background: var(--brand-primary); }
+.category-toggle button { flex: 1 1 0; padding: 8px 10px; border: none; background: transparent; color: #fff; cursor: pointer; }
+.category-toggle button.active { background: var(--brand-accent); }
+.category-toggle { margin-left: 0; }
+
+/* Ensure the hero-search-container items are aligned baseline so the button won't drop */
+.hero-search-container { align-items: stretch; }
+
+@media (max-width: 900px) {
+  .left-area { flex: 0 0 76px; }
+}
+
+@media (max-width: 640px) {
+  .left-area { flex: 0 0 100%; display:flex; justify-content:center; }
+  .vertical-toggle { flex-direction: row; gap: 0; }
+  .vertical-toggle-inner { flex-direction: row; }
+  .vertical-toggle-inner button { height: clamp(40px,6vw,48px); width: auto; }
+  .category-toggle { flex-wrap: wrap; width: 100%; }
+}
+
+@media (min-width: 641px) {
+  .left-area { display:flex; align-items: stretch; }
+  .vertical-toggle { align-items: stretch; }
+}
+
+/* ensure inputs can shrink inside grid cells */
+.input-field { min-width: 0; }
+
+/* Rent grid adjustments: guests column half the date column */
+.input-grid-rent-short { grid-template-columns: 2fr 1fr 1fr 0.5fr auto; gap: 12px; align-items: end; width: 100%; }
+.input-grid-rent-long { grid-template-columns: 2fr 1fr 0.5fr auto; gap: 12px; align-items: end; width: 100%; }
+
+/* remove right radius on the last input field before search button so they connect */
+.input-grid-buy .field-col:last-of-type .input-field,
+.input-grid-rent-short .field-col:last-of-type .input-field,
+.input-grid-rent-long .field-col:last-of-type .input-field {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* ensure the label has a fixed min height so text doesn't get squeezed */
+.field-label { min-height: 24px; display:flex; align-items:center; }
+
+/* remove any tiny gap between left toggle and category container */
+.vertical-toggle-inner { margin-right: 0; }
+.category-toggle { margin-left: 0; }
+
+@media (max-width: 640px) {
+  .mode-toggle { width: 180px; }
+}
+
+/* Property Card Badge Styling */
+.featured-card {
+  position: relative;
+}
+
+.card-badge-container {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+}
+
+.featured-card a {
+  display: block;
+  position: relative;
 }

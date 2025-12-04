@@ -1,0 +1,241 @@
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%);
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 480px;
+  background: white;
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-xl);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: var(--space-8);
+}
+
+.auth-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.75rem;
+  color: var(--gray-900);
+  margin-bottom: var(--space-4);
+}
+
+.auth-logo .logo-icon {
+  font-size: 2.5rem;
+}
+
+.auth-logo .logo-image {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+.auth-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: var(--space-2);
+}
+
+.auth-subtitle {
+  font-size: 1rem;
+  color: var(--gray-600);
+  margin: 0;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.auth-error-banner {
+  padding: var(--space-4);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error-500);
+  border-radius: var(--radius-md);
+  color: var(--error-600);
+  font-size: 0.9375rem;
+  text-align: center;
+}
+
+.auth-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.9375rem;
+  color: var(--gray-700);
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.auth-link {
+  color: var(--primary-600);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  transition: color var(--transition-fast);
+}
+
+.auth-link:hover {
+  color: var(--primary-700);
+  text-decoration: underline;
+}
+
+.auth-link-bold {
+  color: var(--primary-600);
+  text-decoration: none;
+  font-weight: 700;
+  transition: color var(--transition-fast);
+}
+
+.auth-link-bold:hover {
+  color: var(--primary-700);
+  text-decoration: underline;
+}
+
+.auth-footer {
+  margin-top: var(--space-6);
+  text-align: center;
+  font-size: 0.9375rem;
+  color: var(--gray-600);
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: var(--space-6) 0;
+  color: var(--gray-500);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--gray-300);
+}
+
+.auth-divider span {
+  padding: 0 var(--space-3);
+}
+
+.auth-back-link {
+  display: inline-block;
+  margin-top: var(--space-4);
+  color: var(--gray-600);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  transition: color var(--transition-fast);
+}
+
+.auth-back-link:hover {
+  color: var(--gray-900);
+}
+
+.auth-terms {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  text-align: center;
+  margin-top: var(--space-4);
+  line-height: 1.6;
+}
+
+/* User Type Selection */
+.user-type-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.user-type-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.user-type-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.user-type-card:hover {
+  border-color: var(--primary-500);
+  background: var(--gray-50);
+}
+
+.user-type-card.active {
+  border-color: var(--primary-600);
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.user-type-icon {
+  font-size: 2rem;
+}
+
+.user-type-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+.user-type-card.active .user-type-label {
+  color: var(--primary-600);
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .auth-page {
+    padding: var(--space-4);
+  }
+
+  .auth-container {
+    padding: var(--space-6);
+  }
+
+  .auth-title {
+    font-size: 1.75rem;
+  }
+
+  .user-type-options {
+    grid-template-columns: 1fr;
+  }
+
+  .user-type-card {
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+}

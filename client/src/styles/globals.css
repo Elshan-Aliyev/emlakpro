@@ -1,0 +1,330 @@
+/* GLOBAL DESIGN SYSTEM - Real Estate App */
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Manrope:wght@400;600;700&family=Nunito:wght@400;600;700&display=swap');
+
+:root {
+  /* Theme Variables - Dynamically set by ThemeContext */
+  /* New naming convention */
+  --theme-primary: #1D4ED8;
+  --theme-secondary: #0EA5E9;
+  --theme-background-low: #F8FAFC;
+  --theme-background-high: #FFFFFF;
+  --theme-button: #1D4ED8;
+  --theme-icon: #1E3A8A;
+  --theme-hover: #2563EB;
+  
+  /* Legacy support - old naming convention */
+  --theme-bg-lowest: #F8FAFC;
+  --theme-bg-higher: #FFFFFF;
+  --theme-button-primary: #1D4ED8;
+  --theme-button-secondary: #0EA5E9;
+  --theme-text: #1E293B;
+  --theme-text-light: #64748B;
+  --theme-border: #E2E8F0;
+  --theme-font: 'Inter', sans-serif;
+  --theme-border-radius: 8px;
+  --theme-card-shadow: 0 2px 8px rgba(30, 58, 138, 0.1);
+  --theme-card-shadow-hover: 0 8px 24px rgba(30, 58, 138, 0.15);
+  --theme-button-shadow: 0 2px 4px rgba(29, 78, 216, 0.2);
+  --theme-card-border-radius: 12px;
+  
+  /* Primary Color Palette */
+  --primary-500: #1E4E8C;
+  --primary-600: #163d6d;
+  --primary-700: #0f2d52;
+  --primary-800: #0a1f3a;
+  
+  /* Secondary Colors */
+  --secondary-500: #163d6d;
+  --secondary-600: #0f2d52;
+  
+  /* Neutral Colors */
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  
+  /* Status Colors */
+  --success-500: #10b981;
+  --success-600: #059669;
+  --error-500: #ef4444;
+  --error-600: #dc2626;
+  --warning-500: #f59e0b;
+  --warning-600: #d97706;
+  --info-500: #1E4E8C;
+  --info-600: #163d6d;
+  
+  /* Sponsored/Gold */
+  --gold-500: #fbbf24;
+  --gold-600: #f59e0b;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  
+  /* Transitions */
+  --transition-fast: 150ms ease-in-out;
+  --transition-normal: 250ms ease-in-out;
+  --transition-slow: 350ms ease-in-out;
+  
+  /* Border Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+  
+  /* Max Width */
+  --max-width: 1440px;
+  
+  /* Spacing Scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  
+  /* Z-Index Scale */
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-fixed: 1200;
+  --z-modal: 1300;
+  --z-popover: 1400;
+  --z-toast: 1500;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--theme-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--theme-text);
+  background-color: var(--theme-bg-lowest);
+  font-size: 16px;
+  line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Main layout wrapper */
+.main-layout {
+  position: relative;
+  min-height: 100vh;
+  padding-top: 80px;
+}
+
+/* Main content wrapper - starts below fixed navbar */
+.main-content {
+  min-height: calc(100vh - 80px);
+}
+
+/* Theme-specific body classes */
+body.theme-buy {
+  background-color: var(--theme-background-low);
+  font-family: 'Inter', sans-serif;
+}
+
+body.theme-rent {
+  background-color: var(--theme-background-low);
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Container System */
+.container {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: 0 var(--space-6);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding: 0 var(--space-8);
+  }
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: var(--space-4);
+  color: var(--gray-900);
+}
+
+h1 {
+  font-size: 2.5rem;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h3 {
+  font-size: 1.75rem;
+}
+
+h4 {
+  font-size: 1.5rem;
+}
+
+h5 {
+  font-size: 1.25rem;
+}
+
+h6 {
+  font-size: 1.125rem;
+}
+
+p {
+  margin-bottom: var(--space-4);
+}
+
+a {
+  color: var(--primary-600);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--primary-700);
+}
+
+/* Utility Classes */
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-4 {
+  gap: var(--space-4);
+}
+
+.gap-6 {
+  gap: var(--space-6);
+}
+
+.grid {
+  display: grid;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Responsive Utilities */
+@media (max-width: 767px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}
+
+/* Sponsored Badge */
+.sponsored-badge {
+  background: linear-gradient(135deg, var(--gold-500), var(--gold-600));
+  color: var(--gray-900);
+  font-weight: 600;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Loading Spinner */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--gray-200);
+  border-top-color: var(--primary-600);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gray-100);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gray-400);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-500);
+}
