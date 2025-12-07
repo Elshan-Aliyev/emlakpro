@@ -181,6 +181,8 @@ function App() {
         <Route path="/properties" element={<Navigate to="/" replace />} />
         <Route path="/dashboard" element={<Navigate to="/account" replace />} />
         <Route path="/profile" element={<Navigate to="/account/settings" replace />} />
+        <Route path="/favorites" element={<Navigate to="/account/saved" replace />} />
+        <Route path="/saved" element={<Navigate to="/account/saved" replace />} />
         
         {/* 404 - Not Found */}
         <Route path="*" element={<NotFound />} />
