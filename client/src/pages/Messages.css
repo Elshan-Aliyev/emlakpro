@@ -342,7 +342,7 @@
 
 @media (max-width: 768px) {
   .messages-page {
-    padding-top: 80px;
+    padding-top: 96px; /* Match main layout padding */
   }
 
   .messages-container {

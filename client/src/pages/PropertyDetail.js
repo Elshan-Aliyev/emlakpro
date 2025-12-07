@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { getProperty, sendMessage, getSavedProperties } from '../services/api';
+import { getProperty } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import SellerInfo from '../components/SellerInfo';
 import Badge from '../components/Badge';
 import PropertyMap from '../components/PropertyMap';
-import FavoriteButton from '../components/FavoriteButton';
 import './PropertyDetail.css';
 
 const PropertyDetail = () => {
@@ -15,27 +14,12 @@ const PropertyDetail = () => {
   const [showContactModal, setShowContactModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showLightbox, setShowLightbox] = useState(false);
-  const [messageContent, setMessageContent] = useState('');
-  const [sendingMessage, setSendingMessage] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
       try {
         const res = await getProperty(id);
         setProperty(res.data);
-        
-        // Check if property is in user's favorites
-        const token = localStorage.getItem('token');
-        if (token) {
-          try {
-            const savedRes = await getSavedProperties(token);
-            const isInFavorites = savedRes.data.some(p => p._id === id);
-            setIsFavorite(isInFavorites);
-          } catch (err) {
-            console.error('Error checking favorites:', err);
-          }
-        }
       } catch (err) {
         console.error(err);
         setError(err.response?.data?.message || 'Error fetching property');
@@ -51,37 +35,7 @@ const PropertyDetail = () => {
       navigate('/login');
       return;
     }
-    setMessageContent(`Hi, I'm interested in your property: ${property.title}`);
     setShowContactModal(true);
-  };
-
-  const handleSendMessage = async () => {
-    if (!messageContent.trim()) {
-      alert('Please enter a message');
-      return;
-    }
-
-    try {
-      setSendingMessage(true);
-      const token = localStorage.getItem('token');
-      
-      await sendMessage({
-        recipientId: property.ownerId._id,
-        propertyId: property._id,
-        content: messageContent,
-        subject: `Inquiry about ${property.title}`
-      }, token);
-
-      alert('Message sent successfully! Check your messages page.');
-      setShowContactModal(false);
-      setMessageContent('');
-      navigate('/messages');
-    } catch (err) {
-      console.error('Error sending message:', err);
-      alert(err.response?.data?.message || 'Failed to send message');
-    } finally {
-      setSendingMessage(false);
-    }
   };
 
   const getImageUrl = (image, size = 'large') => {
@@ -179,7 +133,7 @@ const PropertyDetail = () => {
   const hasImages = property.images && property.images.length > 0;
 
   return (
-    <>
+    <div className="property-detail-container">
       {/* Image Gallery */}
       {hasImages && (
         <div className="property-gallery">
@@ -254,11 +208,6 @@ const PropertyDetail = () => {
               <span className="badge primary">{statusMap[property.listingStatus] || property.listingStatus}</span>
               {property.negotiable && <span className="badge success">Negotiable</span>}
               {property.status && <span className="badge">{property.status}</span>}
-              <FavoriteButton 
-                propertyId={property._id}
-                initialIsFavorite={isFavorite}
-                onToggle={(_, newState) => setIsFavorite(newState)}
-              />
             </div>
           </div>
         </div>
@@ -588,6 +537,12 @@ const PropertyDetail = () => {
                 <span>{property.listingId}</span>
               </div>
             )}
+            {property.viewsCount > 0 && (
+              <div className="info-item">
+                <span className="info-label">Views:</span>
+                <span>{property.viewsCount}</span>
+              </div>
+            )}
           </div>
         </section>
 
@@ -601,48 +556,6 @@ const PropertyDetail = () => {
           />
         )}
       </div>
-
-      {/* Contact Modal */}
-      {showContactModal && (
-        <div className="modal-overlay" onClick={() => setShowContactModal(false)}>
-          <div className="modal-content contact-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowContactModal(false)}>✕</button>
-            <h3>Contact Property Owner</h3>
-            {property.ownerId && (
-              <p className="modal-subtitle">
-                Send a message to {property.ownerId.name || `${property.ownerId.firstName || ''} ${property.ownerId.lastName || ''}`.trim()}
-              </p>
-            )}
-            
-            <div className="contact-form">
-              <textarea
-                placeholder="Type your message here..."
-                value={messageContent}
-                onChange={(e) => setMessageContent(e.target.value)}
-                rows="6"
-                disabled={sendingMessage}
-              />
-              
-              <div className="modal-actions">
-                <button 
-                  onClick={() => setShowContactModal(false)}
-                  className="btn-secondary"
-                  disabled={sendingMessage}
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleSendMessage}
-                  className="btn-primary"
-                  disabled={sendingMessage || !messageContent.trim()}
-                >
-                  {sendingMessage ? 'Sending...' : 'Send Message'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {(isAdmin || isOwner) && (
         <div className="property-actions">
@@ -678,7 +591,7 @@ const PropertyDetail = () => {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 

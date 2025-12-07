@@ -8,11 +8,18 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   
-  // Role System (for admin access control only)
+  // Role System
   role: { 
     type: String, 
-    enum: ['guest', 'registered', 'admin', 'superadmin'], 
+    enum: ['guest', 'registered', 'realtor', 'corporate', 'admin', 'superadmin'], 
     default: 'registered' 
+  },
+  
+  // User Type (for frontend role display)
+  userType: {
+    type: String,
+    enum: ['buyer', 'seller', 'agent'],
+    default: 'buyer'
   },
   
   // Profile Info
@@ -21,13 +28,6 @@ const userSchema = new mongoose.Schema({
   profileImage: { type: String }, // URL to profile image
   bio: { type: String },
   
-  // Account Verification Tier
-  accountType: {
-    type: String,
-    enum: ['unverified-user', 'verified-user', 'verified-seller', 'realtor', 'corporate'],
-    default: 'unverified-user'
-  },
-  
   // Realtor/Corporate Specific Fields
   verified: { type: Boolean, default: false },
   licenseId: { type: String },
@@ -35,61 +35,6 @@ const userSchema = new mongoose.Schema({
   companyName: { type: String },
   companyLogo: { type: String },
   website: { type: String },
-  taxId: { type: String }, // For corporate accounts
-  
-  // Verification Application
-  verificationApplication: {
-    status: {
-      type: String,
-      enum: ['none', 'pending', 'approved', 'rejected'],
-      default: 'none'
-    },
-    requestedTier: {
-      type: String,
-      enum: ['verified-user', 'verified-seller', 'realtor', 'corporate']
-    },
-    submittedAt: { type: Date },
-    reviewedAt: { type: Date },
-    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    rejectionReason: { type: String },
-    
-    // Application Documents
-    documents: [{
-      type: { type: String }, // e.g., 'id', 'license', 'tax-document'
-      url: { type: String },
-      uploadedAt: { type: Date, default: Date.now }
-    }],
-    
-    // Application Data
-    applicationData: {
-      // For verified-user and verified-seller
-      fullName: { type: String },
-      idNumber: { type: String },
-      address: { type: String },
-      
-      // For realtor
-      licenseNumber: { type: String },
-      brokerageName: { type: String },
-      yearsExperience: { type: Number },
-      
-      // For corporate
-      companyRegistrationNumber: { type: String },
-      taxIdNumber: { type: String },
-      companyAddress: { type: String },
-      authorizedPersonName: { type: String },
-      authorizedPersonTitle: { type: String }
-    },
-    
-    // Payment
-    paymentStatus: {
-      type: String,
-      enum: ['pending', 'paid', 'failed'],
-      default: 'pending'
-    },
-    paymentAmount: { type: Number },
-    paymentDate: { type: Date },
-    paymentTransactionId: { type: String }
-  },
   
   // Corporate Account - Parent Company
   parentCompany: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

@@ -1,0 +1,617 @@
+/* Realtor Profile Page Styles */
+
+.realtor-profile-page {
+  min-height: 100vh;
+  background: var(--gray-50);
+}
+
+.loading-container,
+.error-container {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: var(--gray-600);
+}
+
+/* Header Section */
+.profile-header {
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.profile-banner {
+  padding: var(--space-8) 0;
+}
+
+.profile-info-wrapper {
+  display: flex;
+  gap: var(--space-6);
+  align-items: flex-start;
+}
+
+.profile-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.profile-avatar {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--primary-color);
+}
+
+.profile-badges {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.profile-main-info {
+  flex: 1;
+}
+
+.profile-name {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-2);
+  color: var(--text-primary);
+}
+
+.profile-company {
+  font-size: 1.2rem;
+  color: var(--gray-600);
+  margin-bottom: var(--space-3);
+}
+
+.profile-rating-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+}
+
+.star {
+  color: var(--gray-300);
+  font-size: 1.5rem;
+}
+
+.star.filled {
+  color: var(--warning-color);
+}
+
+.rating-number {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.review-count {
+  color: var(--gray-600);
+  font-size: 1rem;
+}
+
+.profile-quick-stats {
+  display: flex;
+  gap: var(--space-8);
+  margin-bottom: var(--space-6);
+}
+
+.quick-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--gray-600);
+}
+
+.profile-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+/* Tabs */
+.profile-tabs {
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  position: sticky;
+  top: 70px;
+  z-index: 10;
+}
+
+.tabs-nav {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.tab-btn {
+  padding: var(--space-4) var(--space-6);
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  color: var(--primary-color);
+}
+
+.tab-btn.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+/* Content */
+.profile-content {
+  padding: var(--space-8) 0;
+}
+
+/* About Section */
+.about-section {
+  margin-bottom: var(--space-6);
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-6);
+}
+
+.about-main h2,
+.about-sidebar h3 {
+  margin-bottom: var(--space-4);
+  color: var(--text-primary);
+}
+
+.bio {
+  line-height: 1.6;
+  color: var(--gray-700);
+  margin-bottom: var(--space-6);
+}
+
+.info-block {
+  margin-bottom: var(--space-6);
+}
+
+.info-block h3 {
+  font-size: 1.2rem;
+  margin-bottom: var(--space-3);
+  color: var(--text-primary);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.tag {
+  padding: var(--space-2) var(--space-3);
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.services-list {
+  list-style: none;
+  padding: 0;
+}
+
+.services-list li {
+  padding: var(--space-2) 0;
+  color: var(--gray-700);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.services-list li:last-child {
+  border-bottom: none;
+}
+
+/* Contact Info */
+.contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.contact-item {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.contact-item:last-child {
+  border-bottom: none;
+}
+
+.contact-label {
+  font-weight: 500;
+  color: var(--gray-600);
+}
+
+.contact-value {
+  color: var(--text-primary);
+}
+
+/* Message Box */
+.message-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.message-textarea {
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+  min-height: 120px;
+  transition: border-color 0.2s;
+}
+
+.message-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.1);
+}
+
+.message-textarea::placeholder {
+  color: var(--gray-400);
+}
+
+/* Stats */
+.stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.stat-item:last-child {
+  border-bottom: none;
+}
+
+.stat-item .stat-label {
+  color: var(--gray-600);
+  font-size: 0.95rem;
+}
+
+.stat-item .stat-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Properties Section */
+.properties-section {
+  margin-bottom: var(--space-6);
+}
+
+.properties-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+}
+
+.property-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-3);
+}
+
+.property-info h3 {
+  font-size: 1.2rem;
+  margin-bottom: var(--space-2);
+  color: var(--text-primary);
+}
+
+.property-location {
+  color: var(--gray-600);
+  font-size: 0.9rem;
+  margin-bottom: var(--space-2);
+}
+
+.property-price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: var(--space-3);
+}
+
+.property-details {
+  display: flex;
+  gap: var(--space-4);
+  color: var(--gray-600);
+  font-size: 0.9rem;
+}
+
+.sold-property {
+  position: relative;
+  opacity: 0.8;
+}
+
+.sold-badge {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  background: var(--danger-color);
+  color: white;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.9rem;
+  z-index: 1;
+}
+
+/* Reviews Section */
+.reviews-section {
+  margin-bottom: var(--space-6);
+}
+
+.reviews-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+}
+
+.overall-rating {
+  text-align: center;
+  padding: var(--space-6) 0;
+  border-bottom: 1px solid var(--gray-200);
+  margin-bottom: var(--space-4);
+}
+
+.big-rating {
+  display: block;
+  font-size: 4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.overall-rating .stars {
+  justify-content: center;
+  margin-bottom: var(--space-2);
+}
+
+.rating-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rating-bar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.bar-label {
+  min-width: 40px;
+  color: var(--gray-600);
+  font-size: 0.9rem;
+}
+
+.bar-container {
+  flex: 1;
+  height: 8px;
+  background: var(--gray-200);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--warning-color);
+  transition: width 0.3s;
+}
+
+.bar-count {
+  min-width: 30px;
+  text-align: right;
+  color: var(--gray-600);
+  font-size: 0.9rem;
+}
+
+/* Reviews List */
+.reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.review-card {
+  padding: var(--space-6);
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-4);
+}
+
+.reviewer-info {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.reviewer-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.reviewer-info h4 {
+  margin-bottom: var(--space-1);
+  color: var(--text-primary);
+}
+
+.review-date {
+  font-size: 0.85rem;
+  color: var(--gray-500);
+}
+
+.review-title {
+  font-size: 1.2rem;
+  margin-bottom: var(--space-2);
+  color: var(--text-primary);
+}
+
+.review-comment {
+  line-height: 1.6;
+  color: var(--gray-700);
+  margin-bottom: var(--space-4);
+}
+
+.detailed-ratings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-3);
+}
+
+.detailed-rating {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.detailed-rating span {
+  min-width: 130px;
+  color: var(--gray-600);
+  font-size: 0.9rem;
+}
+
+.detailed-rating .stars {
+  gap: 2px;
+}
+
+.detailed-rating .star {
+  font-size: 1rem;
+}
+
+.realtor-response {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  background: var(--primary-light);
+  border-left: 3px solid var(--primary-color);
+  border-radius: var(--radius-md);
+}
+
+.realtor-response h4 {
+  margin-bottom: var(--space-2);
+  color: var(--primary-color);
+  font-size: 1rem;
+}
+
+.realtor-response p {
+  color: var(--gray-700);
+  line-height: 1.5;
+}
+
+.response-date {
+  margin-top: var(--space-2);
+  font-size: 0.85rem;
+  color: var(--gray-500);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--gray-500);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .about-grid,
+  .reviews-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reviews-sidebar {
+    order: 2;
+  }
+
+  .reviews-main {
+    order: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-info-wrapper {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .profile-main-info {
+    width: 100%;
+  }
+
+  .profile-quick-stats {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+  }
+
+  .profile-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .profile-name {
+    font-size: 2rem;
+  }
+
+  .tabs-nav {
+    overflow-x: auto;
+  }
+
+  .properties-grid {
+    grid-template-columns: 1fr;
+  }
+}

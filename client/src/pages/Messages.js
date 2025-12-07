@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { getConversations, getConversationMessages, sendMessage, markMessagesAsRead } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 import './Messages.css';
 
 const Messages = () => {
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -73,7 +75,7 @@ const Messages = () => {
 
       await sendMessage({
         recipientId,
-        propertyId: selectedConversation.property._id,
+        propertyId: selectedConversation.property?._id || null,
         content: messageInput
       }, token);
 
@@ -106,7 +108,7 @@ const Messages = () => {
   };
 
   const getPropertyImage = (property) => {
-    if (!property?.images?.length) return null;
+    if (!property || !property.images || !property.images.length) return null;
     const image = property.images[0];
     if (typeof image === 'string') return image;
     return image.thumbnail || image.medium || image.large;
@@ -163,21 +165,21 @@ const Messages = () => {
                   >
                     <div className="conversation-avatar">
                       {getPropertyImage(conv.property) ? (
-                        <img src={getPropertyImage(conv.property)} alt={conv.property.title} />
+                        <img src={getPropertyImage(conv.property)} alt={conv.property?.title || 'Direct message'} />
                       ) : (
-                        '🏠'
+                        '💬'
                       )}
                     </div>
                     <div className="conversation-info">
                       <div className="conversation-header">
-                        <h3>{conv.otherUser.firstName} {conv.otherUser.lastName}</h3>
+                        <h3>{conv.otherUser?.firstName || 'Unknown'} {conv.otherUser?.lastName || 'User'}</h3>
                         <span className="conversation-time">
-                          {formatTime(conv.lastMessage.createdAt)}
+                          {formatTime(conv.lastMessage?.createdAt)}
                         </span>
                       </div>
-                      <p className="conversation-property">{conv.property.title}</p>
+                      <p className="conversation-property">{conv.property?.title || 'Direct Message'}</p>
                       <p className="conversation-preview">
-                        {conv.lastMessage.content}
+                        {conv.lastMessage?.content || ''}
                       </p>
                     </div>
                     {conv.unreadCount > 0 && (
@@ -196,9 +198,19 @@ const Messages = () => {
                 <div className="thread-header">
                   <div className="thread-info">
                     <h3>
-                      {selectedConversation.otherUser.firstName} {selectedConversation.otherUser.lastName}
+                      {selectedConversation.otherUser?.firstName || 'Unknown'} {selectedConversation.otherUser?.lastName || 'User'}
                     </h3>
-                    <p>{selectedConversation.property.title}</p>
+                    {selectedConversation.property ? (
+                      <p 
+                        className="property-link" 
+                        onClick={() => navigate(`/properties/${selectedConversation.property._id}`)}
+                        style={{ cursor: 'pointer', color: 'var(--theme-primary)', textDecoration: 'underline' }}
+                      >
+                        {selectedConversation.property.title}
+                      </p>
+                    ) : (
+                      <p>Direct Message</p>
+                    )}
                   </div>
                 </div>
                 
@@ -210,14 +222,17 @@ const Messages = () => {
                   ) : (
                     messages.map((msg) => {
                       const currentUserId = getCurrentUserId();
+                      const senderInitials = msg.sender?.firstName && msg.sender?.lastName 
+                        ? `${msg.sender.firstName[0]}${msg.sender.lastName[0]}`
+                        : '??';
                       return (
                         <div 
                           key={msg._id} 
-                          className={`message ${msg.sender._id === currentUserId ? 'sent' : 'received'}`}
+                          className={`message ${msg.sender?._id === currentUserId ? 'sent' : 'received'}`}
                         >
-                          {msg.sender._id !== currentUserId && (
+                          {msg.sender?._id !== currentUserId && (
                           <div className="message-avatar">
-                            {msg.sender.firstName[0]}{msg.sender.lastName[0]}
+                            {senderInitials}
                           </div>
                         )}
                         <div className="message-content">

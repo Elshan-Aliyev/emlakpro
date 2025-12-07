@@ -79,7 +79,7 @@ exports.getVerificationPricing = (req, res) => {
 // Submit verification application
 exports.submitVerificationApplication = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const { requestedTier, applicationData } = req.body;
 
     // Validate tier
@@ -133,7 +133,7 @@ exports.submitVerificationApplication = async (req, res) => {
 // Upload verification document
 exports.uploadVerificationDocument = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const { documentType, documentUrl } = req.body;
 
     const user = await User.findById(userId);
@@ -164,7 +164,7 @@ exports.uploadVerificationDocument = async (req, res) => {
 // Process payment (mock for now - integrate with payment gateway)
 exports.processVerificationPayment = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const { paymentMethod, transactionId } = req.body;
 
     const user = await User.findById(userId);
@@ -199,7 +199,7 @@ exports.processVerificationPayment = async (req, res) => {
 // Get current user's application status
 exports.getMyApplicationStatus = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const user = await User.findById(userId).select('accountType verificationApplication');
 
     res.json({
@@ -231,7 +231,7 @@ exports.getPendingApplications = async (req, res) => {
 exports.approveVerification = async (req, res) => {
   try {
     const { userId } = req.params;
-    const adminId = req.user._id;
+    const adminId = req.user.id;
 
     const user = await User.findById(userId);
     
@@ -280,7 +280,7 @@ exports.rejectVerification = async (req, res) => {
   try {
     const { userId } = req.params;
     const { reason } = req.body;
-    const adminId = req.user._id;
+    const adminId = req.user.id;
 
     const user = await User.findById(userId);
     

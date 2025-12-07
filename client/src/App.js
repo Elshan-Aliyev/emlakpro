@@ -13,15 +13,9 @@ import PropertyDetail from './pages/PropertyDetail';
 import NotFound from './pages/NotFound';
 import Search from './pages/Search';
 import Agents from './pages/Agents';
-import Privacy from './pages/Privacy';
-import Terms from './pages/Terms';
-import Help from './pages/Help';
-import Messages from './pages/Messages';
-import VerificationApplication from './pages/VerificationApplication';
 
 // User Dashboard
 import AccountDashboard from './pages/AccountDashboard';
-import AccountProfile from './pages/AccountProfile';
 import AccountListings from './pages/AccountListings';
 import AccountSaved from './pages/AccountSaved';
 import AccountSettings from './pages/AccountSettings';
@@ -62,15 +56,6 @@ function App() {
         />
         
         <Route
-          path="/account/profile"
-          element={
-            <ProtectedRoute>
-              <MainLayout><AccountProfile /></MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        
-        <Route
           path="/account/listings"
           element={
             <ProtectedRoute>
@@ -93,15 +78,6 @@ function App() {
           element={
             <ProtectedRoute>
               <MainLayout><AccountSettings /></MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        
-        <Route
-          path="/verification/apply"
-          element={
-            <ProtectedRoute>
-              <MainLayout><VerificationApplication /></MainLayout>
             </ProtectedRoute>
           }
         />
@@ -161,21 +137,10 @@ function App() {
           }
         />
         
-        {/* Messages Route */}
-        <Route
-          path="/messages"
-          element={<ProtectedRoute><MainLayout><Messages /></MainLayout></ProtectedRoute>}
-        />
-        
-        {/* Public Info Pages */}
-        <Route path="/privacy" element={<MainLayout><Privacy /></MainLayout>} />
-        <Route path="/terms" element={<MainLayout><Terms /></MainLayout>} />
-        <Route path="/help" element={<MainLayout><Help /></MainLayout>} />
-        
         {/* Legacy Redirects */}
         <Route path="/properties" element={<Navigate to="/" replace />} />
         <Route path="/dashboard" element={<Navigate to="/account" replace />} />
-        <Route path="/profile" element={<Navigate to="/account/profile" replace />} />
+        <Route path="/profile" element={<Navigate to="/account/settings" replace />} />
         
         {/* 404 - Not Found */}
         <Route path="*" element={<NotFound />} />

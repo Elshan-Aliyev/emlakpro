@@ -353,12 +353,15 @@
 }
 
 .btn-primary {
-  background: var(--brand-primary, #1e4e8c);
+  background: var(--theme-button, var(--theme-primary));
   color: white;
+  box-shadow: var(--theme-button-shadow);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--brand-shadow, #163a6b);
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--theme-card-shadow-hover);
 }
 
 .btn-primary:disabled {
@@ -367,12 +370,15 @@
 }
 
 .btn-secondary {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--theme-secondary, var(--theme-button-secondary));
+  color: white;
+  box-shadow: var(--theme-button-shadow);
 }
 
 .btn-secondary:hover {
-  background: #e0e0e0;
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: var(--theme-card-shadow-hover);
 }
 
 /* Loading */

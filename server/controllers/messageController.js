@@ -6,7 +6,23 @@ const User = require('../models/User');
 exports.sendMessage = async (req, res) => {
   try {
     const { recipientId, propertyId, content, subject } = req.body;
-    const senderId = req.user._id;
+    
+    // Validate user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+    
+    const senderId = req.user.id;
+
+    console.log('Message request:', { senderId, recipientId, propertyId, content: content?.substring(0, 50) });
+
+    // Validate required fields
+    if (!recipientId) {
+      return res.status(400).json({ message: 'Recipient ID is required' });
+    }
+    if (!content) {
+      return res.status(400).json({ message: 'Message content is required' });
+    }
 
     // Validate recipient exists
     const recipient = await User.findById(recipientId);
@@ -14,10 +30,16 @@ exports.sendMessage = async (req, res) => {
       return res.status(404).json({ message: 'Recipient not found' });
     }
 
-    // Validate property exists
-    const property = await Property.findById(propertyId);
-    if (!property) {
-      return res.status(404).json({ message: 'Property not found' });
+    let property = null;
+    let messageSubject = subject || 'Direct Message';
+
+    // If propertyId is provided, validate property
+    if (propertyId) {
+      property = await Property.findById(propertyId);
+      if (!property) {
+        return res.status(404).json({ message: 'Property not found' });
+      }
+      messageSubject = `Property Inquiry: ${property.title}`;
     }
 
     // Generate conversation ID
@@ -27,16 +49,16 @@ exports.sendMessage = async (req, res) => {
     const message = await Message.create({
       sender: senderId,
       recipient: recipientId,
-      property: propertyId,
-      content,
-      subject: subject || 'Property Inquiry',
+      property: propertyId || null,
+      content: content,
+      subject: messageSubject,
       conversationId
     });
 
     // Populate before sending response
     await message.populate([
-      { path: 'sender', select: 'firstName lastName email' },
-      { path: 'recipient', select: 'firstName lastName email' },
+      { path: 'sender', select: 'firstName lastName email role company profileImage avatar' },
+      { path: 'recipient', select: 'firstName lastName email role company profileImage avatar' },
       { path: 'property', select: 'title address price images' }
     ]);
 
@@ -50,14 +72,14 @@ exports.sendMessage = async (req, res) => {
 // Get all conversations for the logged-in user
 exports.getConversations = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     // Get all messages where user is sender or recipient
     const messages = await Message.find({
       $or: [{ sender: userId }, { recipient: userId }]
     })
-      .populate('sender', 'firstName lastName email')
-      .populate('recipient', 'firstName lastName email')
+      .populate('sender', 'firstName lastName email role company profileImage avatar')
+      .populate('recipient', 'firstName lastName email role company profileImage avatar')
       .populate('property', 'title address price images')
       .sort({ createdAt: -1 });
 
@@ -67,14 +89,27 @@ exports.getConversations = async (req, res) => {
     messages.forEach(message => {
       if (!conversationMap.has(message.conversationId)) {
         // Determine the other user in the conversation
-        const otherUser = message.sender._id.toString() === userId.toString() 
+        const senderId = message.sender?._id?.toString() || message.sender?.toString();
+        const otherUser = senderId === userId.toString() 
           ? message.recipient 
           : message.sender;
+        
+        console.log('Debug message:', { 
+          senderId, 
+          userId,
+          senderObj: message.sender,
+          recipientObj: message.recipient
+        });
+        console.log('Conversation otherUser:', { 
+          id: otherUser?._id, 
+          firstName: otherUser?.firstName, 
+          lastName: otherUser?.lastName 
+        });
         
         // Count unread messages in this conversation
         const unreadCount = messages.filter(m => 
           m.conversationId === message.conversationId &&
-          m.recipient._id.toString() === userId.toString() &&
+          m.recipient?._id?.toString() === userId.toString() &&
           !m.read
         ).length;
 
@@ -100,11 +135,11 @@ exports.getConversations = async (req, res) => {
 exports.getConversationMessages = async (req, res) => {
   try {
     const { conversationId } = req.params;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     const messages = await Message.find({ conversationId })
-      .populate('sender', 'firstName lastName email')
-      .populate('recipient', 'firstName lastName email')
+      .populate('sender', 'firstName lastName email role company profileImage avatar')
+      .populate('recipient', 'firstName lastName email role company profileImage avatar')
       .populate('property', 'title address price images')
       .sort({ createdAt: 1 });
 
@@ -131,7 +166,7 @@ exports.getConversationMessages = async (req, res) => {
 exports.markAsRead = async (req, res) => {
   try {
     const { conversationId } = req.params;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     const result = await Message.updateMany(
       {
@@ -155,7 +190,7 @@ exports.markAsRead = async (req, res) => {
 // Get unread message count
 exports.getUnreadCount = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     const count = await Message.countDocuments({
       recipient: userId,
@@ -173,7 +208,7 @@ exports.getUnreadCount = async (req, res) => {
 exports.deleteMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     const message = await Message.findById(messageId);
     

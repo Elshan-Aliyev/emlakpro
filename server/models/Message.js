@@ -13,17 +13,18 @@ const messageSchema = new mongoose.Schema({
     required: true
   },
   
-  // Related property
+  // Related property (optional - null for direct messages)
   property: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Property',
-    required: true
+    required: false,
+    default: null
   },
   
   // Message content
   subject: {
     type: String,
-    default: 'Property Inquiry'
+    default: 'Direct Message'
   },
   content: {
     type: String,
@@ -62,10 +63,19 @@ messageSchema.index({ sender: 1, recipient: 1, property: 1 });
 messageSchema.index({ recipient: 1, read: 1 });
 
 // Static method to generate conversation ID
-messageSchema.statics.generateConversationId = function(userId1, userId2, propertyId) {
+messageSchema.statics.generateConversationId = function(userId1, userId2, propertyId = null) {
+  // Validate user IDs
+  if (!userId1 || !userId2) {
+    throw new Error('Both user IDs are required to generate conversation ID');
+  }
+  
   // Sort user IDs to ensure consistent conversation ID regardless of who sends first
   const sortedIds = [userId1.toString(), userId2.toString()].sort();
-  return `${sortedIds[0]}_${sortedIds[1]}_${propertyId}`;
+  if (propertyId) {
+    return `${sortedIds[0]}_${sortedIds[1]}_${propertyId}`;
+  }
+  // For direct messages without property context
+  return `${sortedIds[0]}_${sortedIds[1]}_direct`;
 };
 
 module.exports = mongoose.model('Message', messageSchema);

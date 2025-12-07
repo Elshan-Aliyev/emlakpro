@@ -12,6 +12,7 @@ export default function SignUp() {
     email: '',
     password: '',
     confirmPassword: '',
+    userType: 'buyer', // buyer, seller, agent
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -77,6 +78,7 @@ export default function SignUp() {
         name: formData.name,
         email: formData.email,
         password: formData.password,
+        userType: formData.userType,
       });
       
       if (result.success) {
@@ -162,6 +164,49 @@ export default function SignUp() {
             leftIcon={<span>🔒</span>}
             required
           />
+
+          <div className="input-wrapper">
+            <label className="input-label">
+              I am a <span className="input-required">*</span>
+            </label>
+            <div className="user-type-options">
+              <label className={`user-type-card ${formData.userType === 'buyer' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="userType"
+                  value="buyer"
+                  checked={formData.userType === 'buyer'}
+                  onChange={handleChange}
+                />
+                <span className="user-type-icon">🔍</span>
+                <span className="user-type-label">Buyer</span>
+              </label>
+
+              <label className={`user-type-card ${formData.userType === 'seller' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="userType"
+                  value="seller"
+                  checked={formData.userType === 'seller'}
+                  onChange={handleChange}
+                />
+                <span className="user-type-icon">🏠</span>
+                <span className="user-type-label">Seller</span>
+              </label>
+
+              <label className={`user-type-card ${formData.userType === 'agent' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="userType"
+                  value="agent"
+                  checked={formData.userType === 'agent'}
+                  onChange={handleChange}
+                />
+                <span className="user-type-icon">💼</span>
+                <span className="user-type-label">Agent</span>
+              </label>
+            </div>
+          </div>
 
           <Button
             type="submit"
