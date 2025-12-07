@@ -154,4 +154,79 @@ export const initializeSettings = (token) =>
     headers: { Authorization: `Bearer ${token}` }
   });
 
+// ==================== ARTICLES API ====================
+export const getArticles = (params) => api.get('/articles', { params });
+
+export const getArticleBySlug = (slug) => api.get(`/articles/${slug}`);
+
+export const getAdminArticles = (token) =>
+  api.get('/articles/admin/all', { headers: { Authorization: `Bearer ${token}` } });
+
+export const createArticle = (data, token) =>
+  api.post('/articles', data, { headers: { Authorization: `Bearer ${token}` } });
+
+export const updateArticle = (id, data, token) =>
+  api.put(`/articles/${id}`, data, { headers: { Authorization: `Bearer ${token}` } });
+
+export const deleteArticle = (id, token) =>
+  api.delete(`/articles/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+
+export const uploadArticleImage = (formData, token) =>
+  api.post('/articles/upload-image', formData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+
+export const incrementArticleViews = (id) => api.post(`/articles/${id}/view`);
+
+export const toggleArticleLike = (id, token) =>
+  api.post(`/articles/${id}/like`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+// ==================== MESSAGES API ====================
+export const getConversations = (token) =>
+  api.get('/messages/conversations', { headers: { Authorization: `Bearer ${token}` } });
+
+export const getConversationMessages = (userId, token) =>
+  api.get(`/messages/conversation/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
+
+export const sendMessage = (data, token) =>
+  api.post('/messages', data, { headers: { Authorization: `Bearer ${token}` } });
+
+export const markMessagesAsRead = (userId, token) =>
+  api.put(`/messages/read/${userId}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+// ==================== REVIEWS API ====================
+export const getRealtorReviews = (realtorId) => api.get(`/reviews/realtor/${realtorId}`);
+
+export const createReview = (data, token) =>
+  api.post('/reviews', data, { headers: { Authorization: `Bearer ${token}` } });
+
+// ==================== REALTORS API ====================
+export const getRealtors = (params) => api.get('/users/realtors', { params });
+
+export const getUserById = (id) => api.get(`/users/${id}`);
+
+// ==================== VERIFICATION API ====================
+export const getVerificationPricing = (token) =>
+  api.get('/verification/pricing', { headers: { Authorization: `Bearer ${token}` } });
+
+export const getMyApplicationStatus = (token) =>
+  api.get('/verification/my-application', { headers: { Authorization: `Bearer ${token}` } });
+
+export const submitVerificationApplication = (data, token) =>
+  api.post('/verification/apply', data, { headers: { Authorization: `Bearer ${token}` } });
+
+export const uploadVerificationDocument = (formData, token) =>
+  api.post('/verification/upload-document', formData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+
+export const processVerificationPayment = (data, token) =>
+  api.post('/verification/payment', data, { headers: { Authorization: `Bearer ${token}` } });
+
 export default api;
