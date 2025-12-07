@@ -11,6 +11,8 @@ const imageRoutes = require('./routes/imageRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const verificationRoutes = require('./routes/verificationRoutes');
+const articleRoutes = require('./routes/articleRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 
 const app = express();
 
@@ -27,6 +29,8 @@ app.use('/api/images', imageRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/verification', verificationRoutes);
+app.use('/api/articles', articleRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 app.get('/', (req, res) => res.send('Temsilcim API running'));
 

@@ -13,6 +13,13 @@ import PropertyDetail from './pages/PropertyDetail';
 import NotFound from './pages/NotFound';
 import Search from './pages/Search';
 import Agents from './pages/Agents';
+import Resources from './pages/Resources';
+import ArticleDetail from './pages/ArticleDetail';
+import FindRealtor from './pages/FindRealtor';
+import RealtorProfile from './pages/RealtorProfile';
+import Advertise from './pages/Advertise';
+import Messages from './pages/Messages';
+import VerificationApplication from './pages/VerificationApplication';
 
 // User Dashboard
 import AccountDashboard from './pages/AccountDashboard';
@@ -27,6 +34,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminListings from './pages/AdminListings';
 import AdminUsers from './pages/AdminUsers';
 import AdminSettings from './pages/AdminSettings';
+import AdminArticles from './pages/AdminArticles';
 
 function App() {
   return (
@@ -36,6 +44,11 @@ function App() {
         <Route path="/" element={<MainLayout><HomeNew /></MainLayout>} />
         <Route path="/search" element={<MainLayout><Search /></MainLayout>} />
         <Route path="/agents" element={<MainLayout><Agents /></MainLayout>} />
+        <Route path="/resources" element={<MainLayout><Resources /></MainLayout>} />
+        <Route path="/resources/:id" element={<MainLayout><ArticleDetail /></MainLayout>} />
+        <Route path="/find-realtor" element={<MainLayout><FindRealtor /></MainLayout>} />
+        <Route path="/realtor/:id" element={<MainLayout><RealtorProfile /></MainLayout>} />
+        <Route path="/advertise" element={<MainLayout><Advertise /></MainLayout>} />
         <Route path="/listing/:id" element={<MainLayout><PropertyDetail /></MainLayout>} />
         <Route path="/properties/:id" element={<MainLayout><PropertyDetail /></MainLayout>} />
         
@@ -78,6 +91,24 @@ function App() {
           element={
             <ProtectedRoute>
               <MainLayout><AccountSettings /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/messages"
+          element={
+            <ProtectedRoute>
+              <MainLayout><Messages /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/verification-application"
+          element={
+            <ProtectedRoute>
+              <MainLayout><VerificationApplication /></MainLayout>
             </ProtectedRoute>
           }
         />
@@ -133,6 +164,15 @@ function App() {
           element={
             <ProtectedRoute requireAdmin>
               <MainLayout><AdminSettings /></MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/admin/articles"
+          element={
+            <ProtectedRoute requireAdmin>
+              <MainLayout><AdminArticles /></MainLayout>
             </ProtectedRoute>
           }
         />

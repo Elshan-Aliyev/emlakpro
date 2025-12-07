@@ -268,6 +268,9 @@ const Navbar = () => {
             
             {/* Agents */}
             <Link to="/agents" className="nav-link">Agents</Link>
+            
+            {/* Resources */}
+            <Link to="/resources" className="nav-link">Resources</Link>
           </div>
         </div>
 
@@ -281,11 +284,15 @@ const Navbar = () => {
               
               <div className="account-dropdown">
                 <button 
-                  className="nav-icon-btn account-btn"
+                  className="nav-icon-btn account-btn hamburger-menu"
                   onClick={() => setShowAccountMenu(!showAccountMenu)}
-                  title="My Account"
+                  title="Menu"
                 >
-                  👤
+                  <div className="hamburger-icon">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
                 </button>
                 
                 {showAccountMenu && (
