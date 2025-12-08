@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getProperty } from '../services/api';
+import { getProperty, sendMessage } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import SellerInfo from '../components/SellerInfo';
 import Badge from '../components/Badge';
@@ -14,6 +14,9 @@ const PropertyDetail = () => {
   const [showContactModal, setShowContactModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showLightbox, setShowLightbox] = useState(false);
+  const [messageContent, setMessageContent] = useState('');
+  const [messageSending, setMessageSending] = useState(false);
+  const [messageError, setMessageError] = useState('');
 
   useEffect(() => {
     const fetch = async () => {
@@ -36,6 +39,36 @@ const PropertyDetail = () => {
       return;
     }
     setShowContactModal(true);
+    setMessageContent('');
+    setMessageError('');
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageContent.trim()) {
+      setMessageError('Please enter a message');
+      return;
+    }
+
+    setMessageSending(true);
+    setMessageError('');
+
+    try {
+      const token = localStorage.getItem('token');
+      await sendMessage({
+        recipientId: property.ownerId._id,
+        propertyId: property._id,
+        content: messageContent
+      }, token);
+      
+      alert('Message sent successfully!');
+      setShowContactModal(false);
+      setMessageContent('');
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setMessageError(err.response?.data?.message || 'Failed to send message');
+    } finally {
+      setMessageSending(false);
+    }
   };
 
   const getImageUrl = (image, size = 'large') => {
@@ -563,12 +596,42 @@ const PropertyDetail = () => {
         </div>
       )}
 
-      {showContactModal && (
+      {showContactModal && property && (
         <div className="modal-overlay" onClick={() => setShowContactModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>Contact Property Owner</h3>
-            <p>Contact functionality will be implemented here.</p>
-            <button onClick={() => setShowContactModal(false)}>Close</button>
+          <div className="modal-content contact-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowContactModal(false)}>✕</button>
+            <h3>Send Message to Property Owner</h3>
+            <div className="modal-property-info">
+              <p className="property-title">{property.title}</p>
+              <p className="property-price">{property.currency || 'AZN'} {property.price?.toLocaleString()}</p>
+            </div>
+            <div className="message-form">
+              <label>Your Message:</label>
+              <textarea
+                value={messageContent}
+                onChange={(e) => setMessageContent(e.target.value)}
+                placeholder="Hi, I'm interested in this property. Please provide more information."
+                rows="6"
+                disabled={messageSending}
+              />
+              {messageError && <p className="error-message">{messageError}</p>}
+              <div className="modal-actions">
+                <button 
+                  onClick={() => setShowContactModal(false)} 
+                  className="btn-secondary"
+                  disabled={messageSending}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleSendMessage} 
+                  className="btn-primary"
+                  disabled={messageSending || !messageContent.trim()}
+                >
+                  {messageSending ? 'Sending...' : 'Send Message'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

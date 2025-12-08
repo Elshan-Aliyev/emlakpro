@@ -327,7 +327,6 @@
   min-width: 240px;
   max-height: 80vh;
   overflow-y: auto;
-  overflow: hidden;
   animation: dropdownFade 0.2s ease;
   border: 1px solid var(--theme-border);
   z-index: 1500;

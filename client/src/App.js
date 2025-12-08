@@ -20,6 +20,16 @@ import RealtorProfile from './pages/RealtorProfile';
 import Advertise from './pages/Advertise';
 import Messages from './pages/Messages';
 import VerificationApplication from './pages/VerificationApplication';
+import Help from './pages/Help';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
+
+// Service Pages
+import PrepareContract from './pages/PrepareContract';
+import BookPhotoshoot from './pages/BookPhotoshoot';
+import DigitalStaging from './pages/DigitalStaging';
+import ListProperty from './pages/ListProperty';
+import ShortTermRental from './pages/ShortTermRental';
 
 // User Dashboard
 import AccountDashboard from './pages/AccountDashboard';
@@ -49,6 +59,17 @@ function App() {
         <Route path="/find-realtor" element={<MainLayout><FindRealtor /></MainLayout>} />
         <Route path="/realtor/:id" element={<MainLayout><RealtorProfile /></MainLayout>} />
         <Route path="/advertise" element={<MainLayout><Advertise /></MainLayout>} />
+        <Route path="/help" element={<MainLayout><Help /></MainLayout>} />
+        <Route path="/privacy" element={<MainLayout><Privacy /></MainLayout>} />
+        <Route path="/terms" element={<MainLayout><Terms /></MainLayout>} />
+        
+        {/* Service Routes */}
+        <Route path="/services/contracts" element={<MainLayout><PrepareContract /></MainLayout>} />
+        <Route path="/services/photoshoot" element={<MainLayout><BookPhotoshoot /></MainLayout>} />
+        <Route path="/services/staging" element={<MainLayout><DigitalStaging /></MainLayout>} />
+        <Route path="/services/list-property" element={<MainLayout><ListProperty /></MainLayout>} />
+        <Route path="/services/short-term-rental" element={<MainLayout><ShortTermRental /></MainLayout>} />
+        
         <Route path="/listing/:id" element={<MainLayout><PropertyDetail /></MainLayout>} />
         <Route path="/properties/:id" element={<MainLayout><PropertyDetail /></MainLayout>} />
         

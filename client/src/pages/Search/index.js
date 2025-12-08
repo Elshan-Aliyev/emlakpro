@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { getProperties } from '../../services/api';
+import { getProperties, getSavedProperties } from '../../services/api';
 import PropertyMap from '../../components/PropertyMap';
 import PropertyModal from '../../components/PropertyModal';
-import SearchBar from '../../components/SearchBar';
+import FilterBar from '../../components/FilterBar';
 import Button from '../../components/Button';
 import Badge from '../../components/Badge';
+import FavoriteButton from '../../components/FavoriteButton';
 import './Search.css';
 
 const Search = () => {
@@ -15,6 +16,7 @@ const Search = () => {
   // State
   const [properties, setProperties] = useState([]);
   const [filteredProperties, setFilteredProperties] = useState([]);
+  const [savedPropertyIds, setSavedPropertyIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [mapHidden, setMapHidden] = useState(window.innerWidth < 768);
   const [hoveredPropertyId, setHoveredPropertyId] = useState(null);
@@ -59,9 +61,24 @@ const Search = () => {
       }
     };
     fetchProperties();
+    
+    // Fetch saved properties if user is logged in
+    const fetchSavedProperties = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const res = await getSavedProperties(token);
+          const savedIds = new Set(res.data.map(p => p._id));
+          setSavedPropertyIds(savedIds);
+        } catch (err) {
+          console.error('Error fetching saved properties', err);
+        }
+      }
+    };
+    fetchSavedProperties();
   }, []);
 
-  // Sync state with URL params when they change
+  // Sync state with URL params when they change - read from URL always
   useEffect(() => {
     const listingStatus = searchParams.get('listingStatus');
     const urlPurpose = searchParams.get('purpose');
@@ -75,28 +92,38 @@ const Search = () => {
     const urlSortBy = searchParams.get('sortBy');
     const urlShowSold = searchParams.get('showSold');
     const urlView = searchParams.get('view');
-    const urlPaymentFreq = searchParams.get('paymentFrequency');
-    const urlSubCategory = searchParams.get('subCategory');
+    const urlParking = searchParams.get('parking');
+    const urlBalcony = searchParams.get('balcony');
+    const urlPetFriendly = searchParams.get('petFriendly');
+    const urlFurnished = searchParams.get('furnished');
+    const urlNewConstruction = searchParams.get('newConstruction');
+    const urlOwnerListedOnly = searchParams.get('ownerListedOnly');
 
     if (listingStatus === 'for-sale') {
       setListingType('buy');
     } else if (listingStatus === 'for-rent') {
       setListingType('rent');
     } else if (listingStatus === 'new-project') {
-      setListingType('buy'); // New projects are typically sales
+      setListingType('buy');
     }
 
-    if (urlPurpose) setPurpose(urlPurpose);
-    if (urlPropertyType) setPropertyType(urlPropertyType);
-    if (urlBedrooms) setBedrooms(urlBedrooms);
-    if (urlBathrooms) setBathrooms(urlBathrooms);
-    if (urlPriceMin) setPriceMin(urlPriceMin);
-    if (urlPriceMax) setPriceMax(urlPriceMax);
-    if (urlAreaMin) setAreaMin(urlAreaMin);
-    if (urlAreaMax) setAreaMax(urlAreaMax);
-    if (urlSortBy) setSortBy(urlSortBy);
-    if (urlShowSold) setShowSold(urlShowSold === 'true');
-    if (urlView) setViewMode(urlView);
+    setPurpose(urlPurpose || '');
+    setPropertyType(urlPropertyType || '');
+    setBedrooms(urlBedrooms || '');
+    setBathrooms(urlBathrooms || '');
+    setPriceMin(urlPriceMin || '');
+    setPriceMax(urlPriceMax || '');
+    setAreaMin(urlAreaMin || '');
+    setAreaMax(urlAreaMax || '');
+    setSortBy(urlSortBy || 'newest');
+    setShowSold(urlShowSold === 'true');
+    setViewMode(urlView || 'map');
+    setParking(urlParking === 'true');
+    setBalcony(urlBalcony === 'true');
+    setPetFriendly(urlPetFriendly === 'true');
+    setFurnished(urlFurnished === 'true');
+    setNewConstruction(urlNewConstruction === 'true');
+    setOwnerListedOnly(urlOwnerListedOnly === 'true');
   }, [searchParams]);
 
   // Apply filters
@@ -208,6 +235,54 @@ const Search = () => {
     setFilteredProperties(filtered);
   }, [properties, listingType, purpose, propertyType, priceMin, priceMax, bedrooms, bathrooms, areaMin, areaMax, sortBy, parking, balcony, petFriendly, furnished, newConstruction, ownerListedOnly, showSold, searchParams]);
 
+  // Favorite toggle handler
+  const handleFavoriteToggle = (propertyId, isFavorite) => {
+    setSavedPropertyIds(prev => {
+      const newSet = new Set(prev);
+      if (isFavorite) {
+        newSet.add(propertyId);
+      } else {
+        newSet.delete(propertyId);
+      }
+      return newSet;
+    });
+  };
+
+  // Update URL with current filter state
+  const updateURL = useCallback((updates) => {
+    const params = new URLSearchParams(searchParams);
+    
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === '' || value === null || value === undefined || value === false) {
+        params.delete(key);
+      } else if (value === true) {
+        params.set(key, 'true');
+      } else {
+        params.set(key, value);
+      }
+    });
+    
+    setSearchParams(params, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  // Clear individual filter
+  const clearFilter = useCallback((filterName) => {
+    const updates = { [filterName]: '' };
+    updateURL(updates);
+  }, [updateURL]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    const listingStatus = searchParams.get('listingStatus');
+    const purpose = searchParams.get('purpose');
+    
+    const params = new URLSearchParams();
+    if (listingStatus) params.set('listingStatus', listingStatus);
+    if (purpose) params.set('purpose', purpose);
+    
+    setSearchParams(params, { replace: true });
+  };
+
   const handleLocationSelect = useCallback((location) => {
     if (location.center) {
       setMapCenter(location.center);
@@ -221,27 +296,11 @@ const Search = () => {
     return image.thumbnail || image.medium || image.large;
   };
 
-  const clearFilters = () => {
-    setListingType('buy');
-    setPurpose('');
-    setPropertyType('');
-    setPriceMin('');
-    setPriceMax('');
-    setBedrooms('');
-    setBathrooms('');
-    setAreaMin('');
-    setAreaMax('');
-    setParking(false);
-    setBalcony(false);
-    setPetFriendly(false);
-    setFurnished(false);
-    setNewConstruction(false);
-    setOwnerListedOnly(false);
-    setShowSold(false);
-  };
-
   return (
     <div className="search-page">
+      {/* Filter Bar */}
+      <FilterBar />
+      
       {/* Main Content */}
       <div className="search-content">
         {/* Listings Panel - Show in list view or alongside map */}
@@ -281,6 +340,13 @@ const Search = () => {
                       )}
                       <div className="listing-badge">
                         <Badge type={property.listingBadge || 'for-sale-by-owner'} size="small" />
+                      </div>
+                      <div className="listing-favorite">
+                        <FavoriteButton
+                          propertyId={property._id}
+                          initialIsFavorite={savedPropertyIds.has(property._id)}
+                          onToggle={handleFavoriteToggle}
+                        />
                       </div>
                     </div>
 
@@ -343,6 +409,13 @@ const Search = () => {
                         )}
                         <div className="listing-badge">
                           <Badge type={property.listingBadge || 'for-sale-by-owner'} size="small" />
+                        </div>
+                        <div className="listing-favorite">
+                          <FavoriteButton
+                            propertyId={property._id}
+                            initialIsFavorite={savedPropertyIds.has(property._id)}
+                            onToggle={handleFavoriteToggle}
+                          />
                         </div>
                       </div>
 

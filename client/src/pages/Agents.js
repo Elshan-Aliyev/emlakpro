@@ -162,9 +162,9 @@ const Agents = () => {
 
                   <button
                     className="view-listings-btn"
-                    onClick={() => navigate(`/search?agent=${agent._id}`)}
+                    onClick={() => navigate(`/realtor/${agent._id}`)}
                   >
-                    View Listings
+                    View Profile
                   </button>
                 </div>
               ))}

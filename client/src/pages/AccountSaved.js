@@ -83,7 +83,7 @@ const AccountSaved = () => {
               <div className="empty-state-icon">❤️</div>
               <h3>No Saved Properties</h3>
               <p>Start saving properties to view them here later</p>
-              <Link to="/buy">
+              <Link to="/search">
                 <Button>Browse Properties</Button>
               </Link>
             </div>
@@ -116,7 +116,7 @@ const AccountSaved = () => {
               <p style={{ color: 'var(--gray-600)', marginBottom: 'var(--space-4)' }}>
                 Showing {savedProperties.length} saved {savedProperties.length === 1 ? 'property' : 'properties'}
               </p>
-              <Link to="/buy">
+              <Link to="/search">
                 <Button variant="outline">Browse More Properties</Button>
               </Link>
             </div>

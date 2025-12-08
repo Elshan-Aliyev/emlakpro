@@ -22,6 +22,13 @@ const userSchema = new mongoose.Schema({
     default: 'buyer'
   },
   
+  // Account Type (for admin management)
+  accountType: {
+    type: String,
+    enum: ['unverified-user', 'verified-user', 'verified-seller', 'realtor', 'corporate'],
+    default: 'unverified-user'
+  },
+  
   // Profile Info
   phone: { type: String },
   avatar: { type: String }, // Also known as profileImage

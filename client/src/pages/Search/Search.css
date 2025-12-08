@@ -4,8 +4,15 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  padding-top: 80px; /* Navbar height */
+}
+
+/* Search Content - starts right below filter bar */
+.search-content {
+  display: flex;
+  flex: 1;
+  position: relative;
   overflow: hidden;
-  padding-top: 80px;
 }
 
 /* Filter Bar */
@@ -154,12 +161,14 @@
 
 /* Listings Panel */
 .listings-panel {
-  width: 40%;
+  width: 30%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: white;
-  border-right: 1px solid var(--gray-200);
+  border-right: 2px solid var(--gray-200);
   transition: width var(--transition-normal);
+  overflow: hidden;
 }
 
 .listings-panel.full-width {
@@ -172,6 +181,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: white;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
 }
 
 .listings-info h2 {
@@ -277,6 +290,13 @@
   left: var(--space-3);
 }
 
+.listing-favorite {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 10;
+}
+
 .listing-card-content {
   padding: var(--space-4);
 }
@@ -356,15 +376,21 @@
 
 /* Map Panel */
 .map-panel {
-  flex: 1;
+  width: 70%;
+  height: 100%;
   position: relative;
   background: var(--gray-100);
+  overflow: hidden;
 }
 
 /* Mobile Responsive */
 @media (max-width: 1024px) {
   .listings-panel {
-    width: 50%;
+    width: 40%;
+  }
+  
+  .map-panel {
+    width: 60%;
   }
 }
 
@@ -373,21 +399,34 @@
     display: block;
   }
 
+  .search-page {
+    padding-top: 80px;
+  }
+
   .search-content {
+    flex-direction: column;
     position: relative;
+    height: calc(100vh - 80px - 30px); /* 30px for collapsed filter toggle */
   }
 
   .listings-panel {
     width: 100%;
+    height: 60%;
+    border-right: none;
+    border-bottom: 2px solid var(--gray-200);
+    flex-shrink: 0;
   }
 
   .map-panel {
-    position: fixed;
-    top: 140px;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 90;
+    width: 100%;
+    height: 40%;
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: 1;
+    flex-shrink: 0;
   }
 
   .filters-container {

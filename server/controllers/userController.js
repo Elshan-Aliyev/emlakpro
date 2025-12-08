@@ -18,7 +18,7 @@ exports.getUsers = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
-    const { name, email, lastName, role } = req.body;
+    const { name, email, lastName, role, accountType, isActive } = req.body;
     const targetUser = await User.findById(req.params.id);
     if (!targetUser) return res.status(404).json({ message: 'User not found' });
     
@@ -53,6 +53,15 @@ exports.updateUser = async (req, res) => {
     if (lastName !== undefined) targetUser.lastName = lastName;
     if (email) targetUser.email = email;
     
+    // Account type and status (admin/superadmin only)
+    if (accountType !== undefined && (isAdmin || isSuperAdmin)) {
+      targetUser.accountType = accountType;
+    }
+    
+    if (isActive !== undefined && (isAdmin || isSuperAdmin)) {
+      targetUser.isActive = isActive;
+    }
+    
     // Role changes
     if (role !== undefined) {
       // Regular users cannot change roles
@@ -62,7 +71,7 @@ exports.updateUser = async (req, res) => {
       
       // Admin can set roles except superadmin
       if (isAdmin && !isSuperAdmin) {
-        if (['guest', 'user', 'realtor', 'corporate', 'admin'].includes(role)) {
+        if (['guest', 'registered', 'realtor', 'corporate', 'admin'].includes(role)) {
           targetUser.role = role;
         } else {
           return res.status(403).json({ message: 'Cannot assign superadmin role' });
@@ -71,7 +80,7 @@ exports.updateUser = async (req, res) => {
       
       // Superadmin can set any role
       if (isSuperAdmin) {
-        if (['guest', 'user', 'realtor', 'corporate', 'admin', 'superadmin'].includes(role)) {
+        if (['guest', 'registered', 'realtor', 'corporate', 'admin', 'superadmin'].includes(role)) {
           targetUser.role = role;
         } else {
           return res.status(400).json({ message: 'Invalid role value' });

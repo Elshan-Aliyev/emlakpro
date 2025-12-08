@@ -57,8 +57,8 @@ exports.sendMessage = async (req, res) => {
 
     // Populate before sending response
     await message.populate([
-      { path: 'sender', select: 'firstName lastName email role company profileImage avatar' },
-      { path: 'recipient', select: 'firstName lastName email role company profileImage avatar' },
+      { path: 'sender', select: 'name lastName email role companyName profileImage avatar' },
+      { path: 'recipient', select: 'name lastName email role companyName profileImage avatar' },
       { path: 'property', select: 'title address price images' }
     ]);
 
@@ -78,8 +78,8 @@ exports.getConversations = async (req, res) => {
     const messages = await Message.find({
       $or: [{ sender: userId }, { recipient: userId }]
     })
-      .populate('sender', 'firstName lastName email role company profileImage avatar')
-      .populate('recipient', 'firstName lastName email role company profileImage avatar')
+      .populate('sender', 'name lastName email role companyName profileImage avatar')
+      .populate('recipient', 'name lastName email role companyName profileImage avatar')
       .populate('property', 'title address price images')
       .sort({ createdAt: -1 });
 
@@ -102,7 +102,7 @@ exports.getConversations = async (req, res) => {
         });
         console.log('Conversation otherUser:', { 
           id: otherUser?._id, 
-          firstName: otherUser?.firstName, 
+          name: otherUser?.name, 
           lastName: otherUser?.lastName 
         });
         
@@ -138,8 +138,8 @@ exports.getConversationMessages = async (req, res) => {
     const userId = req.user.id;
 
     const messages = await Message.find({ conversationId })
-      .populate('sender', 'firstName lastName email role company profileImage avatar')
-      .populate('recipient', 'firstName lastName email role company profileImage avatar')
+      .populate('sender', 'name lastName email role companyName profileImage avatar')
+      .populate('recipient', 'name lastName email role companyName profileImage avatar')
       .populate('property', 'title address price images')
       .sort({ createdAt: 1 });
 

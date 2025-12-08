@@ -135,12 +135,13 @@ body {
 .main-layout {
   position: relative;
   min-height: 100vh;
-  padding-top: 80px;
+  padding-top: 80px; /* Match navbar min-height */
 }
 
 /* Main content wrapper - starts below fixed navbar */
 .main-content {
-  min-height: calc(100vh - 80px);
+  min-height: calc(100vh - 80px - 60px); /* Account for navbar and footer */
+  padding-bottom: 40px; /* Space before footer */
 }
 
 /* Theme-specific body classes */

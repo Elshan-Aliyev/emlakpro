@@ -309,6 +309,11 @@ const Navbar = () => {
                         <span>👑</span> Admin Panel
                       </Link>
                     )}
+                    {(role === 'admin' || role === 'superadmin') && (
+                      <Link to="/admin/articles" className="dropdown-item admin-link" onClick={() => setShowAccountMenu(false)}>
+                        <span>📝</span> Manage Resources
+                      </Link>
+                    )}
                     <div className="dropdown-divider"></div>
                     <Link to="/account/profile" className="dropdown-item" onClick={() => setShowAccountMenu(false)}>
                       <span>👤</span> My Account

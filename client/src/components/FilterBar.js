@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import DualRangeSlider from './DualRangeSlider';
+import FilterModal from './FilterModal';
 import './FilterBar.css';
 
 const FilterBar = () => {
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(window.innerWidth >= 768); // Collapsed on mobile by default
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
+  const isUpdatingFromURL = useRef(false);
   
   const [propertyType, setPropertyType] = useState(searchParams.get('propertyType') || '');
   const [priceMin, setPriceMin] = useState(searchParams.get('priceMin') || '');
@@ -24,30 +27,36 @@ const FilterBar = () => {
   const [pool, setPool] = useState(searchParams.get('pool') === 'true');
   const [gym, setGym] = useState(searchParams.get('gym') === 'true');
   
-  // Dropdown visibility
-  const [showPriceDropdown, setShowPriceDropdown] = useState(false);
-  const [showAreaDropdown, setShowAreaDropdown] = useState(false);
-  
-  const priceDropdownRef = useRef(null);
-  const areaDropdownRef = useRef(null);
-  
-  // Close dropdowns when clicking outside
+  // Sync FilterBar state with URL changes (when URL is updated externally)
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (priceDropdownRef.current && !priceDropdownRef.current.contains(event.target)) {
-        setShowPriceDropdown(false);
-      }
-      if (areaDropdownRef.current && !areaDropdownRef.current.contains(event.target)) {
-        setShowAreaDropdown(false);
-      }
-    };
+    isUpdatingFromURL.current = true;
+    const params = new URLSearchParams(location.search);
     
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    setPropertyType(params.get('propertyType') || '');
+    setPriceMin(params.get('priceMin') || '');
+    setPriceMax(params.get('priceMax') || '');
+    setBedrooms(params.get('bedrooms') || '');
+    setBathrooms(params.get('bathrooms') || '');
+    setAreaMin(params.get('areaMin') || '');
+    setAreaMax(params.get('areaMax') || '');
+    setSortBy(params.get('sortBy') || 'newest');
+    setShowSold(params.get('showSold') === 'true');
+    setViewMode(params.get('view') || 'map');
+    setParking(params.get('parking') === 'true');
+    setPetsAllowed(params.get('petsAllowed') === 'true');
+    setFurnished(params.get('furnished') === 'true');
+    setPool(params.get('pool') === 'true');
+    setGym(params.get('gym') === 'true');
+    
+    setTimeout(() => {
+      isUpdatingFromURL.current = false;
+    }, 0);
+  }, [location.search]);
   
   // Auto-apply filters when they change
   const applyFiltersAuto = () => {
+    if (isUpdatingFromURL.current) return; // Prevent circular updates
+    
     const params = new URLSearchParams(location.search);
     
     if (propertyType) params.set('propertyType', propertyType);
@@ -162,9 +171,23 @@ const FilterBar = () => {
   }
   
   return (
-    <div className="filter-bar">
-      <div className="filter-bar-container">
-        <div className="filter-bar-content">
+    <>
+      {/* Mobile Toggle Button */}
+      <button 
+        className="filter-bar-mobile-toggle"
+        onClick={() => setIsExpanded(!isExpanded)}
+        aria-label="Toggle filters"
+      >
+        <span className={`toggle-chevron ${isExpanded ? 'expanded' : ''}`}>
+          <svg width="20" height="12" viewBox="0 0 20 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 1L10 10L19 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </span>
+      </button>
+      
+      <div className={`filter-bar ${isExpanded ? 'expanded' : ''}`}>
+        <div className="filter-bar-container">
+          <div className="filter-bar-content">
           {/* Sort By */}
           <select
             className="filter-bar-select filter-bar-sort"
@@ -186,12 +209,12 @@ const FilterBar = () => {
           
           {/* Property Type */}
           <select
-            className="filter-bar-select filter-icon-only"
+            className="filter-bar-select filter-bar-hide-mobile"
             value={propertyType}
             onChange={(e) => setPropertyType(e.target.value)}
             title="Property Type"
           >
-            <option value="">🏠</option>
+            <option value="">🏠 Property Type</option>
             <option value="apartment">Apartment</option>
             <option value="house">House</option>
             <option value="villa">Villa</option>
@@ -203,58 +226,14 @@ const FilterBar = () => {
             <option value="warehouse">Warehouse</option>
           </select>
           
-          {/* Price Range Dropdown */}
-          <div className="filter-dropdown" ref={priceDropdownRef}>
-            <button
-              className="filter-bar-select filter-icon-only"
-              onClick={() => setShowPriceDropdown(!showPriceDropdown)}
-              title="Price Range"
-            >
-              <span style={{fontSize: '1.5rem'}}>💰</span>
-              {(priceMin || priceMax) && (
-                <span className="filter-active-badge">✓</span>
-              )}
-            </button>
-            {showPriceDropdown && (
-              <div className="filter-dropdown-panel">
-                <DualRangeSlider
-                  min={0}
-                  max={5000000}
-                  minValue={priceMin ? Number(priceMin) : 0}
-                  maxValue={priceMax ? Number(priceMax) : 5000000}
-                  onChange={(min, max) => {
-                    setPriceMin(min);
-                    setPriceMax(max);
-                  }}
-                  step={10000}
-                  label="Price Range"
-                  icon="💰"
-                  formatValue={(val) => {
-                    if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
-                    if (val >= 1000) return `${(val / 1000).toFixed(0)}K`;
-                    return val;
-                  }}
-                />
-                <div className="filter-dropdown-actions">
-                  <button
-                    className="filter-dropdown-btn"
-                    onClick={() => setShowPriceDropdown(false)}
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-          
           {/* Bedrooms */}
           <select
-            className="filter-bar-select filter-icon-only"
+            className="filter-bar-select filter-bar-hide-mobile"
             value={bedrooms}
             onChange={(e) => setBedrooms(e.target.value)}
             title="Bedrooms"
           >
-            <option value="">🛏️</option>
+            <option value="">🛏️ Beds</option>
             <option value="1">1+</option>
             <option value="2">2+</option>
             <option value="3">3+</option>
@@ -264,137 +243,76 @@ const FilterBar = () => {
           
           {/* Bathrooms */}
           <select
-            className="filter-bar-select filter-icon-only"
+            className="filter-bar-select filter-bar-hide-mobile"
             value={bathrooms}
             onChange={(e) => setBathrooms(e.target.value)}
             title="Bathrooms"
           >
-            <option value="">🚿</option>
+            <option value="">🚿 Baths</option>
             <option value="1">1+</option>
             <option value="2">2+</option>
             <option value="3">3+</option>
             <option value="4">4+</option>
           </select>
           
-          {/* Area Range Dropdown */}
-          <div className="filter-dropdown" ref={areaDropdownRef}>
-            <button
-              className="filter-bar-select filter-icon-only"
-              onClick={() => setShowAreaDropdown(!showAreaDropdown)}
-              title="Area Range"
-            >
-              <span style={{fontSize: '1.5rem'}}>📏</span>
-              {(areaMin || areaMax) && (
-                <span className="filter-active-badge">✓</span>
-              )}
-            </button>
-            {showAreaDropdown && (
-              <div className="filter-dropdown-panel">
-                <DualRangeSlider
-                  min={0}
-                  max={1000}
-                  minValue={areaMin ? Number(areaMin) : 0}
-                  maxValue={areaMax ? Number(areaMax) : 1000}
-                  onChange={(min, max) => {
-                    setAreaMin(min);
-                    setAreaMax(max);
-                  }}
-                  step={10}
-                  label="Area Range"
-                  icon="📏"
-                  formatValue={(val) => `${val}m²`}
-                />
-                <div className="filter-dropdown-actions">
-                  <button
-                    className="filter-dropdown-btn"
-                    onClick={() => setShowAreaDropdown(false)}
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          {/* Min Price */}
+          <select
+            className="filter-bar-select filter-bar-hide-mobile"
+            value={priceMin}
+            onChange={(e) => setPriceMin(e.target.value)}
+            title="Min Price"
+          >
+            <option value="">💰 Min Price</option>
+            <option value="50000">$50k</option>
+            <option value="100000">$100k</option>
+            <option value="200000">$200k</option>
+            <option value="300000">$300k</option>
+            <option value="400000">$400k</option>
+            <option value="500000">$500k</option>
+            <option value="750000">$750k</option>
+            <option value="1000000">$1M</option>
+            <option value="1500000">$1.5M</option>
+            <option value="2000000">$2M</option>
+          </select>
           
-          
-          {/* Show Sold Checkbox */}
-          <label className="filter-checkbox-label" title="Show Sold Properties">
-            <input
-              type="checkbox"
-              checked={showSold}
-              onChange={(e) => {
-                setShowSold(e.target.checked);
-                const params = new URLSearchParams(location.search);
-                if (e.target.checked) {
-                  params.set('showSold', 'true');
-                } else {
-                  params.delete('showSold');
-                }
-                navigate(`/search?${params.toString()}`);
-              }}
-            />
-            <span>Show Sold</span>
-          </label>
-          
-          {/* Parking Checkbox */}
-          <label className="filter-checkbox-label" title="Has Parking">
-            <input
-              type="checkbox"
-              checked={parking}
-              onChange={(e) => setParking(e.target.checked)}
-            />
-            <span>🅿️ Parking</span>
-          </label>
-          
-          {/* Pets Allowed Checkbox */}
-          <label className="filter-checkbox-label" title="Pets Allowed">
-            <input
-              type="checkbox"
-              checked={petsAllowed}
-              onChange={(e) => setPetsAllowed(e.target.checked)}
-            />
-            <span>🐕 Pets</span>
-          </label>
-          
-          {/* Furnished Checkbox */}
-          <label className="filter-checkbox-label" title="Furnished">
-            <input
-              type="checkbox"
-              checked={furnished}
-              onChange={(e) => setFurnished(e.target.checked)}
-            />
-            <span>🛋️ Furnished</span>
-          </label>
-          
-          {/* Pool Checkbox */}
-          <label className="filter-checkbox-label" title="Has Pool">
-            <input
-              type="checkbox"
-              checked={pool}
-              onChange={(e) => setPool(e.target.checked)}
-            />
-            <span>🏊 Pool</span>
-          </label>
-          
-          {/* Gym Checkbox */}
-          <label className="filter-checkbox-label" title="Has Gym">
-            <input
-              type="checkbox"
-              checked={gym}
-              onChange={(e) => setGym(e.target.checked)}
-            />
-            <span>💪 Gym</span>
-          </label>
+          {/* Max Price */}
+          <select
+            className="filter-bar-select filter-bar-hide-mobile"
+            value={priceMax}
+            onChange={(e) => setPriceMax(e.target.value)}
+            title="Max Price"
+          >
+            <option value="">💰 Max Price</option>
+            <option value="100000">$100k</option>
+            <option value="200000">$200k</option>
+            <option value="300000">$300k</option>
+            <option value="400000">$400k</option>
+            <option value="500000">$500k</option>
+            <option value="750000">$750k</option>
+            <option value="1000000">$1M</option>
+            <option value="1500000">$1.5M</option>
+            <option value="2000000">$2M</option>
+            <option value="5000000">$5M+</option>
+          </select>
           
           {/* Spacer */}
           <div style={{flex: 1}}></div>
+          
+          {/* Filters Button - Opens Modal */}
+          <button 
+            onClick={() => setShowFilterModal(true)} 
+            className="filter-bar-btn"
+            title="Open Filters"
+          >
+            <span className="filter-icon">⚙️</span> Filters
+          </button>
           
           {/* Clear Button */}
           <button onClick={handleClearFilters} className="filter-bar-btn filter-bar-btn-secondary">
             Clear
           </button>
           
-          {/* View Mode Toggle - Far Right */}
+          {/* View Mode Toggle */}
           <div className="view-toggle">
             <button
               className={`view-toggle-btn ${viewMode === 'map' ? 'active' : ''}`}
@@ -423,7 +341,88 @@ const FilterBar = () => {
           </div>
         </div>
       </div>
-    </div>
+      
+      {/* Filter Modal */}
+      <FilterModal
+        isOpen={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        filters={{
+          listingStatus: searchParams.get('listingStatus') || '',
+          propertyType,
+          minPrice: priceMin,
+          maxPrice: priceMax,
+          minArea: areaMin,
+          maxArea: areaMax,
+          bedrooms,
+          bathrooms,
+          amenities: [
+            parking && 'parking',
+            petsAllowed && 'pets',
+            furnished && 'furnished',
+            pool && 'pool',
+            gym && 'gym'
+          ].filter(Boolean),
+          sortBy,
+          showSold
+        }}
+        onFilterChange={(key, value) => {
+          switch (key) {
+            case 'listingStatus':
+              const params = new URLSearchParams(location.search);
+              if (value) params.set('listingStatus', value);
+              else params.delete('listingStatus');
+              navigate(`/search?${params.toString()}`);
+              break;
+            case 'propertyType':
+              setPropertyType(value);
+              break;
+            case 'minPrice':
+              setPriceMin(value);
+              break;
+            case 'maxPrice':
+              setPriceMax(value);
+              break;
+            case 'minArea':
+              setAreaMin(value);
+              break;
+            case 'maxArea':
+              setAreaMax(value);
+              break;
+            case 'bedrooms':
+              setBedrooms(value);
+              break;
+            case 'bathrooms':
+              setBathrooms(value);
+              break;
+            case 'amenities':
+              // Update amenities checkboxes
+              setParking(value.includes('parking'));
+              setPetsAllowed(value.includes('pets'));
+              setFurnished(value.includes('furnished'));
+              setPool(value.includes('pool'));
+              setGym(value.includes('gym'));
+              break;
+            case 'sortBy':
+              setSortBy(value);
+              const sortParams = new URLSearchParams(location.search);
+              sortParams.set('sortBy', value);
+              navigate(`/search?${sortParams.toString()}`);
+              break;
+            case 'showSold':
+              setShowSold(value);
+              break;
+            default:
+              break;
+          }
+        }}
+        onApply={() => {
+          // Apply button is clicked, filters are already applied via onFilterChange
+          setShowFilterModal(false);
+        }}
+        onReset={handleClearFilters}
+      />
+      </div>
+    </>
   );
 };
 

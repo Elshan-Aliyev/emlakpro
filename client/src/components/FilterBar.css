@@ -1,17 +1,17 @@
 .filter-bar {
   position: sticky;
-  top: 100px; /* Below expanded navbar */
-  z-index: 999;
+  top: 80px;
+  z-index: 100;
   background: var(--theme-bg-higher);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: top 0.3s ease;
-  padding: 0 20px;
+  border-bottom: 2px solid var(--theme-border);
+  flex-shrink: 0;
 }
 
 .filter-bar-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 12px 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .filter-bar-content {
@@ -20,6 +20,7 @@
   gap: 12px;
   flex-wrap: wrap;
   min-height: 60px;
+  padding: 12px 20px;
 }
 
 .filter-bar-content::-webkit-scrollbar {
@@ -28,7 +29,51 @@
 
 .filter-bar-content::-webkit-scrollbar-thumb {
   background: var(--theme-primary);
-  border-radius: 2px;
+  border-radius: 4px;
+}
+
+/* Mobile Toggle Button - Hidden by default on desktop */
+.filter-bar-mobile-toggle {
+  display: none;
+  position: sticky;
+  top: 80px;
+  z-index: 101;
+  width: 100%;
+  padding: 6px 12px;
+  background: var(--theme-bg-higher);
+  border: none;
+  border-bottom: 1px solid var(--theme-border);
+  cursor: pointer;
+  transition: background 0.2s;
+  align-items: center;
+  justify-content: center;
+}
+
+.filter-bar-mobile-toggle:active {
+  background: var(--theme-bg-lowest);
+}
+
+.toggle-chevron {
+  transition: transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--theme-text);
+}
+
+.toggle-chevron svg {
+  display: block;
+}
+
+.toggle-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+/* Desktop - always show filters */
+@media (min-width: 769px) {
+  .filter-bar-content {
+    display: flex !important;
+  }
 }
 
 .filter-bar-select,
@@ -376,6 +421,51 @@
     right: auto;
     min-width: 300px;
     max-width: calc(100vw - 32px);
+  }
+}
+
+@media (max-width: 768px) {
+  .filter-bar-hide-mobile {
+    display: none;
+  }
+  
+  /* Show mobile toggle button */
+  .filter-bar-mobile-toggle {
+    display: flex;
+  }
+  
+  /* Hide filter bar by default on mobile */
+  .filter-bar {
+    display: none;
+  }
+  
+  /* Show filter bar when expanded */
+  .filter-bar.expanded {
+    display: block;
+  }
+  
+  .filter-bar-content {
+    display: flex;
+    gap: 6px;
+    padding: 8px 10px;
+    min-height: auto;
+  }
+  
+  .filter-bar-select {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+    min-width: auto;
+  }
+  
+  .filter-bar-btn {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+    min-height: auto;
+  }
+  
+  .view-toggle-btn {
+    font-size: 0.8rem;
+    padding: 6px 10px;
   }
 }
 
