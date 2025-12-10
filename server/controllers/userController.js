@@ -1,6 +1,38 @@
 // server/controllers/userController.js
 const User = require('../models/User');
 
+// Get user by ID (public - for realtor profiles)
+exports.getUserById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+      .select('-password -savedProperties -savedSearches');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json(user);
+  } catch (err) {
+    console.error('Error fetching user:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Get all realtors (public - for Find Realtor page)
+exports.getRealtors = async (req, res) => {
+  try {
+    const realtors = await User.find({
+      accountType: { $in: ['realtor', 'corporate'] },
+      isActive: true
+    }).select('-password -savedProperties -savedSearches');
+    
+    res.json(realtors);
+  } catch (err) {
+    console.error('Error fetching realtors:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
 exports.getUsers = async (req, res) => {
   try {
     // Only admin and superadmin can fetch all users

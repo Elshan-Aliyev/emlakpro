@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { 
   getUsers, 
+  getUserById,
+  getRealtors,
   updateUser, 
   deleteUser,
   saveProperty,
@@ -15,6 +17,12 @@ const verifyToken = require('../middleware/authMiddleware');
 
 // GET /api/users
 router.get('/', verifyToken, getUsers);
+
+// GET /api/users/realtors (public - for Find Realtor page)
+router.get('/realtors', getRealtors);
+
+// GET /api/users/:id (public - for viewing realtor profiles)
+router.get('/:id', getUserById);
 
 // PUT /api/users/:id
 router.put('/:id', verifyToken, updateUser);

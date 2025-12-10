@@ -25,7 +25,7 @@ const AdminUsers = () => {
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, user: null });
   
   // Edit form
-  const [editForm, setEditForm] = useState({ role: '', accountType: '', isActive: true });
+  const [editForm, setEditForm] = useState({ role: '', accountType: '', userType: '', isActive: true });
 
   useEffect(() => {
     fetchUsers();
@@ -77,6 +77,7 @@ const AdminUsers = () => {
     setEditForm({
       role: user.role || 'registered',
       accountType: user.accountType || 'unverified-user',
+      userType: user.userType || 'buyer',
       isActive: user.isActive !== false
     });
     setEditModal({ isOpen: true, user });
@@ -242,6 +243,7 @@ const AdminUsers = () => {
                     <th>Email</th>
                     <th>Role</th>
                     <th>User Type</th>
+                    <th>Account Type</th>
                     <th>Phone</th>
                     <th>Joined</th>
                     <th>Status</th>
@@ -269,6 +271,18 @@ const AdminUsers = () => {
                           }
                         >
                           {user.role || 'registered'}
+                        </Badge>
+                      </td>
+                      <td>
+                        <Badge variant={
+                          user.userType === 'agent' ? 'warning' :
+                          user.userType === 'seller' ? 'info' :
+                          'secondary'
+                        }>
+                          {user.userType === 'buyer' ? 'Buyer' :
+                           user.userType === 'seller' ? 'Seller' :
+                           user.userType === 'agent' ? 'Agent' :
+                           'Buyer'}
                         </Badge>
                       </td>
                       <td>
@@ -352,6 +366,22 @@ const AdminUsers = () => {
                 <option value="corporate">Corporate</option>
                 <option value="admin">Admin</option>
                 <option value="superadmin">Super Admin</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontWeight: '500', marginBottom: 'var(--space-2)' }}>
+                User Type
+              </label>
+              <select
+                className="admin-filter-select"
+                style={{ width: '100%' }}
+                value={editForm.userType}
+                onChange={(e) => setEditForm({ ...editForm, userType: e.target.value })}
+              >
+                <option value="buyer">Buyer</option>
+                <option value="seller">Seller</option>
+                <option value="agent">Agent</option>
               </select>
             </div>
 

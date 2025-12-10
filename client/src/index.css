@@ -27,6 +27,11 @@ button, .btn, input[type="submit"], input[type="button"] {
   box-sizing: border-box;
 }
 
+/* Global image styling - default to contain */
+img {
+  object-fit: contain;
+}
+
 /* Flex container button spacing */
 .button-group, .filter-bar-content, .search-form {
   display: flex;

@@ -315,7 +315,7 @@ const Navbar = () => {
                       </Link>
                     )}
                     <div className="dropdown-divider"></div>
-                    <Link to="/account/profile" className="dropdown-item" onClick={() => setShowAccountMenu(false)}>
+                    <Link to="/account" className="dropdown-item" onClick={() => setShowAccountMenu(false)}>
                       <span>👤</span> My Account
                     </Link>
                     <Link to="/account/listings" className="dropdown-item" onClick={() => setShowAccountMenu(false)}>

@@ -3,9 +3,18 @@ import { Link } from 'react-router-dom';
 import Badge from './Badge';
 import './Card.css';
 
-const Card = ({ property, onSave, onUnsave, isSaved = false }) => {
+const Card = ({ property, onSave, onUnsave, isSaved = false, children, className, style, onClick }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
+
+  // If no property prop, render as a simple container div
+  if (!property) {
+    return (
+      <div className={`card-container ${className || ''}`} style={style} onClick={onClick}>
+        {children}
+      </div>
+    );
+  }
 
   const getImageUrl = (imageData, size = 'thumbnail') => {
     if (!imageData) return null;

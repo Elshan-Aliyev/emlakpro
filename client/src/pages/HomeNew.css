@@ -202,7 +202,7 @@
   margin-left: 4px;
 }
 
-.input-group input,
+.input-group input:not([type="range"]),
 .input-group select {
   padding: 12px 16px;
   border: 2px solid rgba(0, 0, 0, 0.1);
@@ -212,7 +212,13 @@
   background: white;
 }
 
-.input-group input:focus,
+/* Remove border from DualRangeSlider inside input-group */
+.input-group .dual-range-slider {
+  border: none;
+  background: transparent;
+}
+
+.input-group input:not([type="range"]):focus,
 .input-group select:focus {
   outline: none;
   border-color: var(--brand-primary);

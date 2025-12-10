@@ -584,6 +584,14 @@ const CreateProperty = () => {
               </select>
             </div>
 
+            <div className="form-group">
+              <label>Purpose *</label>
+              <select value={purpose} onChange={e => handlePurposeChange(e.target.value)} required>
+                <option value="residential">Residential</option>
+                <option value="commercial">Commercial</option>
+              </select>
+            </div>
+
             {listingStatus === 'for-rent' && purpose !== 'commercial' && (
               <div className="form-group">
                 <label>Rental Category *</label>
@@ -620,14 +628,6 @@ const CreateProperty = () => {
                 <option value="furnished">Furnished</option>
                 <option value="semi-furnished">Semi-furnished</option>
                 <option value="unfurnished">Unfurnished</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Purpose *</label>
-              <select value={purpose} onChange={e => handlePurposeChange(e.target.value)} required>
-                <option value="residential">Residential</option>
-                <option value="commercial">Commercial</option>
               </select>
             </div>
           </div>

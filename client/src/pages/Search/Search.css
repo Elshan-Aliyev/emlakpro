@@ -193,6 +193,33 @@
   color: var(--gray-900);
 }
 
+.save-search-btn {
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--primary-color);
+  background: var(--primary-light, #f0f7ff);
+  border: 1px solid var(--primary-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.save-search-btn:hover {
+  background: var(--primary-color);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.save-search-btn:active {
+  transform: translateY(0);
+}
+
 .sort-select {
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--gray-300);
@@ -441,6 +468,12 @@
 
   .listings-info h2 {
     font-size: 1rem;
+  }
+
+  .save-search-btn {
+    font-size: 0.8rem;
+    padding: var(--space-1) var(--space-2);
+    gap: var(--space-1);
   }
 
   .listing-card-image {

@@ -1,15 +1,20 @@
-import React, { useEffect, useState } from 'react';
-import { getProperty, sendMessage } from '../services/api';
+import React, { useEffect, useState, memo } from 'react';
+import { getProperty, sendMessage, getSavedProperties } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import SellerInfo from '../components/SellerInfo';
 import Badge from '../components/Badge';
 import PropertyMap from '../components/PropertyMap';
+import FavoriteButton from '../components/FavoriteButton';
 import './PropertyDetail.css';
 
-const PropertyDetail = () => {
+// Memoize heavy components
+const MemoizedPropertyMap = memo(PropertyMap);
+const MemoizedSellerInfo = memo(SellerInfo);
+
+const PropertyDetail = ({ property: propProperty, isModal = false, onClose }) => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [property, setProperty] = useState(null);
+  const [property, setProperty] = useState(propProperty || null);
   const [error, setError] = useState('');
   const [showContactModal, setShowContactModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -17,12 +22,55 @@ const PropertyDetail = () => {
   const [messageContent, setMessageContent] = useState('');
   const [messageSending, setMessageSending] = useState(false);
   const [messageError, setMessageError] = useState('');
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  // Helper function to safely get location string
+  const getLocation = (property) => {
+    if (typeof property.location === 'string') return property.location;
+    if (typeof property.city === 'string') return property.city;
+    if (typeof property.address === 'string') return property.address;
+    if (property.location?.city && typeof property.location.city === 'string') return property.location.city;
+    if (property.address?.city && typeof property.address.city === 'string') return property.address.city;
+    return 'N/A';
+  };
 
   useEffect(() => {
+    if (propProperty) {
+      setProperty(propProperty);
+      // Check if property is in favorites
+      const token = localStorage.getItem('token');
+      if (token) {
+        (async () => {
+          try {
+            const savedRes = await getSavedProperties(token);
+            const isSaved = savedRes.data && Array.isArray(savedRes.data) ? savedRes.data.some(p => p._id === propProperty._id) : false;
+            setIsFavorite(isSaved);
+          } catch (err) {
+            console.error('Error checking favorites:', err);
+          }
+        })();
+      }
+      return;
+    }
+
+    if (!id) return;
+
     const fetch = async () => {
       try {
         const res = await getProperty(id);
         setProperty(res.data);
+        
+        // Check if property is in favorites
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            const savedRes = await getSavedProperties(token);
+            const isSaved = savedRes.data && Array.isArray(savedRes.data) ? savedRes.data.some(p => p._id === id) : false;
+            setIsFavorite(isSaved);
+          } catch (err) {
+            console.error('Error fetching saved properties:', err);
+          }
+        }
       } catch (err) {
         console.error(err);
         setError(err.response?.data?.message || 'Error fetching property');
@@ -34,8 +82,12 @@ const PropertyDetail = () => {
   const handleContact = () => {
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('Please login or register to contact the property owner');
-      navigate('/login');
+      if (isModal) {
+        alert('Please login to contact the property owner. The property details will remain open.');
+      } else {
+        alert('Please login or register to contact the property owner');
+        navigate('/login');
+      }
       return;
     }
     setShowContactModal(true);
@@ -70,12 +122,42 @@ const PropertyDetail = () => {
       setMessageSending(false);
     }
   };
+  
+  const openContactModal = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      if (isModal) {
+        alert('Please login or register to contact the property owner. The property details will remain open.');
+      } else {
+        alert('Please login or register to contact the property owner');
+        navigate('/login');
+      }
+      return;
+    }
+    
+    // Pre-fill message
+    const defaultMessage = `I am interested in ${property.title} at ${getLocation(property)}. 
+    
+Listed for: ${property.currency || 'AZN'} ${property.price?.toLocaleString()}
+    
+Please contact me with more details.`;
+    
+    setMessageContent(defaultMessage);
+    setShowContactModal(true);
+    setMessageError('');
+  };
 
   const getImageUrl = (image, size = 'large') => {
     if (!image) return null;
     // Handle both old format (string) and new format (object)
-    if (typeof image === 'string') return image;
-    return image[size] || image.large || image.medium || image.thumbnail;
+    if (typeof image === 'string') {
+      if (image.startsWith('http')) return image;
+      return `http://localhost:5000/uploads/${size}/${image}`;
+    }
+    if (typeof image === 'object' && image !== null) {
+      return image[size] || image.large || image.medium || image.thumbnail;
+    }
+    return null;
   };
 
   const openLightbox = (index) => {
@@ -163,127 +245,76 @@ const PropertyDetail = () => {
     'new-project': 'New Project'
   };
 
-  const hasImages = property.images && property.images.length > 0;
+  const hasImages = property.images && Array.isArray(property.images) && property.images.length > 0;
 
   return (
-    <div className="property-detail-container">
-      {/* Image Gallery */}
+    <div className={`property-detail-container ${isModal ? 'modal-mode' : ''}`}>
+      {/* Image Grid Gallery - Zillow Style */}
       {hasImages && (
-        <div className="property-gallery">
-          <div className="main-image" onClick={() => openLightbox(selectedImageIndex)}>
+        <div className="image-grid-gallery">
+          <div className="main-grid-image" onClick={() => openLightbox(0)}>
             <img 
-              src={getImageUrl(property.images[selectedImageIndex], 'large')} 
+              src={getImageUrl(property.images[0], 'large')} 
               alt={property.title}
-              style={{ width: '100%', height: '100%', objectFit: 'contain', cursor: 'pointer', background: '#000' }}
             />
-            <div className="image-counter">
-              {selectedImageIndex + 1} / {property.images.length}
-            </div>
-            
-            {/* Image Navigation Buttons */}
-            {property.images.length > 1 && (
-              <>
-                <button 
-                  className="image-nav-btn image-nav-prev"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    prevImage();
-                  }}
-                  aria-label="Previous image"
-                >
-                  ‹
-                </button>
-                <button 
-                  className="image-nav-btn image-nav-next"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    nextImage();
-                  }}
-                  aria-label="Next image"
-                >
-                  ›
-                </button>
-              </>
-            )}
           </div>
-          
-          {property.images.length > 1 && (
-            <div className="thumbnail-strip">
-              {property.images.map((image, index) => (
-                <div 
-                  key={index}
-                  className={`thumbnail ${index === selectedImageIndex ? 'active' : ''}`}
-                  onClick={() => setSelectedImageIndex(index)}
-                >
-                  <img 
-                    src={getImageUrl(image, 'thumbnail')} 
-                    alt={`${property.title} ${index + 1}`}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="grid-thumbnails">
+            {property.images.slice(1, 5).map((image, index) => (
+              <div 
+                key={index + 1} 
+                className="grid-thumb"
+                onClick={() => openLightbox(index + 1)}
+              >
+                <img 
+                  src={getImageUrl(image, 'medium')} 
+                  alt={`${property.title} ${index + 2}`}
+                />
+                {index === 3 && property.images.length > 5 && (
+                  <div className="see-all-overlay">
+                    <span>See all {property.images.length} photos</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Property Header */}
-      <div className="property-header">
-        <div className="header-content">
-          <div className="title-section">
-            <h1>{property.title || 'N/A'}</h1>
-            <p className="location">📍 {property.location || property.city || 'Location not specified'}</p>
+      {/* Two Column Layout */}
+      <div className="property-two-column">
+        {/* Left Column - Property Details */}
+        <div className="property-left-column">
+          {/* Price and Address */}
+          <div className="property-header-new">
+            <div className="price-badge">
+              <span className="price">{property.currency || 'AZN'} {property.price?.toLocaleString() ?? 'N/A'}</span>
+              {property.pricePerSqm && <span className="price-per-sqm">{property.currency || 'AZN'} {property.pricePerSqm}/m²</span>}
+            </div>
+            <h1 className="property-address">{getLocation(property)}</h1>
+            <div className="property-meta-badges">
+              <span className="meta-badge">{property.bedrooms || 0} beds</span>
+              <span className="meta-badge">{property.bathrooms || 0} baths</span>
+              <span className="meta-badge">{property.builtUpArea || 0} m²</span>
+              <span className="meta-badge">{propertyTypeMap[property.propertyType] || property.propertyType}</span>
+            </div>
+            <div className="status-badges">
+              <Badge type="primary" text={statusMap[property.listingStatus] || property.listingStatus} />
+              {property.negotiable && <Badge type="success" text="Negotiable" />}
+              {property.status && <Badge type="default" text={property.status} />}
+            </div>
           </div>
+
+          {/* Description */}
+          {property.description && (
+            <section className="detail-section">
+              <h2>About this property</h2>
+              <p className="property-description">{property.description}</p>
+            </section>
+          )}
           
-          <div className="price-section">
-            <div className="property-price">{property.currency || 'AZN'} {property.price?.toLocaleString() ?? 'N/A'}</div>
-            {property.pricePerSqm && <div className="price-per-sqm">{property.currency || 'AZN'} {property.pricePerSqm}/m²</div>}
-            <div className="property-meta">
-              <span className="badge primary">{statusMap[property.listingStatus] || property.listingStatus}</span>
-              {property.negotiable && <span className="badge success">Negotiable</span>}
-              {property.status && <span className="badge">{property.status}</span>}
-            </div>
-          </div>
-        </div>
-
-        {/* Key Features Bar */}
-        <div className="key-features-bar">
-          {property.bedrooms > 0 && (
-            <div className="feature-pill">
-              <span className="icon">🛏️</span>
-              <span><strong>{property.bedrooms}</strong> Beds</span>
-            </div>
-          )}
-          {property.bathrooms > 0 && (
-            <div className="feature-pill">
-              <span className="icon">🚿</span>
-              <span><strong>{property.bathrooms}</strong> Baths</span>
-            </div>
-          )}
-          {property.builtUpArea && (
-            <div className="feature-pill">
-              <span className="icon">📐</span>
-              <span><strong>{property.builtUpArea}</strong> m²</span>
-            </div>
-          )}
-          {property.parkingSpaces > 0 && (
-            <div className="feature-pill">
-              <span className="icon">🚗</span>
-              <span><strong>{property.parkingSpaces}</strong> Parking</span>
-            </div>
-          )}
-          {property.yearBuilt && (
-            <div className="feature-pill">
-              <span className="icon">📅</span>
-              <span>{property.yearBuilt}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="property-content">
         {/* Key Features */}
         <section className="detail-section">
-          <h2>Key Features</h2>
+          <h2>Overview</h2>
           <div className="features-grid">
             {property.bedrooms > 0 && <div className="feature-item"><strong>{property.bedrooms}</strong> Bedrooms</div>}
             {property.bathrooms > 0 && <div className="feature-item"><strong>{property.bathrooms}</strong> Bathrooms</div>}
@@ -291,6 +322,7 @@ const PropertyDetail = () => {
             {property.parkingSpaces > 0 && <div className="feature-item"><strong>{property.parkingSpaces}</strong> Parking</div>}
             {property.builtUpArea && <div className="feature-item"><strong>{property.builtUpArea} m²</strong> Built-up</div>}
             {property.landArea && <div className="feature-item"><strong>{property.landArea} m²</strong> Land Area</div>}
+            {property.yearBuilt && <div className="feature-item"><strong>Built in {property.yearBuilt}</strong></div>}
           </div>
         </section>
 
@@ -343,7 +375,7 @@ const PropertyDetail = () => {
           <div className="info-grid">
             <div className="info-item">
               <span className="info-label">Address:</span>
-              <span>{property.location || property.fullAddress || 'N/A'}</span>
+              <span>{getLocation(property)}</span>
             </div>
             {property.city && (
               <div className="info-item">
@@ -386,7 +418,7 @@ const PropertyDetail = () => {
           {/* Map */}
           {property.coordinates && (property.coordinates.lat || property.coordinates.latitude) && (
             <div style={{ marginTop: 'var(--space-6)' }}>
-              <PropertyMap 
+              <MemoizedPropertyMap
                 singleProperty={{
                   ...property,
                   coordinates: {
@@ -581,16 +613,88 @@ const PropertyDetail = () => {
 
         {/* Seller Information */}
         {property.ownerId && (
-          <SellerInfo 
+          <MemoizedSellerInfo
             owner={property.ownerId}
             listingBadge={property.listingBadge}
-            showContactButton={!isOwner}
-            onContact={handleContact}
+            showContactButton={false}
+            onContact={openContactModal}
           />
         )}
+        </div>
+
+        {/* Right Column - Contact Card */}
+        <div className="property-right-column">
+          <div className="contact-card-sticky">
+            <div className="contact-card">
+              {/* Agent/Owner Info */}
+              {property.ownerId && (
+                <div className="agent-info">
+                  {property.ownerId.profileImage && (
+                    <img 
+                      src={property.ownerId.profileImage} 
+                      alt={property.ownerId.name}
+                      className="agent-avatar"
+                    />
+                  )}
+                  <div>
+                    <h3>{property.ownerId.name}</h3>
+                    {property.ownerId.companyName && (
+                      <p className="agent-company">{property.ownerId.companyName}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Contact Button */}
+              {!isOwner && (
+                <button 
+                  className="contact-agent-btn"
+                  onClick={openContactModal}
+                >
+                  Contact Agent
+                </button>
+              )}
+              
+              {/* Quick Actions */}
+              <div className="quick-actions">
+                <FavoriteButton
+                  propertyId={property._id}
+                  initialFavorite={isFavorite}
+                  onToggle={(newState) => setIsFavorite(newState)}
+                  size="medium"
+                />
+                <button className="action-btn" onClick={() => window.print()}>
+                  🖨️ Print
+                </button>
+                <button className="action-btn" onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  alert('Link copied to clipboard!');
+                }}>
+                  🔗 Share
+                </button>
+              </div>
+              
+              {/* Property Stats */}
+              <div className="property-stats-card">
+                <div className="stat-item">
+                  <span className="stat-label">Listed</span>
+                  <span className="stat-value">
+                    {property.dateAdded ? new Date(property.dateAdded).toLocaleDateString() : 'N/A'}
+                  </span>
+                </div>
+                {property.viewsCount > 0 && (
+                  <div className="stat-item">
+                    <span className="stat-label">Views</span>
+                    <span className="stat-value">{property.viewsCount}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {(isAdmin || isOwner) && (
+      {(isAdmin || isOwner) && !isModal && (
         <div className="property-actions">
           <button onClick={() => navigate(`/properties/update/${property._id}`)} className="edit-btn">Edit Property</button>
         </div>

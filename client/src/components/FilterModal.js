@@ -48,6 +48,42 @@ const FilterModal = ({ isOpen, onClose, filters, onFilterChange, onApply, onRese
           </div>
         </div>
 
+        {/* Purpose */}
+        <div className="filter-modal-section">
+          <label className="filter-modal-label">Purpose</label>
+          <select
+            className="filter-modal-select"
+            value={filters.purpose || ''}
+            onChange={(e) => {
+              onFilterChange('purpose', e.target.value);
+              // Reset rental term if not residential
+              if (e.target.value !== 'residential') {
+                onFilterChange('rentalTerm', '');
+              }
+            }}
+          >
+            <option value="">All</option>
+            <option value="residential">Residential</option>
+            <option value="commercial">Commercial</option>
+          </select>
+        </div>
+
+        {/* Rental Term - Show only for rent + residential */}
+        {filters.listingStatus === 'for-rent' && filters.purpose === 'residential' && (
+          <div className="filter-modal-section">
+            <label className="filter-modal-label">Rental Term</label>
+            <select
+              className="filter-modal-select"
+              value={filters.rentalTerm || ''}
+              onChange={(e) => onFilterChange('rentalTerm', e.target.value)}
+            >
+              <option value="">All Terms</option>
+              <option value="long-term">Long Term</option>
+              <option value="short-term">Short Term</option>
+            </select>
+          </div>
+        )}
+
         {/* Property Type */}
         <div className="filter-modal-section">
           <label className="filter-modal-label">Property Type</label>

@@ -3,7 +3,7 @@ import { toggleSaveProperty } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import './FavoriteButton.css';
 
-const FavoriteButton = ({ propertyId, initialIsFavorite = false, onToggle }) => {
+const FavoriteButton = ({ propertyId, initialIsFavorite = false, onToggle, isModal = false }) => {
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -18,8 +18,14 @@ const FavoriteButton = ({ propertyId, initialIsFavorite = false, onToggle }) => 
 
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('Please login to save favorites');
-      navigate('/login');
+      if (isModal) {
+        // In modal mode, close modal first, then show login prompt
+        alert('Please login to save favorites. The property details will remain open.');
+        // Don't navigate - let user close modal manually if they want
+      } else {
+        alert('Please login to save favorites');
+        navigate('/login');
+      }
       return;
     }
 

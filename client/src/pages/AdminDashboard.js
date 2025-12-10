@@ -273,6 +273,7 @@ const AdminDashboard = () => {
                     <th>Email</th>
                     <th>Role</th>
                     <th>User Type</th>
+                    <th>Account Type</th>
                     <th>Joined</th>
                     <th>Status</th>
                   </tr>
@@ -283,6 +284,18 @@ const AdminDashboard = () => {
                       <td><strong>{user.name}</strong></td>
                       <td>{user.email}</td>
                       <td>{user.role || 'user'}</td>
+                      <td>
+                        <Badge variant={
+                          user.userType === 'agent' ? 'warning' :
+                          user.userType === 'seller' ? 'info' :
+                          'secondary'
+                        }>
+                          {user.userType === 'buyer' ? 'Buyer' :
+                           user.userType === 'seller' ? 'Seller' :
+                           user.userType === 'agent' ? 'Agent' :
+                           'Buyer'}
+                        </Badge>
+                      </td>
                       <td>
                         <Badge variant={user.accountType === 'unverified-user' ? 'secondary' : 'success'}>
                           {user.accountType === 'unverified-user' ? 'Unverified' :

@@ -52,7 +52,10 @@ function App() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<MainLayout><HomeNew /></MainLayout>} />
+        {/* Search routes - exact /search first for legacy links */}
         <Route path="/search" element={<MainLayout><Search /></MainLayout>} />
+        <Route path="/search/:location" element={<MainLayout><Search /></MainLayout>} />
+        <Route path="/search/:location/:propertyId" element={<MainLayout><Search /></MainLayout>} />
         <Route path="/agents" element={<MainLayout><Agents /></MainLayout>} />
         <Route path="/resources" element={<MainLayout><Resources /></MainLayout>} />
         <Route path="/resources/:id" element={<MainLayout><ArticleDetail /></MainLayout>} />

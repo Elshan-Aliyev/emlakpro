@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import Supercluster from 'supercluster';
+import { toggleSaveProperty } from '../services/api';
 
 // Set your Mapbox access token here
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
@@ -14,7 +15,8 @@ const PropertyMap = ({
   onMarkerClick,
   showPopups = true,
   singleProperty = null,
-  onPropertySelect = null
+  onPropertySelect = null,
+  onMapMove = null
 }) => {
 
   const mapContainer = useRef(null);
@@ -27,6 +29,33 @@ const PropertyMap = ({
   
   // Store ALL properties for matching grouped properties (don't rely on filtered props)
   const allPropertiesRef = useRef([]);
+  
+  // Handle favorite toggle in map popups
+  const handleFavoriteClick = async (propertyId, buttonElement) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Please login to save properties');
+      return;
+    }
+
+    try {
+      const isFavorite = buttonElement.classList.contains('favorited');
+      
+      // toggleSaveProperty handles both save and unsave
+      await toggleSaveProperty(propertyId, token);
+      
+      if (isFavorite) {
+        buttonElement.classList.remove('favorited');
+        buttonElement.textContent = '❤️';
+      } else {
+        buttonElement.classList.add('favorited');
+        buttonElement.textContent = '💖';
+      }
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+      alert('Failed to update favorite');
+    }
+  };
 
   // Helper function to determine best popup anchor based on available space
   const calculateOptimalAnchor = (markerLngLat, popupWidth = 340, popupHeight = 280) => {
@@ -141,6 +170,12 @@ const PropertyMap = ({
           if (clusterIndex.current) {
             updateMarkers();
           }
+          // Call onMapMove callback if provided
+          if (onMapMove) {
+            const center = map.current.getCenter();
+            const zoom = map.current.getZoom();
+            onMapMove([center.lng, center.lat], zoom);
+          }
         }, 100); // Small delay to batch rapid movements
       });
 
@@ -178,7 +213,26 @@ const PropertyMap = ({
         box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         cursor: pointer;
+        position: relative;
       ">
+        <button class="favorite-btn-map" data-property-id="${property._id}" style="
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          background: white;
+          border: none;
+          border-radius: 50%;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+          z-index: 10;
+          font-size: 16px;
+          transition: transform 0.2s;
+        ">❤️</button>
         ${imageUrl ? 
           `<img src="${imageUrl}" alt="${property.title}" style="width: 100%; height: 180px; object-fit: cover;" />` :
           `<div style="width: 100%; height: 180px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 48px;">🏠</div>`
@@ -200,8 +254,24 @@ const PropertyMap = ({
       </div>
     `;
     
-    popupEl.addEventListener('click', () => {
-      window.location.href = `/properties/${property._id}`;
+    // Handle favorite button click
+    const favoriteBtn = popupEl.querySelector('.favorite-btn-map');
+    if (favoriteBtn) {
+      favoriteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleFavoriteClick(property._id, favoriteBtn);
+      });
+    }
+    
+    popupEl.addEventListener('click', (e) => {
+      if (!e.target.closest('.favorite-btn-map')) {
+        // Use onPropertySelect if provided (for modal), otherwise navigate
+        if (onPropertySelect) {
+          onPropertySelect(property);
+        } else {
+          window.location.href = `/properties/${property._id}`;
+        }
+      }
     });
     
     return popupEl;
@@ -245,7 +315,7 @@ const PropertyMap = ({
             const imageUrl = prop.thumbnail || prop.medium || prop.image || '';
             const globalIdx = startIdx + idx;
             return `
-              <div class="property-list-item" data-property-id="${prop._id}" data-index="${globalIdx}" style="display: flex; gap: 10px; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;">
+              <div class="property-list-item" data-property-id="${prop._id}" data-index="${globalIdx}" style="display: flex; gap: 10px; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; position: relative;">
                 ${imageUrl ? 
                   `<img src="${imageUrl}" alt="${prop.title}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 6px; flex-shrink: 0;" />` : 
                   `<div style="width: 80px; height: 80px; background: #f0f0f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">🏠</div>`
@@ -261,6 +331,23 @@ const PropertyMap = ({
                     ${prop.bedrooms || 0} bd • ${prop.bathrooms || 0} ba • ${prop.builtUpArea || prop.area || 0} m²
                   </div>
                 </div>
+                <button class="favorite-btn-map" data-property-id="${prop._id}" style="
+                  position: absolute;
+                  top: 8px;
+                  right: 8px;
+                  background: white;
+                  border: none;
+                  border-radius: 50%;
+                  width: 28px;
+                  height: 28px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  cursor: pointer;
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                  z-index: 10;
+                  font-size: 14px;
+                ">❤️</button>
               </div>
             `;
           }).join('')}
@@ -308,6 +395,15 @@ const PropertyMap = ({
         const propertyIndex = parseInt(item.dataset.index);
         const property = properties[propertyIndex];
         
+        // Add favorite button handler
+        const favoriteBtn = item.querySelector('.favorite-btn-map');
+        if (favoriteBtn) {
+          favoriteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleFavoriteClick(property._id, favoriteBtn);
+          });
+        }
+        
         item.addEventListener('mouseenter', () => {
           item.style.background = '#f8f9fa';
         });
@@ -316,14 +412,17 @@ const PropertyMap = ({
         });
         item.addEventListener('click', (e) => {
           e.stopPropagation();
+          // Don't navigate if clicking the favorite button
+          if (e.target.closest('.favorite-btn-map')) return;
 
-          // Navigate to property detail page
-          window.location.href = `/properties/${property._id}`;
-          
+          // Use onPropertySelect if provided (for modal), otherwise navigate
           if (onPropertySelect) {
             onPropertySelect(property);
           } else if (onMarkerClick) {
             onMarkerClick(property);
+          } else {
+            // Fallback navigation
+            window.location.href = `/properties/${property._id}`;
           }
         });
       });

@@ -27,6 +27,9 @@ const Home = () => {
   const [priceMax, setPriceMax] = useState('');
   const [bedrooms, setBedrooms] = useState('');
   const [propertyType, setPropertyType] = useState('');
+  const [areaMin, setAreaMin] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   
   // Data state
   const [properties, setProperties] = useState([]);
@@ -131,8 +134,20 @@ const Home = () => {
     // Add listingStatus based on mode
     if (mode === 'buy') {
       params.set('listingStatus', 'for-sale');
+      // Add purpose for buy mode
+      if (subMode === 'residential') {
+        params.set('purpose', 'residential');
+      } else if (subMode === 'commercial') {
+        params.set('purpose', 'commercial');
+      }
     } else if (mode === 'rent') {
       params.set('listingStatus', 'for-rent');
+      // Add rental term for rent mode
+      if (subMode === 'long') {
+        params.set('rentalTerm', 'long-term');
+      } else if (subMode === 'short') {
+        params.set('rentalTerm', 'short-term');
+      }
     }
     
     // Default to Azerbaijan if no location specified
@@ -145,13 +160,18 @@ const Home = () => {
     if (priceMax) params.set('priceMax', priceMax);
     if (bedrooms) params.set('bedrooms', bedrooms);
     if (propertyType) params.set('propertyType', propertyType);
+    if (areaMin) params.set('areaMin', areaMin);
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
     
     // Navigate to search page with filters
     navigate(`/search?${params.toString()}`);
   };
 
   const featuredProps = useMemo(() => {
-    return properties.slice(0, 8);
+    return properties
+      .sort((a, b) => new Date(b.createdAt || b.dateAdded) - new Date(a.createdAt || a.dateAdded))
+      .slice(0, 8);
   }, [properties]);
 
   // Sync mode with theme changes
@@ -185,6 +205,44 @@ const Home = () => {
           
           {/* Floating Search Card */}
           <div className="search-card glass-card">
+            {/* Submode Toggle: Residential / Commercial OR Long / Short */}
+            <div className="submode-toggle">
+              {mode === 'buy' ? (
+                <>
+                  <button
+                    type="button"
+                    className={subMode === 'residential' ? 'active' : ''}
+                    onClick={() => setSubMode('residential')}
+                  >
+                    🏠 Residential
+                  </button>
+                  <button
+                    type="button"
+                    className={subMode === 'commercial' ? 'active' : ''}
+                    onClick={() => setSubMode('commercial')}
+                  >
+                    🏢 Commercial
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className={subMode === 'long' ? 'active' : ''}
+                    onClick={() => setSubMode('long')}
+                  >
+                    📅 Long Term
+                  </button>
+                  <button
+                    type="button"
+                    className={subMode === 'short' ? 'active' : ''}
+                    onClick={() => setSubMode('short')}
+                  >
+                    ⏱️ Short Term
+                  </button>
+                </>
+              )}
+            </div>
             {/* Main Search Input */}
             <form onSubmit={handleSearch} className="search-form" autoComplete="off">
               {/* Location Input - Full Width First Row */}
@@ -206,7 +264,7 @@ const Home = () => {
                 />
               </div>
 
-              {/* Second Row: Price, Property Type, and Bedrooms */}
+              {/* Second Row: Dynamic inputs based on mode/subMode - all in one row */}
               <div className="additional-inputs">
                 <div className="input-group">
                   <label>Price Range</label>
@@ -233,22 +291,97 @@ const Home = () => {
                   <label>Property Type</label>
                   <select value={propertyType} onChange={(e) => setPropertyType(e.target.value)}>
                     <option value="">All Types</option>
-                    <option value="apartment">Apartment</option>
-                    <option value="house">House</option>
-                    <option value="villa">Villa</option>
-                    <option value="townhouse">Townhouse</option>
+                    {(mode === 'buy' && subMode === 'residential') && (
+                      <>
+                        <option value="apartment">Apartment</option>
+                        <option value="house">House</option>
+                        <option value="villa">Villa</option>
+                        <option value="townhouse">Townhouse</option>
+                      </>
+                    )}
+                    {(mode === 'buy' && subMode === 'commercial') && (
+                      <>
+                        <option value="office">Office</option>
+                        <option value="retail">Retail</option>
+                        <option value="warehouse">Warehouse</option>
+                        <option value="land">Land</option>
+                      </>
+                    )}
+                    {mode === 'rent' && (
+                      <>
+                        <option value="apartment">Apartment</option>
+                        <option value="house">House</option>
+                        <option value="villa">Villa</option>
+                        <option value="townhouse">Townhouse</option>
+                        <option value="studio">Studio</option>
+                      </>
+                    )}
                   </select>
                 </div>
-                <div className="input-group">
-                  <label>Bedrooms</label>
-                  <select value={bedrooms} onChange={(e) => setBedrooms(e.target.value)}>
-                    <option value="">Any</option>
-                    <option value="1">1+</option>
-                    <option value="2">2+</option>
-                    <option value="3">3+</option>
-                    <option value="4">4+</option>
-                  </select>
-                </div>
+
+                {/* Show bedrooms only for residential buy/rent */}
+                {(mode === 'buy' && subMode === 'residential') || mode === 'rent' ? (
+                  <div className="input-group">
+                    <label>Bedrooms</label>
+                    <select value={bedrooms} onChange={(e) => setBedrooms(e.target.value)}>
+                      <option value="">Any</option>
+                      <option value="1">1+</option>
+                      <option value="2">2+</option>
+                      <option value="3">3+</option>
+                      <option value="4">4+</option>
+                    </select>
+                  </div>
+                ) : null}
+
+                {/* Show area for commercial */}
+                {mode === 'buy' && subMode === 'commercial' && (
+                  <div className="input-group">
+                    <label>Area (sq m)</label>
+                    <input 
+                      type="number" 
+                      placeholder="Min area"
+                      value={areaMin}
+                      onChange={(e) => setAreaMin(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {/* Show start date for long-term rent */}
+                {mode === 'rent' && subMode === 'long' && (
+                  <div className="input-group">
+                    <label>Start Date</label>
+                    <input 
+                      type="date" 
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                )}
+
+                {/* Show start and end date for short-term rent */}
+                {mode === 'rent' && subMode === 'short' && (
+                  <>
+                    <div className="input-group">
+                      <label>Start Date</label>
+                      <input 
+                        type="date" 
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label>End Date</label>
+                      <input 
+                        type="date" 
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        min={startDate || new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               <button type="submit" className="search-btn-main">
@@ -266,7 +399,7 @@ const Home = () => {
           <h2>Featured Properties</h2>
           <div className="properties-grid">
             {featuredProps.map((p) => (
-              <Link to={`/properties/${p._id}`} key={p._id} className="property-card">
+              <Link to={`/search/${p.address?.city || p.location?.city || 'Azerbaijan'}/${p._id}`} key={p._id} className="property-card">
                 <div className="property-card-badge">
                   <Badge type={p.listingBadge || 'for-sale-by-owner'} size="small" />
                 </div>
@@ -312,7 +445,7 @@ const Home = () => {
                 <div className="property-card-content">
                   <div className="property-price">{p.currency || 'AZN'} {p.price?.toLocaleString()}</div>
                   <h3 className="property-title">{p.title}</h3>
-                  <p className="property-location">📍 {p.location || p.city}</p>
+                  <p className="property-location">📍 {typeof p.location === 'string' ? p.location : (typeof p.city === 'string' ? p.city : p.country || 'Location')}</p>
                   <div className="property-features">
                     {p.bedrooms > 0 && <span>🛏️ {p.bedrooms}</span>}
                     {p.bathrooms > 0 && <span>🚿 {p.bathrooms}</span>}

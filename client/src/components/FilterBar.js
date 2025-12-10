@@ -8,31 +8,44 @@ const FilterBar = () => {
   const [isExpanded, setIsExpanded] = useState(window.innerWidth >= 768); // Collapsed on mobile by default
   const navigate = useNavigate();
   const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
   const isUpdatingFromURL = useRef(false);
+  const isUpdatingURL = useRef(false); // Track when WE are updating the URL
+  const hasInitialized = useRef(false); // Track if we've done initial sync
   
-  const [propertyType, setPropertyType] = useState(searchParams.get('propertyType') || '');
-  const [priceMin, setPriceMin] = useState(searchParams.get('priceMin') || '');
-  const [priceMax, setPriceMax] = useState(searchParams.get('priceMax') || '');
-  const [bedrooms, setBedrooms] = useState(searchParams.get('bedrooms') || '');
-  const [bathrooms, setBathrooms] = useState(searchParams.get('bathrooms') || '');
-  const [areaMin, setAreaMin] = useState(searchParams.get('areaMin') || '');
-  const [areaMax, setAreaMax] = useState(searchParams.get('areaMax') || '');
-  const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'newest');
-  const [showSold, setShowSold] = useState(searchParams.get('showSold') === 'true');
-  const [viewMode, setViewMode] = useState(searchParams.get('view') || 'map');
-  const [parking, setParking] = useState(searchParams.get('parking') === 'true');
-  const [petsAllowed, setPetsAllowed] = useState(searchParams.get('petsAllowed') === 'true');
-  const [furnished, setFurnished] = useState(searchParams.get('furnished') === 'true');
-  const [pool, setPool] = useState(searchParams.get('pool') === 'true');
-  const [gym, setGym] = useState(searchParams.get('gym') === 'true');
+  // Initialize states empty - will be populated by useEffect
+  const [propertyType, setPropertyType] = useState('');
+  const [purpose, setPurpose] = useState(''); // residential or commercial
+  const [rentalTerm, setRentalTerm] = useState(''); // long-term or short-term (for rent)
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
+  const [bedrooms, setBedrooms] = useState('');
+  const [bathrooms, setBathrooms] = useState('');
+  const [areaMin, setAreaMin] = useState('');
+  const [areaMax, setAreaMax] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
+  const [showSold, setShowSold] = useState(false);
+  const [viewMode, setViewMode] = useState('map');
+  const [parking, setParking] = useState(false);
+  const [petsAllowed, setPetsAllowed] = useState(false);
+  const [furnished, setFurnished] = useState(false);
+  const [pool, setPool] = useState(false);
+  const [gym, setGym] = useState(false);
   
   // Sync FilterBar state with URL changes (when URL is updated externally)
   useEffect(() => {
+    // Skip if WE just updated the URL (unless it's the first initialization)
+    if (isUpdatingURL.current && hasInitialized.current) {
+      isUpdatingURL.current = false;
+      return;
+    }
+    
+    hasInitialized.current = true;
     isUpdatingFromURL.current = true;
     const params = new URLSearchParams(location.search);
     
     setPropertyType(params.get('propertyType') || '');
+    setPurpose(params.get('purpose') || '');
+    setRentalTerm(params.get('rentalTerm') || '');
     setPriceMin(params.get('priceMin') || '');
     setPriceMax(params.get('priceMax') || '');
     setBedrooms(params.get('bedrooms') || '');
@@ -48,44 +61,65 @@ const FilterBar = () => {
     setPool(params.get('pool') === 'true');
     setGym(params.get('gym') === 'true');
     
-    setTimeout(() => {
+    // Use requestAnimationFrame to ensure this runs after all state updates complete
+    requestAnimationFrame(() => {
       isUpdatingFromURL.current = false;
-    }, 0);
+    });
   }, [location.search]);
   
-  // Auto-apply filters when they change
-  const applyFiltersAuto = () => {
-    if (isUpdatingFromURL.current) return; // Prevent circular updates
-    
-    const params = new URLSearchParams(location.search);
-    
-    if (propertyType) params.set('propertyType', propertyType);
-    else params.delete('propertyType');
-    
-    if (priceMin) params.set('priceMin', priceMin);
-    else params.delete('priceMin');
-    
-    if (priceMax) params.set('priceMax', priceMax);
-    else params.delete('priceMax');
-    
-    if (bedrooms) params.set('bedrooms', bedrooms);
-    else params.delete('bedrooms');
-    
-    if (bathrooms) params.set('bathrooms', bathrooms);
-    else params.delete('bathrooms');
-    
-    if (areaMin) params.set('areaMin', areaMin);
-    else params.delete('areaMin');
-    
-    if (areaMax) params.set('areaMax', areaMax);
-    else params.delete('areaMax');
-    
-    navigate(`/search?${params.toString()}`);
-  };
-  
+  // Only update URL when filters change AND user is not currently being synced from URL
   useEffect(() => {
-    applyFiltersAuto();
-  }, [propertyType, priceMin, priceMax, bedrooms, bathrooms, areaMin, areaMax, parking, petsAllowed, furnished, pool, gym]);
+    if (isUpdatingFromURL.current) return; // Prevent circular updates during URL sync
+    
+    // Only update URL if we're on the search page
+    if (!location.pathname.startsWith('/search')) return;
+    
+    // Add a small delay to batch multiple rapid changes together
+    const timeoutId = setTimeout(() => {
+      const currentParams = new URLSearchParams(location.search);
+      const newParams = new URLSearchParams(location.search);
+      
+      if (propertyType) newParams.set('propertyType', propertyType);
+      else newParams.delete('propertyType');
+      
+      if (purpose) newParams.set('purpose', purpose);
+      else newParams.delete('purpose');
+      
+      if (rentalTerm) newParams.set('rentalTerm', rentalTerm);
+      else newParams.delete('rentalTerm');
+      
+      if (priceMin) newParams.set('priceMin', priceMin);
+      else newParams.delete('priceMin');
+      
+      if (priceMax) newParams.set('priceMax', priceMax);
+      else newParams.delete('priceMax');
+      
+      if (bedrooms) newParams.set('bedrooms', bedrooms);
+      else newParams.delete('bedrooms');
+      
+      if (bathrooms) newParams.set('bathrooms', bathrooms);
+      else newParams.delete('bathrooms');
+      
+      if (areaMin) newParams.set('areaMin', areaMin);
+      else newParams.delete('areaMin');
+      
+      if (areaMax) newParams.set('areaMax', areaMax);
+      else newParams.delete('areaMax');
+      
+      // Only navigate if the URL would actually change
+      const currentStr = currentParams.toString();
+      const newStr = newParams.toString();
+      
+      if (currentStr !== newStr) {
+        isUpdatingURL.current = true; // Mark that WE are updating the URL
+        navigate(`${location.pathname}?${newStr}`, { replace: true });
+        isUpdatingURL.current = false;
+      }
+    }, 0); // Instant update
+    
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertyType, purpose, rentalTerm, priceMin, priceMax, bedrooms, bathrooms, areaMin, areaMax, parking, petsAllowed, furnished, pool, gym, location.pathname]);
   
   const handleApplyFilters = () => {
     const params = new URLSearchParams(location.search);
@@ -135,7 +169,7 @@ const FilterBar = () => {
     if (gym) params.set('gym', 'true');
     else params.delete('gym');
     
-    navigate(`/search?${params.toString()}`);
+    navigate(`${location.pathname}?${params.toString()}`);
   };
   
   const handleClearFilters = () => {
@@ -157,12 +191,13 @@ const FilterBar = () => {
     
     // Preserve listingStatus and purpose when clearing
     const params = new URLSearchParams();
-    const listingStatus = searchParams.get('listingStatus');
-    const purpose = searchParams.get('purpose');
+    const urlParams = new URLSearchParams(location.search);
+    const listingStatus = urlParams.get('listingStatus');
+    const purpose = urlParams.get('purpose');
     if (listingStatus) params.set('listingStatus', listingStatus);
     if (purpose) params.set('purpose', purpose);
     
-    navigate(`/search?${params.toString()}`);
+    navigate(`${location.pathname}?${params.toString()}`);
   };
   
   // Only show filter bar on search page
@@ -196,7 +231,7 @@ const FilterBar = () => {
               setSortBy(e.target.value);
               const params = new URLSearchParams(location.search);
               params.set('sortBy', e.target.value);
-              navigate(`/search?${params.toString()}`);
+              navigate(`${location.pathname}?${params.toString()}`);
             }}
             title="Sort By"
           >
@@ -206,6 +241,69 @@ const FilterBar = () => {
             <option value="beds">🛏️ Most Bedrooms</option>
             <option value="area">📏 Largest Area</option>
           </select>
+          
+          {/* Purpose/Rental Term - Conditional based on listingStatus */}
+          {(() => {
+            const params = new URLSearchParams(location.search);
+            const listingStatus = params.get('listingStatus');
+            
+            // For rent mode
+            if (listingStatus === 'for-rent') {
+              return (
+                <>
+                  {/* Residential/Commercial for Rent */}
+                  <select
+                    className="filter-bar-select filter-bar-hide-mobile"
+                    value={purpose}
+                    onChange={(e) => {
+                      setPurpose(e.target.value);
+                      // Reset rental term when purpose changes
+                      if (e.target.value !== 'residential') {
+                        setRentalTerm('');
+                      }
+                    }}
+                    title="Purpose"
+                  >
+                    <option value="">🏢 Purpose</option>
+                    <option value="residential">Residential</option>
+                    <option value="commercial">Commercial</option>
+                  </select>
+                  
+                  {/* Show rental term only for residential rent */}
+                  {purpose === 'residential' && (
+                    <select
+                      className="filter-bar-select filter-bar-hide-mobile"
+                      value={rentalTerm}
+                      onChange={(e) => setRentalTerm(e.target.value)}
+                      title="Rental Term"
+                    >
+                      <option value="">📅 Term</option>
+                      <option value="long-term">Long Term</option>
+                      <option value="short-term">Short Term</option>
+                    </select>
+                  )}
+                </>
+              );
+            }
+            
+            // For buy mode
+            if (listingStatus === 'for-sale') {
+              return (
+                <select
+                  className="filter-bar-select filter-bar-hide-mobile"
+                  value={purpose}
+                  onChange={(e) => setPurpose(e.target.value)}
+                  title="Purpose"
+                >
+                  <option value="">🏢 Purpose</option>
+                  <option value="residential">Residential</option>
+                  <option value="commercial">Commercial</option>
+                </select>
+              );
+            }
+            
+            return null;
+          })()}
           
           {/* Property Type */}
           <select
@@ -320,7 +418,7 @@ const FilterBar = () => {
                 setViewMode('map');
                 const params = new URLSearchParams(location.search);
                 params.set('view', 'map');
-                navigate(`/search?${params.toString()}`);
+                navigate(`${location.pathname}?${params.toString()}`);
               }}
               title="Map View"
             >
@@ -332,7 +430,7 @@ const FilterBar = () => {
                 setViewMode('list');
                 const params = new URLSearchParams(location.search);
                 params.set('view', 'list');
-                navigate(`/search?${params.toString()}`);
+                navigate(`${location.pathname}?${params.toString()}`);
               }}
               title="List View"
             >
@@ -347,7 +445,7 @@ const FilterBar = () => {
         isOpen={showFilterModal}
         onClose={() => setShowFilterModal(false)}
         filters={{
-          listingStatus: searchParams.get('listingStatus') || '',
+          listingStatus: new URLSearchParams(location.search).get('listingStatus') || '',
           propertyType,
           minPrice: priceMin,
           maxPrice: priceMax,
@@ -371,7 +469,7 @@ const FilterBar = () => {
               const params = new URLSearchParams(location.search);
               if (value) params.set('listingStatus', value);
               else params.delete('listingStatus');
-              navigate(`/search?${params.toString()}`);
+              navigate(`${location.pathname}?${params.toString()}`);
               break;
             case 'propertyType':
               setPropertyType(value);
@@ -406,7 +504,7 @@ const FilterBar = () => {
               setSortBy(value);
               const sortParams = new URLSearchParams(location.search);
               sortParams.set('sortBy', value);
-              navigate(`/search?${sortParams.toString()}`);
+              navigate(`${location.pathname}?${sortParams.toString()}`);
               break;
             case 'showSold':
               setShowSold(value);

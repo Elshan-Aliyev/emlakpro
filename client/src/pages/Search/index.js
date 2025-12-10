@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom';
 import { getProperties, getSavedProperties } from '../../services/api';
+import { useTheme } from '../../context/ThemeContext';
 import PropertyMap from '../../components/PropertyMap';
 import PropertyModal from '../../components/PropertyModal';
 import FilterBar from '../../components/FilterBar';
@@ -11,7 +12,25 @@ import './Search.css';
 
 const Search = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { location: routeLocation = '', propertyId } = useParams();
+  const { isBuyMode } = useTheme();
+
+  // Debug navigation - removed
+  
+  // Default location for legacy /search links
+  const defaultLocation = routeLocation || searchParams.get('country') || 'Azerbaijan';
+
+  // Helper function to safely get location string
+  const getLocation = (property) => {
+    if (typeof property.location === 'string') return property.location;
+    if (typeof property.city === 'string') return property.city;
+    if (typeof property.address === 'string') return property.address;
+    if (property.location?.city && typeof property.location.city === 'string') return property.location.city;
+    if (property.address?.city && typeof property.address.city === 'string') return property.address.city;
+    return 'Location not specified';
+  };
   
   // State
   const [properties, setProperties] = useState([]);
@@ -20,8 +39,11 @@ const Search = () => {
   const [loading, setLoading] = useState(true);
   const [mapHidden, setMapHidden] = useState(window.innerWidth < 768);
   const [hoveredPropertyId, setHoveredPropertyId] = useState(null);
-  const [mapCenter, setMapCenter] = useState([49.8671, 40.4093]); // Baku
-  const [mapZoom, setMapZoom] = useState(12);
+  const [mapCenter, setMapCenter] = useState([
+    parseFloat(searchParams.get('lng')) || 49.8671,
+    parseFloat(searchParams.get('lat')) || 40.4093
+  ]);
+  const [mapZoom, setMapZoom] = useState(parseFloat(searchParams.get('zoom')) || 12);
   const [selectedProperty, setSelectedProperty] = useState(null);
   
   // Filters
@@ -47,6 +69,31 @@ const Search = () => {
   const [ownerListedOnly, setOwnerListedOnly] = useState(false);
   const [showSold, setShowSold] = useState(false);
 
+  // Update map center and zoom from URL
+  useEffect(() => {
+    const lng = parseFloat(searchParams.get('lng'));
+    const lat = parseFloat(searchParams.get('lat'));
+    const zoom = parseFloat(searchParams.get('zoom'));
+    
+    if (lng && lat) {
+      setMapCenter([lng, lat]);
+    }
+    if (zoom) {
+      setMapZoom(zoom);
+    }
+  }, [searchParams]);
+
+  // Debounced map position update to URL
+  const updateMapPositionInURL = useCallback((center, zoom) => {
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      params.set('lng', center[0].toFixed(4));
+      params.set('lat', center[1].toFixed(4));
+      params.set('zoom', zoom.toFixed(2));
+      return params;
+    }, { replace: true });
+  }, [setSearchParams]);
+
   // Fetch properties
   useEffect(() => {
     const fetchProperties = async () => {
@@ -61,7 +108,6 @@ const Search = () => {
       }
     };
     fetchProperties();
-    
     // Fetch saved properties if user is logged in
     const fetchSavedProperties = async () => {
       const token = localStorage.getItem('token');
@@ -77,6 +123,26 @@ const Search = () => {
     };
     fetchSavedProperties();
   }, []);
+
+  // Sync with navbar buy/rent toggle (theme changes) - only on search routes
+  useEffect(() => {
+    // Only run theme sync when actually on search routes
+    if (!location.pathname.startsWith('/search')) {
+      return;
+    }
+    
+    const currentListingStatus = searchParams.get('listingStatus');
+    const expectedListingStatus = isBuyMode ? 'for-sale' : 'for-rent';
+    
+    // Only update if different to avoid infinite loops
+    if (currentListingStatus !== expectedListingStatus) {
+      setSearchParams(prev => {
+        const params = new URLSearchParams(prev);
+        params.set('listingStatus', expectedListingStatus);
+        return params;
+      }, { replace: true });
+    }
+  }, [isBuyMode, searchParams, setSearchParams, location.pathname]);
 
   // Sync state with URL params when they change - read from URL always
   useEffect(() => {
@@ -163,14 +229,11 @@ const Search = () => {
         const isCommercial = commercialTypes.includes(p.propertyType);
         return purpose === 'commercial' ? isCommercial : !isCommercial;
       });
-      console.log('After purpose filter:', filtered.length, '(looking for purpose:', purpose, ')');
-      console.log('Sample property purposes:', filtered.slice(0, 3).map(p => ({ title: p.title, purpose: p.purpose, propertyType: p.propertyType })));
     }
 
     // Property type filter
     if (propertyType) {
       filtered = filtered.filter(p => p.propertyType === propertyType);
-      console.log('After property type filter:', filtered.length);
     }
 
     // Price filter
@@ -250,20 +313,22 @@ const Search = () => {
 
   // Update URL with current filter state
   const updateURL = useCallback((updates) => {
-    const params = new URLSearchParams(searchParams);
-    
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value === '' || value === null || value === undefined || value === false) {
-        params.delete(key);
-      } else if (value === true) {
-        params.set(key, 'true');
-      } else {
-        params.set(key, value);
-      }
-    });
-    
-    setSearchParams(params, { replace: true });
-  }, [searchParams, setSearchParams]);
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === '' || value === null || value === undefined || value === false) {
+          params.delete(key);
+        } else if (value === true) {
+          params.set(key, 'true');
+        } else {
+          params.set(key, value);
+        }
+      });
+      
+      return params;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   // Clear individual filter
   const clearFilter = useCallback((filterName) => {
@@ -279,16 +344,59 @@ const Search = () => {
     const params = new URLSearchParams();
     if (listingStatus) params.set('listingStatus', listingStatus);
     if (purpose) params.set('purpose', purpose);
+    // Preserve map position
+    const lng = searchParams.get('lng');
+    const lat = searchParams.get('lat');
+    const zoom = searchParams.get('zoom');
+    if (lng) params.set('lng', lng);
+    if (lat) params.set('lat', lat);
+    if (zoom) params.set('zoom', zoom);
     
     setSearchParams(params, { replace: true });
+  };
+
+  // Save current search to browser
+  const saveSearch = () => {
+    const searchUrl = window.location.href;
+    const searchName = `Search - ${filteredProperties.length} properties`;
+    const savedSearches = JSON.parse(localStorage.getItem('savedSearches') || '[]');
+    
+    const newSearch = {
+      id: Date.now(),
+      name: searchName,
+      url: searchUrl,
+      timestamp: new Date().toISOString(),
+      propertyCount: filteredProperties.length
+    };
+    
+    savedSearches.unshift(newSearch);
+    // Keep only last 10 searches
+    if (savedSearches.length > 10) {
+      savedSearches.pop();
+    }
+    
+    localStorage.setItem('savedSearches', JSON.stringify(savedSearches));
+    alert('Search saved! You can access it from your account.');
   };
 
   const handleLocationSelect = useCallback((location) => {
     if (location.center) {
       setMapCenter(location.center);
       setMapZoom(14);
+      updateMapPositionInURL(location.center, 14);
     }
-  }, []);
+  }, [updateMapPositionInURL]);
+
+  // Handle map movement to update URL
+  const handleMapMove = useCallback((center, zoom) => {
+    setMapCenter(center);
+    setMapZoom(zoom);
+    // Debounce URL update to avoid too many history entries
+    const timeoutId = setTimeout(() => {
+      updateMapPositionInURL(center, zoom);
+    }, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [updateMapPositionInURL]);
 
   const getImageUrl = (image) => {
     if (!image) return null;
@@ -309,6 +417,9 @@ const Search = () => {
             {/* Header */}
             <div className="listings-info">
               <h2>{filteredProperties.length} Properties Found</h2>
+              <button onClick={saveSearch} className="save-search-btn" title="Save this search">
+                🔖 Save Search
+              </button>
             </div>
 
             {/* Listings Grid for List View */}
@@ -325,7 +436,7 @@ const Search = () => {
                   <div
                     key={property._id}
                     className="listing-card-grid"
-                    onClick={() => navigate(`/properties/${property._id}`)}
+                    onClick={() => navigate(`/search/${defaultLocation}/${property._id}`)}
                   >
                     {/* Sponsored Tag */}
                     {property.isSponsored && index % 10 === 0 && (
@@ -355,7 +466,7 @@ const Search = () => {
                         {property.currency || 'AZN'} {property.price?.toLocaleString()}
                       </div>
                       <h3 className="listing-title">{property.title}</h3>
-                      <p className="listing-address">📍 {property.location || property.city}</p>
+                      <p className="listing-address">📍 {getLocation(property)}</p>
                       <div className="listing-features">
                         {property.bedrooms > 0 && <span>🛏️ {property.bedrooms} beds</span>}
                         {property.bathrooms > 0 && <span>🚿 {property.bathrooms} baths</span>}
@@ -376,6 +487,9 @@ const Search = () => {
               {/* Header - Non-sticky */}
               <div className="listings-info">
                 <h2>{filteredProperties.length} Properties Found</h2>
+                <button onClick={saveSearch} className="save-search-btn" title="Save this search">
+                  🔖 Save Search
+                </button>
               </div>
 
               {/* Listings */}
@@ -394,7 +508,7 @@ const Search = () => {
                       className={`listing-card ${hoveredPropertyId === property._id ? 'highlighted' : ''}`}
                       onMouseEnter={() => setHoveredPropertyId(property._id)}
                       onMouseLeave={() => setHoveredPropertyId(null)}
-                      onClick={() => navigate(`/properties/${property._id}`)}
+                      onClick={() => setSelectedProperty(property)}
                     >
                       {/* Sponsored Tag */}
                       {property.isSponsored && index % 10 === 0 && (
@@ -424,7 +538,7 @@ const Search = () => {
                           {property.currency || 'AZN'} {property.price?.toLocaleString()}
                         </div>
                         <h3 className="listing-title">{property.title}</h3>
-                        <p className="listing-address">📍 {property.location || property.city}</p>
+                        <p className="listing-address">📍 {getLocation(property)}</p>
                         <div className="listing-features">
                           {property.bedrooms > 0 && <span>🛏️ {property.bedrooms} beds</span>}
                           {property.bathrooms > 0 && <span>🚿 {property.bathrooms} baths</span>}
@@ -447,6 +561,7 @@ const Search = () => {
                   zoom={mapZoom}
                   onPropertySelect={(property) => setSelectedProperty(property)}
                   highlightedPropertyId={hoveredPropertyId}
+                  onMapMove={handleMapMove}
                 />
               </div>
             )}
@@ -458,7 +573,9 @@ const Search = () => {
       {selectedProperty && (
         <PropertyModal
           property={selectedProperty}
-          onClose={() => setSelectedProperty(null)}
+          onClose={() => {
+            setSelectedProperty(null);
+          }}
         />
       )}
     </div>

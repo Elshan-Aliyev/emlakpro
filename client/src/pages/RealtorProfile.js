@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getUserById, getRealtorReviews, getProperties, sendMessage } from '../services/api';
+import { getUserById, getRealtorReviews, getProperties, sendMessage, createReview } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { getImageUrl, getAvatarUrl, getPropertyImageUrl } from '../utils/imageUtils';
@@ -26,6 +26,10 @@ const RealtorProfile = () => {
   });
   const [sendingMessage, setSendingMessage] = useState(false);
   const [messageText, setMessageText] = useState('Hi, I\'m interested in your services and would like to discuss my real estate needs. Could you please contact me at your earliest convenience?');
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewText, setReviewText] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const getProfilePicture = (profilePicture) => {
     if (!profilePicture) return '/assets/default-avatar.png';
@@ -115,8 +119,52 @@ const RealtorProfile = () => {
     }
   };
 
+  const handleSubmitReview = async () => {
+    if (!user) {
+      showError('Please login to submit a review');
+      navigate('/login');
+      return;
+    }
+
+    if (reviewRating === 0) {
+      showError('Please select a rating');
+      return;
+    }
+
+    if (!reviewText.trim()) {
+      showError('Please write a review');
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const token = localStorage.getItem('token');
+      await createReview({
+        realtorId: id,
+        rating: reviewRating,
+        comment: reviewText
+      }, token);
+      
+      success('Review submitted successfully!');
+      setShowReviewModal(false);
+      setReviewRating(0);
+      setReviewText('');
+      
+      // Refresh reviews
+      fetchRealtorData();
+    } catch (err) {
+      showError(err.response?.data?.message || 'Failed to submit review');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   if (loading) {
     return <div className="loading-container">Loading realtor profile...</div>;
+  }
+
+  if (loading) {
+    return <div className="loading-container">Loading...</div>;
   }
 
   if (!realtor) {
@@ -354,7 +402,11 @@ const RealtorProfile = () => {
                       />
                       <div className="property-info">
                         <h3>{property?.title || 'Untitled Property'}</h3>
-                        <p className="property-location">{property?.address || 'Location not specified'}</p>
+                        <p className="property-location">
+                          {typeof property?.address === 'string' 
+                            ? property.address 
+                            : `${property?.address?.street || ''} ${property?.address?.city || 'Location not specified'}`.trim() || 'Location not specified'}
+                        </p>
                         <p className="property-price">₼{property?.price?.toLocaleString() || 'N/A'}</p>
                         <div className="property-details">
                           <span>{property?.bedrooms || 0} bed</span>
@@ -381,8 +433,12 @@ const RealtorProfile = () => {
                         />
                         <div className="property-info">
                           <h3>{property?.title || 'Untitled Property'}</h3>
-                          <p className="property-location">{property?.address || 'Location not specified'}</p>
-                          <p className="property-price">₼{property?.soldInfo?.soldPrice?.toLocaleString() || 'N/A'}</p>
+                          <p className="property-location">
+                            {typeof property?.address === 'string' 
+                              ? property.address 
+                              : `${property?.address?.street || ''} ${property?.address?.city || 'Location not specified'}`.trim() || 'Location not specified'}
+                          </p>
+                          <p className="property-price">₼{property?.price?.toLocaleString() || 'N/A'}</p>
                         </div>
                       </Card>
                     ))}
@@ -395,6 +451,12 @@ const RealtorProfile = () => {
           {/* Reviews Tab */}
           {activeTab === 'reviews' && (
             <div className="reviews-section">
+              <div className="reviews-header">
+                <h2>Client Reviews</h2>
+                <Button variant="primary" onClick={() => setShowReviewModal(true)}>
+                  Write a Review
+                </Button>
+              </div>
               <div className="reviews-grid">
                 <div className="reviews-sidebar">
                   <Card>
@@ -413,13 +475,13 @@ const RealtorProfile = () => {
                             <div 
                               className="bar-fill" 
                               style={{ 
-                                width: `${stats.totalReviews > 0 
-                                  ? (stats.ratingBreakdown[star] / stats.totalReviews) * 100 
+                                width: `${stats.totalReviews > 0 && stats.ratingBreakdown
+                                  ? ((stats.ratingBreakdown[star] || 0) / stats.totalReviews) * 100 
                                   : 0}%` 
                               }}
                             />
                           </div>
-                          <span className="bar-count">{stats.ratingBreakdown[star] || 0}</span>
+                          <span className="bar-count">{stats.ratingBreakdown?.[star] || 0}</span>
                         </div>
                       ))}
                     </div>
@@ -493,6 +555,56 @@ const RealtorProfile = () => {
           )}
         </div>
       </div>
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <div className="modal-overlay" onClick={() => setShowReviewModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Write a Review for {realtor?.name}</h2>
+              <button className="modal-close" onClick={() => setShowReviewModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="review-rating-input">
+                <label>Your Rating *</label>
+                <div className="star-input">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <span
+                      key={star}
+                      className={`star-btn ${reviewRating >= star ? 'filled' : ''}`}
+                      onClick={() => setReviewRating(star)}
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="review-text-input">
+                <label>Your Review *</label>
+                <textarea
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  placeholder="Share your experience working with this realtor..."
+                  rows={6}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <Button variant="secondary" onClick={() => setShowReviewModal(false)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="primary" 
+                onClick={handleSubmitReview}
+                loading={submittingReview}
+                disabled={submittingReview || reviewRating === 0 || !reviewText.trim()}
+              >
+                {submittingReview ? 'Submitting...' : 'Submit Review'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

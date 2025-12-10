@@ -14,6 +14,7 @@ const DualRangeSlider = ({
 }) => {
   const [localMinValue, setLocalMinValue] = useState(minValue || min);
   const [localMaxValue, setLocalMaxValue] = useState(maxValue || max);
+  const [activeThumb, setActiveThumb] = useState(null);
   const minRef = useRef(null);
   const maxRef = useRef(null);
   const rangeRef = useRef(null);
@@ -34,6 +35,7 @@ const DualRangeSlider = ({
   };
 
   const handleMouseUp = () => {
+    setActiveThumb(null);
     onChange(localMinValue === min ? '' : localMinValue, localMaxValue === max ? '' : localMaxValue);
   };
 
@@ -58,10 +60,11 @@ const DualRangeSlider = ({
       </div>
 
       <div className="dual-range-container">
-        <div 
-          className="dual-range-track"
-          ref={rangeRef}
-        >
+        <div className="dual-range-track-wrapper">
+          <div 
+            className="dual-range-track"
+            ref={rangeRef}
+          />
           <div 
             className="dual-range-track-active"
             style={{
@@ -69,33 +72,37 @@ const DualRangeSlider = ({
               width: `${maxPercent - minPercent}%`
             }}
           />
+          
+          <input
+            type="range"
+            ref={minRef}
+            min={min}
+            max={max}
+            step={step}
+            value={localMinValue}
+            onChange={handleMinChange}
+            onMouseUp={handleMouseUp}
+            onTouchEnd={handleMouseUp}
+            onMouseDown={() => setActiveThumb('min')}
+            onTouchStart={() => setActiveThumb('min')}
+            className="dual-range-input dual-range-input-min"
+          />
+
+          <input
+            type="range"
+            ref={maxRef}
+            min={min}
+            max={max}
+            step={step}
+            value={localMaxValue}
+            onChange={handleMaxChange}
+            onMouseUp={handleMouseUp}
+            onTouchEnd={handleMouseUp}
+            onMouseDown={() => setActiveThumb('max')}
+            onTouchStart={() => setActiveThumb('max')}
+            className="dual-range-input dual-range-input-max"
+          />
         </div>
-
-        <input
-          type="range"
-          ref={minRef}
-          min={min}
-          max={max}
-          step={step}
-          value={localMinValue}
-          onChange={handleMinChange}
-          onMouseUp={handleMouseUp}
-          onTouchEnd={handleMouseUp}
-          className="dual-range-input dual-range-input-min"
-        />
-
-        <input
-          type="range"
-          ref={maxRef}
-          min={min}
-          max={max}
-          step={step}
-          value={localMaxValue}
-          onChange={handleMaxChange}
-          onMouseUp={handleMouseUp}
-          onTouchEnd={handleMouseUp}
-          className="dual-range-input dual-range-input-max"
-        />
       </div>
     </div>
   );

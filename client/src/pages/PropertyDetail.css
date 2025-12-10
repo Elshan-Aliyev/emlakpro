@@ -1,4 +1,262 @@
-/* Image Gallery */
+/* New Image Grid Gallery - Zillow Style */
+.image-grid-gallery {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 8px;
+  height: 500px;
+  margin-bottom: var(--space-6);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.modal-mode .image-grid-gallery {
+  margin-top: 60px; /* Account for top bar */
+}
+
+.main-grid-image {
+  grid-row: span 2;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.main-grid-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.main-grid-image:hover img {
+  transform: scale(1.05);
+}
+
+.grid-thumbnails {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 2x2 grid */
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+}
+
+.grid-thumb {
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.grid-thumb {
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.grid-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.grid-thumb:hover img {
+  transform: scale(1.1);
+}
+
+.see-all-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* Two Column Layout */
+.property-two-column {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: var(--space-8);
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.property-left-column {
+  min-width: 0;
+}
+
+.property-right-column {
+  position: relative;
+}
+
+.contact-card-sticky {
+  position: sticky;
+  top: 80px;
+}
+
+/* Property Header New Style */
+.property-header-new {
+  margin-bottom: var(--space-6);
+}
+
+.price-badge {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.price-badge .price {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--brand-primary, #1e4e8c);
+}
+
+.price-badge .price-per-sqm {
+  font-size: 1rem;
+  color: #666;
+}
+
+.property-address {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+  color: #333;
+}
+
+.property-meta-badges {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+.meta-badge {
+  padding: 6px 12px;
+  background: #f0f0f0;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status-badges {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* Contact Card */
+.contact-card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: var(--space-5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.agent-info {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.agent-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.agent-info h3 {
+  font-size: 1.125rem;
+  margin: 0;
+  font-weight: 600;
+}
+
+.agent-company {
+  font-size: 0.875rem;
+  color: #666;
+  margin: 4px 0 0 0;
+}
+
+.contact-agent-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--brand-primary, #1e4e8c);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: var(--space-4);
+}
+
+.contact-agent-btn:hover {
+  background: #163a6d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 78, 140, 0.3);
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.action-btn {
+  padding: 10px;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+  border-color: var(--brand-primary, #1e4e8c);
+  color: var(--brand-primary, #1e4e8c);
+}
+
+.property-stats-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: #333;
+}
+
+.property-description {
+  line-height: 1.6;
+  color: #333;
+  white-space: pre-wrap;
+}
+
+/* Old Image Gallery - Keep for fallback */
 .property-gallery {
   background: #000;
   position: relative;
@@ -720,4 +978,68 @@
 .btn-secondary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Responsive Styles */
+@media (max-width: 1024px) {
+  .property-two-column {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+  
+  .property-right-column {
+    order: -1;
+  }
+  
+  .contact-card-sticky {
+    position: static;
+  }
+  
+  .image-grid-gallery {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  
+  .main-grid-image {
+    height: 400px;
+  }
+  
+  .grid-thumbnails {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: 1fr;
+  }
+  
+  .grid-thumb {
+    height: 120px;
+  }
+}
+
+@media (max-width: 768px) {
+  .image-grid-gallery {
+    height: auto;
+  }
+  
+  .main-grid-image {
+    height: 300px;
+  }
+  
+  .grid-thumbnails {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .price-badge .price {
+    font-size: 1.5rem;
+  }
+  
+  .property-address {
+    font-size: 1.25rem;
+  }
+  
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
+  
+  .property-two-column {
+    padding: 0 var(--space-4);
+  }
 }

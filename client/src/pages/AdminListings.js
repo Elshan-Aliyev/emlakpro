@@ -21,6 +21,16 @@ const AdminListings = () => {
   const [approvalFilter, setApprovalFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Helper function to safely get location string
+  const getLocation = (property) => {
+    if (typeof property.location === 'string') return property.location;
+    if (typeof property.city === 'string') return property.city;
+    if (typeof property.address === 'string') return property.address;
+    if (property.location?.city && typeof property.location.city === 'string') return property.location.city;
+    if (property.address?.city && typeof property.address.city === 'string') return property.address.city;
+    return 'N/A';
+  };
+  
   // Modals
   const [approveModal, setApproveModal] = useState({ isOpen: false, property: null });
   const [sponsorModal, setSponsorModal] = useState({ isOpen: false, property: null });
@@ -298,7 +308,7 @@ const AdminListings = () => {
                           <div>
                             <strong>{property.title}</strong>
                             <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>
-                              {property.location?.city || property.location || 'N/A'}
+                              {getLocation(property)}
                             </div>
                           </div>
                         </div>
@@ -326,6 +336,9 @@ const AdminListings = () => {
                         <div className="admin-table-actions">
                           <Link to={`/listing/${property._id}`}>
                             <Button variant="outline" size="sm">View</Button>
+                          </Link>
+                          <Link to={`/properties/update/${property._id}`}>
+                            <Button variant="outline" size="sm">Edit</Button>
                           </Link>
                           {!property.isApproved && (
                             <Button
