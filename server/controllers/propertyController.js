@@ -162,21 +162,37 @@ exports.updateProperty = async (req, res) => {
   try {
     console.log('\n=== Update Property Request ===');
     console.log('Property ID:', req.params.id);
-    console.log('User:', req.user.id, req.user.role);
-    console.log('Images in request:', req.body.images ? req.body.images.length : 0);
-    if (req.body.images) {
-      console.log('Image URLs:', req.body.images);
-    }
-    
+    console.log('User ID from token:', req.user.id);
+    console.log('User role from token:', req.user.role);
+    console.log('User ID type:', typeof req.user.id);
+
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ message: 'Property not found' });
 
+    console.log('Property ownerId:', property.ownerId);
+    console.log('Property ownerId type:', typeof property.ownerId);
+    console.log('Property ownerId toString():', property.ownerId.toString());
+
     // allow admin/superadmin to edit any property
-    const isOwner = property.ownerId.toString() === req.user.id;
+    // Handle both populated object and ObjectId cases
+    const ownerId = typeof property.ownerId === 'object' && property.ownerId._id 
+      ? property.ownerId._id.toString() 
+      : property.ownerId.toString();
+    
+    const isOwner = ownerId === req.user.id;
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+
+    console.log('Extracted ownerId:', ownerId);
+    console.log('Is owner check:', isOwner);
+    console.log('Is admin check:', isAdmin);
+    console.log('Final authorization:', isOwner || isAdmin);
+
     if (!isOwner && !isAdmin) {
+      console.log('❌ Authorization failed - returning 401');
       return res.status(401).json({ message: 'Unauthorized' });
     }
+
+    console.log('✅ Authorization passed - proceeding with update');
 
     // regular owners cannot change the address/location
     if (isOwner && !isAdmin && req.body.location && req.body.location !== property.location) {
@@ -199,7 +215,13 @@ exports.deleteProperty = async (req, res) => {
   try {
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ message: 'Property not found' });
-    const isOwner = property.ownerId.toString() === req.user.id;
+    
+    // Handle both populated object and ObjectId cases
+    const ownerId = typeof property.ownerId === 'object' && property.ownerId._id 
+      ? property.ownerId._id.toString() 
+      : property.ownerId.toString();
+    
+    const isOwner = ownerId === req.user.id;
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
     if (!isOwner && !isAdmin) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -328,7 +350,12 @@ exports.addPropertyImages = async (req, res) => {
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ message: 'Property not found' });
 
-    const isOwner = property.ownerId.toString() === req.user.id;
+    // Handle both populated object and ObjectId cases
+    const ownerId = typeof property.ownerId === 'object' && property.ownerId._id 
+      ? property.ownerId._id.toString() 
+      : property.ownerId.toString();
+    
+    const isOwner = ownerId === req.user.id;
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
     if (!isOwner && !isAdmin) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -370,7 +397,12 @@ exports.deletePropertyImage = async (req, res) => {
     
     if (!property) return res.status(404).json({ message: 'Property not found' });
 
-    const isOwner = property.ownerId.toString() === req.user.id;
+    // Handle both populated object and ObjectId cases
+    const ownerId = typeof property.ownerId === 'object' && property.ownerId._id 
+      ? property.ownerId._id.toString() 
+      : property.ownerId.toString();
+    
+    const isOwner = ownerId === req.user.id;
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
     if (!isOwner && !isAdmin) {
       return res.status(401).json({ message: 'Unauthorized' });
