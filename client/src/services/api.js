@@ -52,7 +52,7 @@ export const getSavedSearches = (token) =>
   api.get('/users/saved-searches', { headers: { Authorization: `Bearer ${token}` } });
 
 // ==================== PROPERTIES API ====================
-export const getProperties = () => api.get('/properties');
+export const getProperties = (params = {}) => api.get('/properties', { params });
 
 export const createProperty = (data, token) =>
   api.post('/properties', data, { headers: { Authorization: `Bearer ${token}` } });
@@ -188,14 +188,17 @@ export const toggleArticleLike = (id, token) =>
 export const getConversations = (token) =>
   api.get('/messages/conversations', { headers: { Authorization: `Bearer ${token}` } });
 
-export const getConversationMessages = (userId, token) =>
-  api.get(`/messages/conversation/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
+export const getConversationMessages = (conversationId, token) =>
+  api.get(`/messages/conversation/${conversationId}`, { headers: { Authorization: `Bearer ${token}` } });
 
 export const sendMessage = (data, token) =>
   api.post('/messages', data, { headers: { Authorization: `Bearer ${token}` } });
 
-export const markMessagesAsRead = (userId, token) =>
-  api.put(`/messages/read/${userId}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+export const markMessagesAsRead = (conversationId, token) =>
+  api.put(`/messages/conversation/${conversationId}/read`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+export const getUnreadMessageCount = (token) =>
+  api.get('/messages/unread-count', { headers: { Authorization: `Bearer ${token}` } });
 
 // ==================== REVIEWS API ====================
 export const getRealtorReviews = (realtorId) => api.get(`/reviews/realtor/${realtorId}`);

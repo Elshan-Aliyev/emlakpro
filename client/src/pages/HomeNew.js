@@ -7,6 +7,7 @@ import PropertyMap from '../components/PropertyMap';
 import DualRangeSlider from '../components/DualRangeSlider';
 import FavoriteButton from '../components/FavoriteButton';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import './HomeNew.css';
 
 const BUY_RESIDENTIAL_BG = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1600&q=80';
@@ -14,8 +15,27 @@ const BUY_COMMERCIAL_BG = 'https://images.unsplash.com/photo-1486406146926-c627a
 const RENT_LONGTERM_BG = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1600&q=80';
 const RENT_SHORTTERM_BG = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1600&q=80';
 
+// Helper function to get verification badge info
+const getVerificationBadge = (accountType) => {
+  switch (accountType) {
+    case 'unverified-user':
+      return { text: 'Unverified User', className: 'badge-unverified' };
+    case 'verified-user':
+      return { text: 'Verified User', className: 'badge-verified-user' };
+    case 'verified-seller':
+      return { text: 'Verified Seller', className: 'badge-verified-seller' };
+    case 'realtor':
+      return { text: 'Realtor', className: 'badge-realtor' };
+    case 'corporate':
+      return { text: 'Corporate', className: 'badge-corporate' };
+    default:
+      return { text: 'Unverified User', className: 'badge-unverified' };
+  }
+};
+
 const Home = () => {
   const { isBuyMode } = useTheme();
+  const { user } = useAuth();
   
   // Primary state - sync with theme
   const [mode, setMode] = useState(isBuyMode ? 'buy' : 'rent');
@@ -26,6 +46,9 @@ const Home = () => {
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [bedrooms, setBedrooms] = useState('');
+  const [bathrooms, setBathrooms] = useState('');
+  const [buildingSize, setBuildingSize] = useState('');
+  const [maxGuests, setMaxGuests] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [areaMin, setAreaMin] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -159,6 +182,9 @@ const Home = () => {
     if (priceMin) params.set('priceMin', priceMin);
     if (priceMax) params.set('priceMax', priceMax);
     if (bedrooms) params.set('bedrooms', bedrooms);
+    if (bathrooms) params.set('bathrooms', bathrooms);
+    if (buildingSize) params.set('buildingSize', buildingSize);
+    if (maxGuests) params.set('maxGuests', maxGuests);
     if (propertyType) params.set('propertyType', propertyType);
     if (areaMin) params.set('areaMin', areaMin);
     if (startDate) params.set('startDate', startDate);
@@ -297,23 +323,65 @@ const Home = () => {
                         <option value="house">House</option>
                         <option value="villa">Villa</option>
                         <option value="townhouse">Townhouse</option>
+                        <option value="penthouse">Penthouse</option>
+                        <option value="studio">Studio</option>
+                        <option value="duplex">Duplex</option>
                       </>
                     )}
                     {(mode === 'buy' && subMode === 'commercial') && (
                       <>
                         <option value="office">Office</option>
-                        <option value="retail">Retail</option>
+                        <option value="commercial-retail">Commercial Retail</option>
+                        <option value="commercial-unit">Commercial Unit</option>
+                        <option value="industrial">Industrial</option>
                         <option value="warehouse">Warehouse</option>
+                        <option value="shop">Shop</option>
+                        <option value="restaurant">Restaurant</option>
                         <option value="land">Land</option>
+                        <option value="farm">Farm</option>
                       </>
                     )}
-                    {mode === 'rent' && (
+                    {(mode === 'rent' && subMode === 'long') && (
                       <>
                         <option value="apartment">Apartment</option>
                         <option value="house">House</option>
                         <option value="villa">Villa</option>
                         <option value="townhouse">Townhouse</option>
                         <option value="studio">Studio</option>
+                        <option value="duplex">Duplex</option>
+                        <option value="penthouse">Penthouse</option>
+                      </>
+                    )}
+                    {(mode === 'rent' && subMode === 'short') && (
+                      <>
+                        {/* Short-term Residential */}
+                        <option value="apartment">Apartment</option>
+                        <option value="house">House</option>
+                        <option value="villa">Villa</option>
+                        <option value="townhouse">Townhouse</option>
+                        <option value="studio">Studio</option>
+                        {/* Unique Short-term Properties */}
+                        <option value="cabin">🏕️ Cabin</option>
+                        <option value="cottage">🏠 Cottage</option>
+                        <option value="bungalow">🏘️ Bungalow</option>
+                        <option value="chalet">🏔️ Chalet</option>
+                        <option value="loft">🏙️ Loft</option>
+                        <option value="tiny-house">🏠 Tiny House</option>
+                        <option value="mobile-home">🚐 Mobile Home</option>
+                        <option value="rv">🚐 RV</option>
+                        <option value="camper-van">🚐 Camper Van</option>
+                        <option value="boat">⛵ Boat</option>
+                        <option value="treehouse">🌳 Treehouse</option>
+                        <option value="dome">🏔️ Dome</option>
+                        <option value="a-frame">🏔️ A-Frame</option>
+                        <option value="barn">🏭 Barn</option>
+                        <option value="castle">🏰 Castle</option>
+                        <option value="cave">🕳️ Cave</option>
+                        <option value="windmill">🌬️ Windmill</option>
+                        <option value="lighthouse">🏮 Lighthouse</option>
+                        <option value="room">🛏️ Room</option>
+                        <option value="shared-room">👥 Shared Room</option>
+                        <option value="entire-place">🏠 Entire Place</option>
                       </>
                     )}
                   </select>
@@ -322,7 +390,7 @@ const Home = () => {
                 {/* Show bedrooms only for residential buy/rent */}
                 {(mode === 'buy' && subMode === 'residential') || mode === 'rent' ? (
                   <div className="input-group">
-                    <label>Bedrooms</label>
+                    <label>🛏️</label>
                     <select value={bedrooms} onChange={(e) => setBedrooms(e.target.value)}>
                       <option value="">Any</option>
                       <option value="1">1+</option>
@@ -333,54 +401,85 @@ const Home = () => {
                   </div>
                 ) : null}
 
-                {/* Show area for commercial */}
+                {/* Show bathrooms only for residential buy/rent */}
+                {(mode === 'buy' && subMode === 'residential') || mode === 'rent' ? (
+                  <div className="input-group">
+                    <label>🚿</label>
+                    <select value={bathrooms} onChange={(e) => setBathrooms(e.target.value)}>
+                      <option value="">Any</option>
+                      <option value="1">1+</option>
+                      <option value="2">2+</option>
+                      <option value="3">3+</option>
+                      <option value="4">4+</option>
+                    </select>
+                  </div>
+                ) : null}
+
+                {/* Date filters for rent - inline with bedrooms */}
+                {mode === 'rent' && (
+                  <>
+                    {subMode === 'long' && (
+                      <div className="input-group">
+                        <label>📅</label>
+                        <input
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          min={new Date().toISOString().split('T')[0]}
+                          placeholder="Start Date"
+                        />
+                      </div>
+                    )}
+                    {subMode === 'short' && (
+                      <>
+                        <div className="input-group">
+                          <label>📅</label>
+                          <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            min={new Date().toISOString().split('T')[0]}
+                            placeholder="Start Date"
+                          />
+                        </div>
+                        <div className="input-group">
+                          <label>📅</label>
+                          <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            min={startDate || new Date().toISOString().split('T')[0]}
+                            placeholder="End Date"
+                          />
+                        </div>
+                        <div className="input-group">
+                          <label>👥</label>
+                          <select value={maxGuests} onChange={(e) => setMaxGuests(e.target.value)}>
+                            <option value="">Any</option>
+                            <option value="1">1 guest</option>
+                            <option value="2">2 guests</option>
+                            <option value="3">3 guests</option>
+                            <option value="4">4 guests</option>
+                            <option value="5">5+ guests</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {/* Building size for commercial buy */}
                 {mode === 'buy' && subMode === 'commercial' && (
                   <div className="input-group">
-                    <label>Area (sq m)</label>
-                    <input 
-                      type="number" 
-                      placeholder="Min area"
-                      value={areaMin}
-                      onChange={(e) => setAreaMin(e.target.value)}
+                    <label>🏢 Size (sqm)</label>
+                    <input
+                      type="number"
+                      value={buildingSize}
+                      onChange={(e) => setBuildingSize(e.target.value)}
+                      placeholder="Min size"
+                      min="0"
                     />
                   </div>
-                )}
-
-                {/* Show start date for long-term rent */}
-                {mode === 'rent' && subMode === 'long' && (
-                  <div className="input-group">
-                    <label>Start Date</label>
-                    <input 
-                      type="date" 
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                )}
-
-                {/* Show start and end date for short-term rent */}
-                {mode === 'rent' && subMode === 'short' && (
-                  <>
-                    <div className="input-group">
-                      <label>Start Date</label>
-                      <input 
-                        type="date" 
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        min={new Date().toISOString().split('T')[0]}
-                      />
-                    </div>
-                    <div className="input-group">
-                      <label>End Date</label>
-                      <input 
-                        type="date" 
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        min={startDate || new Date().toISOString().split('T')[0]}
-                      />
-                    </div>
-                  </>
                 )}
               </div>
 
@@ -445,6 +544,11 @@ const Home = () => {
                 <div className="property-card-content">
                   <div className="property-price">{p.currency || 'AZN'} {p.price?.toLocaleString()}</div>
                   <h3 className="property-title">{p.title}</h3>
+                  {p.ownerId?.accountType && (
+                    <div className={`verification-badge ${getVerificationBadge(p.ownerId.accountType).className}`}>
+                      {getVerificationBadge(p.ownerId.accountType).text}
+                    </div>
+                  )}
                   <p className="property-location">📍 {typeof p.location === 'string' ? p.location : (typeof p.city === 'string' ? p.city : p.country || 'Location')}</p>
                   <div className="property-features">
                     {p.bedrooms > 0 && <span>🛏️ {p.bedrooms}</span>}
@@ -501,11 +605,32 @@ const Home = () => {
         {/* CTA Section */}
         <section className="cta-section">
           <div className="cta-content">
-            <h2>Become a Real Estate Agent</h2>
-            <p>Join our marketplace and reach thousands of potential buyers and renters</p>
-            <Link to="/agents/register" className="cta-btn">Join as Agent</Link>
+            <h2>Explore Our Services</h2>
+            <p>Discover comprehensive real estate solutions tailored to your needs</p>
+            <Link to="/services" className="cta-btn">Explore Services</Link>
           </div>
         </section>
+
+        {/* User-specific banners */}
+        {!user && (
+          <section className="user-banner signup-banner">
+            <div className="banner-content">
+              <h3>Join Our Community</h3>
+              <p>Create an account to access exclusive features and personalized recommendations</p>
+              <Link to="/signup" className="banner-btn primary">Sign Up Now</Link>
+            </div>
+          </section>
+        )}
+
+        {user && !user.verified && user.role !== 'admin' && user.role !== 'superadmin' && (
+          <section className="user-banner verification-banner">
+            <div className="banner-content">
+              <h3>Get Verified</h3>
+              <p>Verify your account to unlock premium features and build trust with other users</p>
+              <Link to="/account/verification" className="banner-btn secondary">Get Verified</Link>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

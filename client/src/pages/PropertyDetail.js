@@ -11,6 +11,24 @@ import './PropertyDetail.css';
 const MemoizedPropertyMap = memo(PropertyMap);
 const MemoizedSellerInfo = memo(SellerInfo);
 
+// Helper function to get verification badge info
+const getVerificationBadge = (accountType) => {
+  switch (accountType) {
+    case 'unverified-user':
+      return { text: 'Unverified User', className: 'badge-unverified' };
+    case 'verified-user':
+      return { text: 'Verified User', className: 'badge-verified-user' };
+    case 'verified-seller':
+      return { text: 'Verified Seller', className: 'badge-verified-seller' };
+    case 'realtor':
+      return { text: 'Realtor', className: 'badge-realtor' };
+    case 'corporate':
+      return { text: 'Corporate', className: 'badge-corporate' };
+    default:
+      return { text: 'Unverified User', className: 'badge-unverified' };
+  }
+};
+
 const PropertyDetail = ({ property: propProperty, isModal = false, onClose }) => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -638,6 +656,11 @@ Please contact me with more details.`;
                   )}
                   <div>
                     <h3>{property.ownerId.name}</h3>
+                    {property.ownerId.accountType && (
+                      <div className={`verification-badge ${getVerificationBadge(property.ownerId.accountType).className}`}>
+                        {getVerificationBadge(property.ownerId.accountType).text}
+                      </div>
+                    )}
                     {property.ownerId.companyName && (
                       <p className="agent-company">{property.ownerId.companyName}</p>
                     )}

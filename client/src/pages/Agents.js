@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUsers } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import './Agents.css';
 
 const Agents = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,9 +26,18 @@ const Agents = () => {
       
       const res = await getUsers(token);
       // Filter to show only realtors and corporate agents
-      const agentUsers = res.data.filter(user => 
+      let agentUsers = res.data.filter(user => 
         user.role === 'realtor' || user.role === 'corporate'
       );
+      
+      // Include current user if they are an agent but not already in the list
+      if (user && (user.role === 'realtor' || user.role === 'corporate')) {
+        const isAlreadyIncluded = agentUsers.some(agent => agent._id === user._id);
+        if (!isAlreadyIncluded) {
+          agentUsers = [user, ...agentUsers];
+        }
+      }
+      
       setAgents(agentUsers);
     } catch (err) {
       console.error('Error fetching agents:', err);

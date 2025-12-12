@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import { getUnreadMessageCount } from '../services/api';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -10,6 +11,7 @@ const Navbar = () => {
   const [showBuyCommercialMenu, setShowBuyCommercialMenu] = useState(false);
   const [showRentCommercialMenu, setShowRentCommercialMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
   const { switchTheme, isBuyMode } = useTheme();
@@ -51,6 +53,46 @@ const Navbar = () => {
       document.body.classList.remove('scrolled');
     };
   }, [location.pathname]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showAccountMenu && !event.target.closest('.account-dropdown')) {
+        setShowAccountMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAccountMenu]);
+
+  // Close dropdown on navigation
+  useEffect(() => {
+    setShowAccountMenu(false);
+  }, [location.pathname]);
+
+  // Fetch unread message count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      if (token) {
+        try {
+          const response = await getUnreadMessageCount(token);
+          setUnreadMessages(response.data.count || 0);
+        } catch (error) {
+          console.error('Error fetching unread message count:', error);
+          setUnreadMessages(0);
+        }
+      }
+    };
+
+    fetchUnreadCount();
+    
+    // Refresh unread count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [token]);
 
   const handleSignOut = () => {
     localStorage.removeItem('token');
@@ -269,8 +311,8 @@ const Navbar = () => {
             {/* Agents */}
             <Link to="/agents" className="nav-link">Agents</Link>
             
-            {/* Resources */}
-            <Link to="/resources" className="nav-link">Resources</Link>
+            {/* Services */}
+            <Link to="/services" className="nav-link">Services</Link>
           </div>
         </div>
 
@@ -293,6 +335,9 @@ const Navbar = () => {
                     <span></span>
                     <span></span>
                   </div>
+                  {unreadMessages > 0 && (
+                    <span className="hamburger-notification-badge">{unreadMessages}</span>
+                  )}
                 </button>
                 
                 {showAccountMenu && (
@@ -315,9 +360,6 @@ const Navbar = () => {
                       </Link>
                     )}
                     <div className="dropdown-divider"></div>
-                    <Link to="/account" className="dropdown-item" onClick={() => setShowAccountMenu(false)}>
-                      <span>👤</span> My Account
-                    </Link>
                     <Link to="/account/listings" className="dropdown-item" onClick={() => setShowAccountMenu(false)}>
                       <span>🏠</span> My Properties
                     </Link>
@@ -326,6 +368,9 @@ const Navbar = () => {
                     </Link>
                     <Link to="/messages" className="dropdown-item" onClick={() => setShowAccountMenu(false)}>
                       <span>💬</span> Messages
+                      {unreadMessages > 0 && (
+                        <span className="notification-badge">{unreadMessages}</span>
+                      )}
                     </Link>
                     {(role === 'realtor' || role === 'corporate' || role === 'admin' || role === 'superadmin') && (
                       <>
@@ -336,6 +381,9 @@ const Navbar = () => {
                       </>
                     )}
                     <div className="dropdown-divider"></div>
+                    <Link to="/resources" className="dropdown-item" onClick={() => setShowAccountMenu(false)}>
+                      <span>📚</span> Resources
+                    </Link>
                     <Link to="/account/settings" className="dropdown-item" onClick={() => setShowAccountMenu(false)}>
                       <span>⚙️</span> Settings
                     </Link>

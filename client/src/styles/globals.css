@@ -135,13 +135,24 @@ body {
 .main-layout {
   position: relative;
   min-height: 100vh;
-  padding-top: 80px; /* Match navbar min-height */
+  padding-top: 80px; /* Match navbar min-height when not scrolled */
+  transition: padding-top 0.3s ease;
+}
+
+/* Adjust padding when navbar is scrolled/collapsed */
+body.scrolled .main-layout {
+  padding-top: 70px; /* Match navbar min-height when scrolled */
 }
 
 /* Main content wrapper - starts below fixed navbar */
 .main-content {
   min-height: calc(100vh - 80px - 60px); /* Account for navbar and footer */
   padding-bottom: 40px; /* Space before footer */
+}
+
+/* Adjust main content height when scrolled */
+body.scrolled .main-content {
+  min-height: calc(100vh - 70px - 60px);
 }
 
 /* Theme-specific body classes */

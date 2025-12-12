@@ -690,7 +690,23 @@ const CreateProperty = () => {
           <div className="form-row">
             <div className="form-group">
               <label>District</label>
-              <input type="text" value={district} onChange={e => setDistrict(e.target.value)} />
+              <select value={district} onChange={e => setDistrict(e.target.value)}>
+                <option value="">Select District</option>
+                <option value="Abşeron r.">Abşeron r.</option>
+                <option value="Binəqədi r.">Binəqədi r.</option>
+                <option value="Nizami r.">Nizami r.</option>
+                <option value="Nərimanov r.">Nərimanov r.</option>
+                <option value="Nəsimi r.">Nəsimi r.</option>
+                <option value="Pirallahı">Pirallahı</option>
+                <option value="Qaradağ r.">Qaradağ r.</option>
+                <option value="Sabunçu r.">Sabunçu r.</option>
+                <option value="Suraxanı r.">Suraxanı r.</option>
+                <option value="Səbail r.">Səbail r.</option>
+                <option value="Xətai r.">Xətai r.</option>
+                <option value="Xəzər r.">Xəzər r.</option>
+                <option value="Yasamal r.">Yasamal r.</option>
+                <option value="Custom">Custom (enter below)</option>
+              </select>
             </div>
 
             <div className="form-group">
@@ -698,6 +714,17 @@ const CreateProperty = () => {
               <input type="text" value={street} onChange={e => setStreet(e.target.value)} />
             </div>
           </div>
+
+          {district === 'Custom' && (
+            <div className="form-group">
+              <label>Custom District</label>
+              <input
+                type="text"
+                placeholder="Enter custom district name"
+                onChange={e => setDistrict(e.target.value)}
+              />
+            </div>
+          )}
 
           <div className="form-group">
             <label>Full Address</label>

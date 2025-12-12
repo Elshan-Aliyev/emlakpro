@@ -95,7 +95,34 @@
   font-size: 1rem;
 }
 
-/* Verification Banner */
+/* Dashboard Section Containers */
+.dashboard-section {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-200);
+}
+
+.dashboard-section .section-header {
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.dashboard-section .section-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: var(--space-1);
+}
+
+.dashboard-section .section-header p {
+  color: var(--gray-600);
+  font-size: 0.875rem;
+  margin: 0;
+}
 .verification-banner {
   display: flex;
   align-items: center;
@@ -523,6 +550,21 @@
 .stat-label {
   font-size: 0.875rem;
   color: #6b7280;
+}
+
+/* Clickable Stat Cards */
+.stat-card.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stat-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card.clickable:active {
+  transform: translateY(0);
 }
 
 @media (max-width: 768px) {

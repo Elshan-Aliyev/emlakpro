@@ -9,7 +9,7 @@ const FilterModal = ({ isOpen, onClose, filters, onFilterChange, onApply, onRese
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="All Filters" size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title="All Filters" size="xl">
       <div className="filter-modal-content">
         {/* Listing Status */}
         <div className="filter-modal-section">
@@ -93,14 +93,47 @@ const FilterModal = ({ isOpen, onClose, filters, onFilterChange, onApply, onRese
             onChange={(e) => onFilterChange('propertyType', e.target.value)}
           >
             <option value="">All Types</option>
+            {/* Residential */}
             <option value="apartment">Apartment</option>
             <option value="house">House</option>
+            <option value="townhouse">Townhouse</option>
             <option value="villa">Villa</option>
             <option value="penthouse">Penthouse</option>
             <option value="studio">Studio</option>
+            <option value="duplex">Duplex</option>
+            {/* Commercial */}
+            <option value="commercial-retail">Commercial Retail</option>
+            <option value="commercial-unit">Commercial Unit</option>
             <option value="office">Office</option>
-            <option value="commercial">Commercial</option>
+            <option value="industrial">Industrial</option>
+            <option value="warehouse">Warehouse</option>
+            <option value="shop">Shop</option>
+            <option value="restaurant">Restaurant</option>
+            {/* Land */}
             <option value="land">Land</option>
+            <option value="farm">Farm</option>
+            {/* Short-term / Unique */}
+            <option value="cabin">Cabin</option>
+            <option value="cottage">Cottage</option>
+            <option value="bungalow">Bungalow</option>
+            <option value="chalet">Chalet</option>
+            <option value="loft">Loft</option>
+            <option value="tiny-house">Tiny House</option>
+            <option value="mobile-home">Mobile Home</option>
+            <option value="rv">RV</option>
+            <option value="camper-van">Camper Van</option>
+            <option value="boat">Boat</option>
+            <option value="treehouse">Treehouse</option>
+            <option value="dome">Dome</option>
+            <option value="a-frame">A-Frame</option>
+            <option value="barn">Barn</option>
+            <option value="castle">Castle</option>
+            <option value="cave">Cave</option>
+            <option value="windmill">Windmill</option>
+            <option value="lighthouse">Lighthouse</option>
+            <option value="room">Room</option>
+            <option value="shared-room">Shared Room</option>
+            <option value="entire-place">Entire Place</option>
           </select>
         </div>
 
@@ -228,7 +261,111 @@ const FilterModal = ({ isOpen, onClose, filters, onFilterChange, onApply, onRese
           </div>
         </div>
 
-        {/* Sort By */}
+        {/* Year Built */}
+        <div className="filter-modal-section">
+          <label className="filter-modal-label">Year Built</label>
+          <div className="filter-modal-row">
+            <div className="filter-modal-row-item">
+              <input
+                type="number"
+                className="filter-modal-input"
+                placeholder="From Year"
+                value={filters.yearBuiltMin || ''}
+                onChange={(e) => onFilterChange('yearBuiltMin', e.target.value)}
+              />
+            </div>
+            <div className="filter-modal-row-item">
+              <input
+                type="number"
+                className="filter-modal-input"
+                placeholder="To Year"
+                value={filters.yearBuiltMax || ''}
+                onChange={(e) => onFilterChange('yearBuiltMax', e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Number of Stories */}
+        <div className="filter-modal-section">
+          <label className="filter-modal-label">Number of Stories</label>
+          <select
+            className="filter-modal-select"
+            value={filters.stories || ''}
+            onChange={(e) => onFilterChange('stories', e.target.value)}
+          >
+            <option value="">Any</option>
+            <option value="1">1 Story</option>
+            <option value="2">2 Stories</option>
+            <option value="3">3 Stories</option>
+            <option value="4">4 Stories</option>
+            <option value="5">5+ Stories</option>
+          </select>
+        </div>
+
+        {/* View */}
+        <div className="filter-modal-section">
+          <label className="filter-modal-label">View</label>
+          <select
+            className="filter-modal-select"
+            value={filters.view || ''}
+            onChange={(e) => onFilterChange('view', e.target.value)}
+          >
+            <option value="">Any View</option>
+            <option value="city">City View</option>
+            <option value="sea">Sea View</option>
+            <option value="mountain">Mountain View</option>
+            <option value="park">Park View</option>
+            <option value="street">Street View</option>
+            <option value="other">Other View</option>
+          </select>
+        </div>
+
+        {/* Parking Spots */}
+        <div className="filter-modal-section">
+          <label className="filter-modal-label">Parking Spots</label>
+          <select
+            className="filter-modal-select"
+            value={filters.parkingSpots || ''}
+            onChange={(e) => onFilterChange('parkingSpots', e.target.value)}
+          >
+            <option value="">Any</option>
+            <option value="0">No Parking</option>
+            <option value="1">1 Spot</option>
+            <option value="2">2 Spots</option>
+            <option value="3">3 Spots</option>
+            <option value="4">4+ Spots</option>
+          </select>
+        </div>
+
+        {/* Listed Since */}
+        <div className="filter-modal-section">
+          <label className="filter-modal-label">Listed Since</label>
+          <select
+            className="filter-modal-select"
+            value={filters.listedSince || ''}
+            onChange={(e) => onFilterChange('listedSince', e.target.value)}
+          >
+            <option value="">Any Time</option>
+            <option value="1">Last 24 Hours</option>
+            <option value="7">Last 7 Days</option>
+            <option value="30">Last 30 Days</option>
+            <option value="90">Last 3 Months</option>
+            <option value="180">Last 6 Months</option>
+          </select>
+        </div>
+
+        {/* Keywords */}
+        <div className="filter-modal-section">
+          <label className="filter-modal-label">Keywords</label>
+          <input
+            type="text"
+            className="filter-modal-input"
+            placeholder="Enter keywords (e.g., renovated, furnished, luxury)"
+            value={filters.keywords || ''}
+            onChange={(e) => onFilterChange('keywords', e.target.value)}
+          />
+        </div>
         <div className="filter-modal-section">
           <label className="filter-modal-label">Sort By</label>
           <select

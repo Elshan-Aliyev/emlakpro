@@ -39,7 +39,24 @@ exports.createProperty = async (req, res) => {
 // Get all properties
 exports.getProperties = async (req, res) => {
   try {
-    const properties = await Property.find().populate('ownerId', 'name lastName email phone avatar role verified licenseId brokerage companyName companyLogo totalListings totalViews');
+    let query = {};
+    
+    // Filter by ownerId if provided
+    if (req.query.ownerId) {
+      query.ownerId = req.query.ownerId;
+    }
+    
+    // Filter by status if provided
+    if (req.query.status) {
+      query.status = req.query.status;
+    }
+    
+    // Filter by listingStatus if provided
+    if (req.query.listingStatus) {
+      query.listingStatus = req.query.listingStatus;
+    }
+    
+    const properties = await Property.find(query).populate('ownerId', 'name lastName email phone avatar role verified licenseId brokerage companyName companyLogo totalListings totalViews accountType');
     res.json(properties);
   } catch (err) {
     console.error('Search properties error:', err);

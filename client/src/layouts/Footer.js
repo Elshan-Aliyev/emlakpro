@@ -38,7 +38,7 @@ const Footer = () => {
           <div className="footer-section">
             <h4 className="footer-section-title">For Sellers</h4>
             <ul className="footer-links">
-              <li><Link to="/account/listings/new">List Your Property</Link></li>
+              <li><Link to="/properties/create">List Your Property</Link></li>
               <li><Link to="/account">Dashboard</Link></li>
               <li><Link to="/contact">Contact Us</Link></li>
             </ul>

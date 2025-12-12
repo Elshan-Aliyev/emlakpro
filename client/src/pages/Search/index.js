@@ -10,6 +10,24 @@ import Badge from '../../components/Badge';
 import FavoriteButton from '../../components/FavoriteButton';
 import './Search.css';
 
+// Helper function to get verification badge info
+const getVerificationBadge = (accountType) => {
+  switch (accountType) {
+    case 'unverified-user':
+      return { text: 'Unverified User', className: 'badge-unverified' };
+    case 'verified-user':
+      return { text: 'Verified User', className: 'badge-verified-user' };
+    case 'verified-seller':
+      return { text: 'Verified Seller', className: 'badge-verified-seller' };
+    case 'realtor':
+      return { text: 'Realtor', className: 'badge-realtor' };
+    case 'corporate':
+      return { text: 'Corporate', className: 'badge-corporate' };
+    default:
+      return { text: 'Unverified User', className: 'badge-unverified' };
+  }
+};
+
 const Search = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,6 +86,13 @@ const Search = () => {
   const [newConstruction, setNewConstruction] = useState(false);
   const [ownerListedOnly, setOwnerListedOnly] = useState(false);
   const [showSold, setShowSold] = useState(false);
+  const [yearBuiltMin, setYearBuiltMin] = useState(searchParams.get('yearBuiltMin') || '');
+  const [yearBuiltMax, setYearBuiltMax] = useState(searchParams.get('yearBuiltMax') || '');
+  const [stories, setStories] = useState(searchParams.get('stories') || '');
+  const [view, setView] = useState(searchParams.get('view') || '');
+  const [parkingSpots, setParkingSpots] = useState(searchParams.get('parkingSpots') || '');
+  const [listedSince, setListedSince] = useState(searchParams.get('listedSince') || '');
+  const [keywords, setKeywords] = useState(searchParams.get('keywords') || '');
 
   // Update map center and zoom from URL
   useEffect(() => {
@@ -142,7 +167,7 @@ const Search = () => {
         return params;
       }, { replace: true });
     }
-  }, [isBuyMode, searchParams, setSearchParams, location.pathname]);
+  }, [isBuyMode, location.pathname]);
 
   // Sync state with URL params when they change - read from URL always
   useEffect(() => {
@@ -164,6 +189,13 @@ const Search = () => {
     const urlFurnished = searchParams.get('furnished');
     const urlNewConstruction = searchParams.get('newConstruction');
     const urlOwnerListedOnly = searchParams.get('ownerListedOnly');
+    const urlYearBuiltMin = searchParams.get('yearBuiltMin');
+    const urlYearBuiltMax = searchParams.get('yearBuiltMax');
+    const urlStories = searchParams.get('stories');
+    const urlPropertyView = searchParams.get('view');
+    const urlParkingSpots = searchParams.get('parkingSpots');
+    const urlListedSince = searchParams.get('listedSince');
+    const urlKeywords = searchParams.get('keywords');
 
     if (listingStatus === 'for-sale') {
       setListingType('buy');
@@ -190,6 +222,13 @@ const Search = () => {
     setFurnished(urlFurnished === 'true');
     setNewConstruction(urlNewConstruction === 'true');
     setOwnerListedOnly(urlOwnerListedOnly === 'true');
+    setYearBuiltMin(urlYearBuiltMin || '');
+    setYearBuiltMax(urlYearBuiltMax || '');
+    setStories(urlStories || '');
+    setView(urlPropertyView || '');
+    setParkingSpots(urlParkingSpots || '');
+    setListedSince(urlListedSince || '');
+    setKeywords(urlKeywords || '');
   }, [searchParams]);
 
   // Apply filters
@@ -282,6 +321,54 @@ const Search = () => {
       filtered = filtered.filter(p => p.listingBadge === 'for-sale-by-owner');
     }
 
+    // Year built filter
+    if (yearBuiltMin) {
+      filtered = filtered.filter(p => (p.yearBuilt || 0) >= Number(yearBuiltMin));
+    }
+    if (yearBuiltMax) {
+      filtered = filtered.filter(p => (p.yearBuilt || 0) <= Number(yearBuiltMax));
+    }
+
+    // Stories filter
+    if (stories) {
+      if (stories === '5') {
+        filtered = filtered.filter(p => (p.totalFloorsInBuilding || 0) >= 5);
+      } else {
+        filtered = filtered.filter(p => (p.totalFloorsInBuilding || 0) === Number(stories));
+      }
+    }
+
+    // View filter
+    if (view) {
+      filtered = filtered.filter(p => p.viewType === view);
+    }
+
+    // Parking spots filter
+    if (parkingSpots) {
+      if (parkingSpots === '4') {
+        filtered = filtered.filter(p => (p.parkingSpaces || 0) >= 4);
+      } else {
+        filtered = filtered.filter(p => (p.parkingSpaces || 0) === Number(parkingSpots));
+      }
+    }
+
+    // Listed since filter
+    if (listedSince) {
+      const days = Number(listedSince);
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      filtered = filtered.filter(p => new Date(p.createdAt) >= cutoffDate);
+    }
+
+    // Keywords filter
+    if (keywords) {
+      const searchTerms = keywords.toLowerCase().split(' ');
+      filtered = filtered.filter(p => {
+        const searchableText = `${p.title || ''} ${p.description || ''} ${p.location || ''} ${p.city || ''}`.toLowerCase();
+        return searchTerms.every(term => searchableText.includes(term));
+      });
+    }
+
     // Sort
     if (sortBy === 'newest') {
       filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -296,7 +383,7 @@ const Search = () => {
     }
 
     setFilteredProperties(filtered);
-  }, [properties, listingType, purpose, propertyType, priceMin, priceMax, bedrooms, bathrooms, areaMin, areaMax, sortBy, parking, balcony, petFriendly, furnished, newConstruction, ownerListedOnly, showSold, searchParams]);
+  }, [properties, listingType, purpose, propertyType, priceMin, priceMax, bedrooms, bathrooms, areaMin, areaMax, sortBy, parking, balcony, petFriendly, furnished, newConstruction, ownerListedOnly, showSold, yearBuiltMin, yearBuiltMax, stories, view, parkingSpots, listedSince, keywords, searchParams]);
 
   // Favorite toggle handler
   const handleFavoriteToggle = (propertyId, isFavorite) => {
@@ -466,6 +553,11 @@ const Search = () => {
                         {property.currency || 'AZN'} {property.price?.toLocaleString()}
                       </div>
                       <h3 className="listing-title">{property.title}</h3>
+                      {property.ownerId?.accountType && (
+                        <div className={`verification-badge ${getVerificationBadge(property.ownerId.accountType).className}`}>
+                          {getVerificationBadge(property.ownerId.accountType).text}
+                        </div>
+                      )}
                       <p className="listing-address">📍 {getLocation(property)}</p>
                       <div className="listing-features">
                         {property.bedrooms > 0 && <span>🛏️ {property.bedrooms} beds</span>}

@@ -23,6 +23,9 @@ import VerificationApplication from './pages/VerificationApplication';
 import Help from './pages/Help';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import ContactUs from './pages/ContactUs';
+import AboutUs from './pages/AboutUs';
+import Services from './pages/Services';
 
 // Service Pages
 import PrepareContract from './pages/PrepareContract';
@@ -65,6 +68,9 @@ function App() {
         <Route path="/help" element={<MainLayout><Help /></MainLayout>} />
         <Route path="/privacy" element={<MainLayout><Privacy /></MainLayout>} />
         <Route path="/terms" element={<MainLayout><Terms /></MainLayout>} />
+        <Route path="/contact" element={<MainLayout><ContactUs /></MainLayout>} />
+        <Route path="/about" element={<MainLayout><AboutUs /></MainLayout>} />
+        <Route path="/services" element={<MainLayout><Services /></MainLayout>} />
         
         {/* Service Routes */}
         <Route path="/services/contracts" element={<MainLayout><PrepareContract /></MainLayout>} />

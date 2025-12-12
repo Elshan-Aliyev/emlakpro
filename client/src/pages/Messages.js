@@ -172,7 +172,7 @@ const Messages = () => {
                     </div>
                     <div className="conversation-info">
                       <div className="conversation-header">
-                        <h3>{conv.otherUser?.firstName || 'Unknown'} {conv.otherUser?.lastName || 'User'}</h3>
+                        <h3>{conv.otherUser?.name || 'Unknown'} {conv.otherUser?.lastName || 'User'}</h3>
                         <span className="conversation-time">
                           {formatTime(conv.lastMessage?.createdAt)}
                         </span>
@@ -198,7 +198,7 @@ const Messages = () => {
                 <div className="thread-header">
                   <div className="thread-info">
                     <h3>
-                      {selectedConversation.otherUser?.firstName || 'Unknown'} {selectedConversation.otherUser?.lastName || 'User'}
+                      {selectedConversation.otherUser?.name || 'Unknown'} {selectedConversation.otherUser?.lastName || 'User'}
                     </h3>
                     {selectedConversation.property ? (
                       <p 
@@ -222,8 +222,8 @@ const Messages = () => {
                   ) : (
                     messages.map((msg) => {
                       const currentUserId = getCurrentUserId();
-                      const senderInitials = msg.sender?.firstName && msg.sender?.lastName 
-                        ? `${msg.sender.firstName[0]}${msg.sender.lastName[0]}`
+                      const senderInitials = msg.sender?.name && msg.sender?.lastName 
+                        ? `${msg.sender.name[0]}${msg.sender.lastName[0]}`
                         : '??';
                       return (
                         <div 

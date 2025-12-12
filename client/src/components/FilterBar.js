@@ -30,6 +30,13 @@ const FilterBar = () => {
   const [furnished, setFurnished] = useState(false);
   const [pool, setPool] = useState(false);
   const [gym, setGym] = useState(false);
+  const [yearBuiltMin, setYearBuiltMin] = useState('');
+  const [yearBuiltMax, setYearBuiltMax] = useState('');
+  const [stories, setStories] = useState('');
+  const [view, setView] = useState('');
+  const [parkingSpots, setParkingSpots] = useState('');
+  const [listedSince, setListedSince] = useState('');
+  const [keywords, setKeywords] = useState('');
   
   // Sync FilterBar state with URL changes (when URL is updated externally)
   useEffect(() => {
@@ -60,6 +67,13 @@ const FilterBar = () => {
     setFurnished(params.get('furnished') === 'true');
     setPool(params.get('pool') === 'true');
     setGym(params.get('gym') === 'true');
+    setYearBuiltMin(params.get('yearBuiltMin') || '');
+    setYearBuiltMax(params.get('yearBuiltMax') || '');
+    setStories(params.get('stories') || '');
+    setView(params.get('view') || '');
+    setParkingSpots(params.get('parkingSpots') || '');
+    setListedSince(params.get('listedSince') || '');
+    setKeywords(params.get('keywords') || '');
     
     // Use requestAnimationFrame to ensure this runs after all state updates complete
     requestAnimationFrame(() => {
@@ -106,6 +120,27 @@ const FilterBar = () => {
       if (areaMax) newParams.set('areaMax', areaMax);
       else newParams.delete('areaMax');
       
+      if (yearBuiltMin) newParams.set('yearBuiltMin', yearBuiltMin);
+      else newParams.delete('yearBuiltMin');
+      
+      if (yearBuiltMax) newParams.set('yearBuiltMax', yearBuiltMax);
+      else newParams.delete('yearBuiltMax');
+      
+      if (stories) newParams.set('stories', stories);
+      else newParams.delete('stories');
+      
+      if (view) newParams.set('view', view);
+      else newParams.delete('view');
+      
+      if (parkingSpots) newParams.set('parkingSpots', parkingSpots);
+      else newParams.delete('parkingSpots');
+      
+      if (listedSince) newParams.set('listedSince', listedSince);
+      else newParams.delete('listedSince');
+      
+      if (keywords) newParams.set('keywords', keywords);
+      else newParams.delete('keywords');
+      
       // Only navigate if the URL would actually change
       const currentStr = currentParams.toString();
       const newStr = newParams.toString();
@@ -119,8 +154,14 @@ const FilterBar = () => {
     
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propertyType, purpose, rentalTerm, priceMin, priceMax, bedrooms, bathrooms, areaMin, areaMax, parking, petsAllowed, furnished, pool, gym, location.pathname]);
-  
+  }, [propertyType, purpose, rentalTerm, priceMin, priceMax, bedrooms, bathrooms, areaMin, areaMax, parking, petsAllowed, furnished, pool, gym, yearBuiltMin, yearBuiltMax, stories, view, parkingSpots, listedSince, keywords, location.pathname]);
+
+  // Clear propertyType when purpose or rentalTerm changes to avoid incompatible selections
+  useEffect(() => {
+    if (isUpdatingFromURL.current) return; // Don't clear during URL sync
+    setPropertyType('');
+  }, [purpose, rentalTerm]);
+
   const handleApplyFilters = () => {
     const params = new URLSearchParams(location.search);
     
@@ -169,6 +210,27 @@ const FilterBar = () => {
     if (gym) params.set('gym', 'true');
     else params.delete('gym');
     
+    if (yearBuiltMin) params.set('yearBuiltMin', yearBuiltMin);
+    else params.delete('yearBuiltMin');
+    
+    if (yearBuiltMax) params.set('yearBuiltMax', yearBuiltMax);
+    else params.delete('yearBuiltMax');
+    
+    if (stories) params.set('stories', stories);
+    else params.delete('stories');
+    
+    if (view) params.set('view', view);
+    else params.delete('view');
+    
+    if (parkingSpots) params.set('parkingSpots', parkingSpots);
+    else params.delete('parkingSpots');
+    
+    if (listedSince) params.set('listedSince', listedSince);
+    else params.delete('listedSince');
+    
+    if (keywords) params.set('keywords', keywords);
+    else params.delete('keywords');
+    
     navigate(`${location.pathname}?${params.toString()}`);
   };
   
@@ -188,6 +250,13 @@ const FilterBar = () => {
     setGym(false);
     setShowSold(false);
     setViewMode('map');
+    setYearBuiltMin('');
+    setYearBuiltMax('');
+    setStories('');
+    setView('');
+    setParkingSpots('');
+    setListedSince('');
+    setKeywords('');
     
     // Preserve listingStatus and purpose when clearing
     const params = new URLSearchParams();
@@ -313,15 +382,75 @@ const FilterBar = () => {
             title="Property Type"
           >
             <option value="">🏠 Property Type</option>
-            <option value="apartment">Apartment</option>
-            <option value="house">House</option>
-            <option value="villa">Villa</option>
-            <option value="townhouse">Townhouse</option>
-            <option value="penthouse">Penthouse</option>
-            <option value="studio">Studio</option>
-            <option value="office">Office</option>
-            <option value="retail">Retail</option>
-            <option value="warehouse">Warehouse</option>
+            {/* Residential Buy */}
+            {purpose === 'residential' && !rentalTerm && (
+              <>
+                <option value="apartment">Apartment</option>
+                <option value="house">House</option>
+                <option value="townhouse">Townhouse</option>
+                <option value="villa">Villa</option>
+                <option value="penthouse">Penthouse</option>
+                <option value="studio">Studio</option>
+                <option value="duplex">Duplex</option>
+              </>
+            )}
+            {/* Commercial Buy */}
+            {purpose === 'commercial' && !rentalTerm && (
+              <>
+                <option value="commercial-retail">Commercial Retail</option>
+                <option value="commercial-unit">Commercial Unit</option>
+                <option value="office">Office</option>
+                <option value="industrial">Industrial</option>
+                <option value="warehouse">Warehouse</option>
+                <option value="shop">Shop</option>
+                <option value="restaurant">Restaurant</option>
+                <option value="land">Land</option>
+                <option value="farm">Farm</option>
+              </>
+            )}
+            {/* Residential Long-term Rent */}
+            {purpose === 'residential' && rentalTerm === 'long-term' && (
+              <>
+                <option value="apartment">Apartment</option>
+                <option value="house">House</option>
+                <option value="townhouse">Townhouse</option>
+                <option value="villa">Villa</option>
+                <option value="studio">Studio</option>
+                <option value="duplex">Duplex</option>
+                <option value="penthouse">Penthouse</option>
+              </>
+            )}
+            {/* Residential Short-term Rent */}
+            {purpose === 'residential' && rentalTerm === 'short-term' && (
+              <>
+                <option value="apartment">Apartment</option>
+                <option value="house">House</option>
+                <option value="villa">Villa</option>
+                <option value="townhouse">Townhouse</option>
+                <option value="studio">Studio</option>
+                <option value="cabin">🏕️ Cabin</option>
+                <option value="cottage">🏠 Cottage</option>
+                <option value="bungalow">🏘️ Bungalow</option>
+                <option value="chalet">🏔️ Chalet</option>
+                <option value="loft">🏙️ Loft</option>
+                <option value="tiny-house">🏠 Tiny House</option>
+                <option value="mobile-home">🚐 Mobile Home</option>
+                <option value="rv">🚐 RV</option>
+                <option value="camper-van">🚐 Camper Van</option>
+                <option value="boat">⛵ Boat</option>
+                <option value="treehouse">🌳 Treehouse</option>
+                <option value="dome">🏔️ Dome</option>
+                <option value="a-frame">🏔️ A-Frame</option>
+                <option value="barn">🏭 Barn</option>
+                <option value="castle">🏰 Castle</option>
+                <option value="cave">🕳️ Cave</option>
+                <option value="windmill">🌬️ Windmill</option>
+                <option value="lighthouse">🏮 Lighthouse</option>
+                <option value="room">🛏️ Room</option>
+                <option value="shared-room">👥 Shared Room</option>
+                <option value="entire-place">🏠 Entire Place</option>
+              </>
+            )}
           </select>
           
           {/* Bedrooms */}
@@ -461,7 +590,14 @@ const FilterBar = () => {
             gym && 'gym'
           ].filter(Boolean),
           sortBy,
-          showSold
+          showSold,
+          yearBuiltMin,
+          yearBuiltMax,
+          stories,
+          view,
+          parkingSpots,
+          listedSince,
+          keywords
         }}
         onFilterChange={(key, value) => {
           switch (key) {
@@ -508,6 +644,27 @@ const FilterBar = () => {
               break;
             case 'showSold':
               setShowSold(value);
+              break;
+            case 'yearBuiltMin':
+              setYearBuiltMin(value);
+              break;
+            case 'yearBuiltMax':
+              setYearBuiltMax(value);
+              break;
+            case 'stories':
+              setStories(value);
+              break;
+            case 'view':
+              setView(value);
+              break;
+            case 'parkingSpots':
+              setParkingSpots(value);
+              break;
+            case 'listedSince':
+              setListedSince(value);
+              break;
+            case 'keywords':
+              setKeywords(value);
               break;
             default:
               break;

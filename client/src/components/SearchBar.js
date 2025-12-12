@@ -61,12 +61,51 @@ const SearchBar = ({
                 onChange={(e) => handleFilterChange('propertyType', e.target.value)}
               >
                 <option value="">All Types</option>
-                <option value="apartment">Apartment</option>
-                <option value="house">House</option>
-                <option value="villa">Villa</option>
-                <option value="office">Office</option>
-                <option value="land">Land</option>
-                <option value="commercial">Commercial</option>
+                <optgroup label="Residential">
+                  <option value="apartment">Apartment</option>
+                  <option value="house">House</option>
+                  <option value="townhouse">Townhouse</option>
+                  <option value="villa">Villa</option>
+                  <option value="penthouse">Penthouse</option>
+                  <option value="studio">Studio</option>
+                  <option value="duplex">Duplex</option>
+                </optgroup>
+                <optgroup label="Commercial">
+                  <option value="commercial-retail">Commercial Retail</option>
+                  <option value="commercial-unit">Commercial Unit</option>
+                  <option value="office">Office</option>
+                  <option value="industrial">Industrial</option>
+                  <option value="warehouse">Warehouse</option>
+                  <option value="shop">Shop</option>
+                  <option value="restaurant">Restaurant</option>
+                </optgroup>
+                <optgroup label="Land">
+                  <option value="land">Land</option>
+                  <option value="farm">Farm</option>
+                </optgroup>
+                <optgroup label="Short-term / Unique">
+                  <option value="cabin">🏕️ Cabin</option>
+                  <option value="cottage">🏠 Cottage</option>
+                  <option value="bungalow">🏘️ Bungalow</option>
+                  <option value="chalet">🏔️ Chalet</option>
+                  <option value="loft">🏙️ Loft</option>
+                  <option value="tiny-house">🏠 Tiny House</option>
+                  <option value="mobile-home">🚐 Mobile Home</option>
+                  <option value="rv">🚐 RV</option>
+                  <option value="camper-van">🚐 Camper Van</option>
+                  <option value="boat">⛵ Boat</option>
+                  <option value="treehouse">🌳 Treehouse</option>
+                  <option value="dome">🏔️ Dome</option>
+                  <option value="a-frame">🏔️ A-Frame</option>
+                  <option value="barn">🏭 Barn</option>
+                  <option value="castle">🏰 Castle</option>
+                  <option value="cave">🕳️ Cave</option>
+                  <option value="windmill">🌾 Windmill</option>
+                  <option value="lighthouse">🏮 Lighthouse</option>
+                  <option value="room">🛏️ Room</option>
+                  <option value="shared-room">👥 Shared Room</option>
+                  <option value="entire-place">🏠 Entire Place</option>
+                </optgroup>
               </select>
             </div>
 

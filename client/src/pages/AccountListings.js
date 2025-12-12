@@ -103,25 +103,31 @@ const AccountListings = () => {
     <div className="account-page">
       <div className="account-container">
         {/* Header */}
-        <div className="account-header">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h1>My Listings</h1>
-              <p>Manage your property listings</p>
+        <div className="dashboard-section">
+          <div className="account-header">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h1>My Listings</h1>
+                <p>Manage your property listings</p>
+              </div>
+              <Link to="/properties/create">
+                <Button>+ Create Listing</Button>
+              </Link>
             </div>
-            <Link to="/properties/create">
-              <Button>+ Create Listing</Button>
-            </Link>
           </div>
         </div>
 
         {/* Filter Tabs */}
-        <div style={{ 
-          display: 'flex', 
-          gap: 'var(--space-2)', 
-          marginBottom: 'var(--space-6)',
-          flexWrap: 'wrap'
-        }}>
+        <div className="dashboard-section">
+          <div className="section-header">
+            <h2>Filter Listings</h2>
+            <p>View listings by status</p>
+          </div>
+          <div style={{ 
+            display: 'flex', 
+            gap: 'var(--space-2)', 
+            flexWrap: 'wrap'
+          }}>
           <Button 
             variant={filter === 'all' ? 'primary' : 'outline'}
             size="sm"
@@ -151,11 +157,17 @@ const AccountListings = () => {
             Sold ({properties.filter(p => p.status === 'sold').length})
           </Button>
         </div>
+        </div>
 
         {/* Listings */}
-        {filteredProperties.length === 0 ? (
-          <div className="recent-section">
-            <div className="empty-state">
+        <div className="dashboard-section">
+          <div className="section-header">
+            <h2>Your Properties</h2>
+            <p>{filteredProperties.length} {filter === 'all' ? 'total' : filter} listing{filteredProperties.length !== 1 ? 's' : ''}</p>
+          </div>
+          {filteredProperties.length === 0 ? (
+            <div className="recent-section">
+              <div className="empty-state">
               <div className="empty-state-icon">🏘️</div>
               <h3>
                 {filter === 'all' 
@@ -252,6 +264,7 @@ const AccountListings = () => {
           </div>
         )}
       </div>
+    </div>
 
       {/* Delete Confirmation Modal */}
       <Modal

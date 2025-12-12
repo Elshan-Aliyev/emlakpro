@@ -219,14 +219,16 @@ const RealtorProfile = () => {
                 </div>
 
                 <div className="profile-actions">
-                  <Button 
-                    variant="primary" 
-                    onClick={handleSendMessage}
-                    loading={sendingMessage}
-                    disabled={sendingMessage}
-                  >
-                    Send Message
-                  </Button>
+                  {user && user._id !== realtor._id && (
+                    <Button 
+                      variant="primary" 
+                      onClick={handleSendMessage}
+                      loading={sendingMessage}
+                      disabled={sendingMessage}
+                    >
+                      Send Message
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -308,35 +310,37 @@ const RealtorProfile = () => {
                 </div>
 
                 <div className="about-sidebar">
-                  <Card>
-                    <h3>Send a Message</h3>
-                    <div className="message-box">
-                      <textarea
-                        className="message-textarea"
-                        value={messageText}
-                        onChange={(e) => setMessageText(e.target.value)}
-                        placeholder="Write your message here..."
-                        rows={6}
-                      />
-                      <Button 
-                        variant="primary" 
-                        onClick={handleSendMessage}
-                        loading={sendingMessage}
-                        disabled={sendingMessage}
-                        style={{ width: '100%', marginTop: 'var(--space-3)' }}
-                      >
-                        {sendingMessage ? 'Sending...' : 'Send Message'}
-                      </Button>
-                      <p style={{ 
-                        fontSize: '0.75rem', 
-                        color: 'var(--gray-500)', 
-                        marginTop: 'var(--space-2)',
-                        textAlign: 'center'
-                      }}>
-                        You'll be redirected to messages after sending
-                      </p>
-                    </div>
-                  </Card>
+                  {user && user._id !== realtor._id && (
+                    <Card>
+                      <h3>Send a Message</h3>
+                      <div className="message-box">
+                        <textarea
+                          className="message-textarea"
+                          value={messageText}
+                          onChange={(e) => setMessageText(e.target.value)}
+                          placeholder="Write your message here..."
+                          rows={6}
+                        />
+                        <Button 
+                          variant="primary" 
+                          onClick={handleSendMessage}
+                          loading={sendingMessage}
+                          disabled={sendingMessage}
+                          style={{ width: '100%', marginTop: 'var(--space-3)' }}
+                        >
+                          {sendingMessage ? 'Sending...' : 'Send Message'}
+                        </Button>
+                        <p style={{ 
+                          fontSize: '0.75rem', 
+                          color: 'var(--gray-500)', 
+                          marginTop: 'var(--space-2)',
+                          textAlign: 'center'
+                        }}>
+                          You'll be redirected to messages after sending
+                        </p>
+                      </div>
+                    </Card>
+                  )}
 
                   <Card style={{ marginTop: 'var(--space-4)' }}>
                     <h3>Professional Details</h3>
