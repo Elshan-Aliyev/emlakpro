@@ -175,14 +175,22 @@ exports.updateProperty = async (req, res) => {
 
     // allow admin/superadmin to edit any property
     // Handle both populated object and ObjectId cases
-    const ownerId = typeof property.ownerId === 'object' && property.ownerId._id 
-      ? property.ownerId._id.toString() 
-      : property.ownerId.toString();
+    let ownerIdString;
+    if (typeof property.ownerId === 'object' && property.ownerId && property.ownerId._id) {
+      // Populated case: ownerId is an object with _id
+      ownerIdString = property.ownerId._id.toString();
+    } else if (property.ownerId && typeof property.ownerId === 'object') {
+      // ObjectId case: ownerId is a mongoose ObjectId
+      ownerIdString = property.ownerId.toString();
+    } else {
+      // String case (fallback)
+      ownerIdString = property.ownerId;
+    }
     
-    const isOwner = ownerId === req.user.id;
+    const isOwner = ownerIdString === req.user.id;
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
 
-    console.log('Extracted ownerId:', ownerId);
+    console.log('Extracted ownerId string:', ownerIdString);
     console.log('Is owner check:', isOwner);
     console.log('Is admin check:', isAdmin);
     console.log('Final authorization:', isOwner || isAdmin);
@@ -217,11 +225,19 @@ exports.deleteProperty = async (req, res) => {
     if (!property) return res.status(404).json({ message: 'Property not found' });
     
     // Handle both populated object and ObjectId cases
-    const ownerId = typeof property.ownerId === 'object' && property.ownerId._id 
-      ? property.ownerId._id.toString() 
-      : property.ownerId.toString();
+    let ownerIdString;
+    if (typeof property.ownerId === 'object' && property.ownerId && property.ownerId._id) {
+      // Populated case: ownerId is an object with _id
+      ownerIdString = property.ownerId._id.toString();
+    } else if (property.ownerId && typeof property.ownerId === 'object') {
+      // ObjectId case: ownerId is a mongoose ObjectId
+      ownerIdString = property.ownerId.toString();
+    } else {
+      // String case (fallback)
+      ownerIdString = property.ownerId;
+    }
     
-    const isOwner = ownerId === req.user.id;
+    const isOwner = ownerIdString === req.user.id;
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
     if (!isOwner && !isAdmin) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -351,11 +367,19 @@ exports.addPropertyImages = async (req, res) => {
     if (!property) return res.status(404).json({ message: 'Property not found' });
 
     // Handle both populated object and ObjectId cases
-    const ownerId = typeof property.ownerId === 'object' && property.ownerId._id 
-      ? property.ownerId._id.toString() 
-      : property.ownerId.toString();
+    let ownerIdString;
+    if (typeof property.ownerId === 'object' && property.ownerId && property.ownerId._id) {
+      // Populated case: ownerId is an object with _id
+      ownerIdString = property.ownerId._id.toString();
+    } else if (property.ownerId && typeof property.ownerId === 'object') {
+      // ObjectId case: ownerId is a mongoose ObjectId
+      ownerIdString = property.ownerId.toString();
+    } else {
+      // String case (fallback)
+      ownerIdString = property.ownerId;
+    }
     
-    const isOwner = ownerId === req.user.id;
+    const isOwner = ownerIdString === req.user.id;
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
     if (!isOwner && !isAdmin) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -398,11 +422,19 @@ exports.deletePropertyImage = async (req, res) => {
     if (!property) return res.status(404).json({ message: 'Property not found' });
 
     // Handle both populated object and ObjectId cases
-    const ownerId = typeof property.ownerId === 'object' && property.ownerId._id 
-      ? property.ownerId._id.toString() 
-      : property.ownerId.toString();
+    let ownerIdString;
+    if (typeof property.ownerId === 'object' && property.ownerId && property.ownerId._id) {
+      // Populated case: ownerId is an object with _id
+      ownerIdString = property.ownerId._id.toString();
+    } else if (property.ownerId && typeof property.ownerId === 'object') {
+      // ObjectId case: ownerId is a mongoose ObjectId
+      ownerIdString = property.ownerId.toString();
+    } else {
+      // String case (fallback)
+      ownerIdString = property.ownerId;
+    }
     
-    const isOwner = ownerId === req.user.id;
+    const isOwner = ownerIdString === req.user.id;
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
     if (!isOwner && !isAdmin) {
       return res.status(401).json({ message: 'Unauthorized' });
