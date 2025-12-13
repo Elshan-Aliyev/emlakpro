@@ -15,14 +15,7 @@ const userSchema = new mongoose.Schema({
     default: 'registered' 
   },
   
-  // User Type (for frontend role display)
-  userType: {
-    type: String,
-    enum: ['buyer', 'seller', 'agent'],
-    default: 'buyer'
-  },
-  
-  // Account Type (for admin management)
+  // Account Type (for verification status)
   accountType: {
     type: String,
     enum: ['unverified-user', 'verified-user', 'verified-seller', 'realtor', 'corporate'],
