@@ -50,7 +50,7 @@ exports.getUsers = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
-    const { name, email, lastName, role, accountType, isActive } = req.body;
+    const { name, email, lastName, role, accountType, userType, isActive } = req.body;
     const targetUser = await User.findById(req.params.id);
     if (!targetUser) return res.status(404).json({ message: 'User not found' });
     
@@ -84,6 +84,11 @@ exports.updateUser = async (req, res) => {
     if (name) targetUser.name = name;
     if (lastName !== undefined) targetUser.lastName = lastName;
     if (email) targetUser.email = email;
+    
+    // User type (can be updated by admin/superadmin or self)
+    if (userType !== undefined && (isAdmin || isSuperAdmin || isSelf)) {
+      targetUser.userType = userType;
+    }
     
     // Account type and status (admin/superadmin only)
     if (accountType !== undefined && (isAdmin || isSuperAdmin)) {
