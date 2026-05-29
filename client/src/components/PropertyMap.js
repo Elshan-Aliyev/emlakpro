@@ -1,999 +1,776 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import Supercluster from 'supercluster';
+import { MapPin } from 'lucide-react';
 import { toggleSaveProperty } from '../services/api';
+import './PropertyMap.css';
 
-// Set your Mapbox access token here
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
-const PropertyMap = ({ 
-  properties = [], 
-  center = [-98.5795, 39.8283], // US center
-  zoom = 4,
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const formatMarkerPrice = (price) => {
+  if (!price) return '—';
+  if (price >= 1_000_000) return `${(price / 1_000_000).toFixed(1)}M`;
+  if (price >= 1_000)     return `${Math.round(price / 1_000)}K`;
+  return price.toLocaleString();
+};
+
+const getLocationString = (property) => {
+  if (typeof property.location === 'string') return property.location;
+  if (typeof property.city    === 'string') return property.city;
+  if (typeof property.address === 'string') return property.address;
+  if (property.location?.city) return property.location.city;
+  if (property.address?.city)  return property.address.city;
+  return '';
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PropertyMap = ({
+  properties = [],
+  center = [49.8671, 40.4093],
+  zoom = 12,
   height = '400px',
   onMarkerClick,
   showPopups = true,
   singleProperty = null,
   onPropertySelect = null,
-  onMapMove = null
+  onMapMove = null,
+  flyTo = null,
+  highlightedPropertyId = null,
+  onSearchArea = null,
+  onPinHover = null,
 }) => {
-
   const mapContainer = useRef(null);
-  const map = useRef(null);
-  const markers = useRef([]);
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const clusterIndex = useRef(null);
-  const pinnedPopupRef = useRef(null);
-  const activePopupRef = useRef(null);
-  
-  // Store ALL properties for matching grouped properties (don't rely on filtered props)
-  const allPropertiesRef = useRef([]);
-  
-  // Handle favorite toggle in map popups
+  const map          = useRef(null);
+  const markers      = useRef([]);
+  const markerEls    = useRef({});
+  const [mapLoaded,  setMapLoaded]  = useState(false);
+  const [mapError,   setMapError]   = useState(false);
+  const clusterIndex         = useRef(null);
+  const pinnedPopupRef       = useRef(null);
+  const activePopupRef       = useRef(null);
+  const allPropertiesRef     = useRef([]);
+  const prevPropsSignatureRef = useRef(null);
+
+  // ── Viewport ownership — user interaction resets auto-fit authority ─────────
+  // Once the user drags or pinches, the viewport belongs to them.
+  // It is only released when an explicit flyTo/fitBounds is programmatically issued.
+  const userOwnsViewport = useRef(false);
+  const [showSearchArea, setShowSearchArea] = useState(false);
+
+  // Keep a stable ref to the callback so the map event handler (created once)
+  // always calls the latest version without being recreated.
+  const onSearchAreaRef = useRef(onSearchArea);
+  useEffect(() => { onSearchAreaRef.current = onSearchArea; }, [onSearchArea]);
+
+  const onPinHoverRef = useRef(onPinHover);
+  useEffect(() => { onPinHoverRef.current = onPinHover; }, [onPinHover]);
+
+  // ── Highlight sync — updates pin classes without rebuilding markers ─────────
+  useEffect(() => {
+    Object.values(markerEls.current).forEach(el => {
+      el.classList.remove('mp-pin--active');
+      el.style.zIndex = '';
+    });
+    if (highlightedPropertyId && markerEls.current[highlightedPropertyId]) {
+      const el = markerEls.current[highlightedPropertyId];
+      el.classList.add('mp-pin--active');
+      el.style.zIndex = '100';
+    }
+  }, [highlightedPropertyId]);
+
+  // ── Favorite toggle ───────────────────────────────────────────────────────
   const handleFavoriteClick = async (propertyId, buttonElement) => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      alert('Please login to save properties');
-      return;
-    }
-
+    if (!token) return;
     try {
-      const isFavorite = buttonElement.classList.contains('favorited');
-      
-      // toggleSaveProperty handles both save and unsave
+      const isFav = buttonElement.classList.contains('favorited');
       await toggleSaveProperty(propertyId, token);
-      
-      if (isFavorite) {
-        buttonElement.classList.remove('favorited');
-        buttonElement.textContent = '❤️';
-      } else {
-        buttonElement.classList.add('favorited');
-        buttonElement.textContent = '💖';
-      }
+      buttonElement.classList.toggle('favorited', !isFav);
+      const path = buttonElement.querySelector('path');
+      if (path) path.setAttribute('fill', isFav ? 'none' : 'currentColor');
     } catch (err) {
       console.error('Error toggling favorite:', err);
-      alert('Failed to update favorite');
     }
   };
 
-  // Helper function to determine best popup anchor based on available space
-  const calculateOptimalAnchor = (markerLngLat, popupWidth = 340, popupHeight = 280) => {
+  // ── Popup anchor ──────────────────────────────────────────────────────────
+  const calculateOptimalAnchor = (markerLngLat, popupWidth = 300, popupHeight = 260) => {
     const markerPoint = map.current.project(markerLngLat);
-    
-    // Get the actual map container bounds (not the full screen)
-    const mapContainer = map.current.getContainer();
-    const mapRect = mapContainer.getBoundingClientRect();
-    
-    const margin = 20;
-    const markerSize = 50; // Marker height + some buffer
-    
-    // Calculate available space in each direction within the map container
-    // markerPoint is relative to the map container's top-left
+    const mapEl       = map.current.getContainer();
+    const mapRect     = mapEl.getBoundingClientRect();
+    const margin      = 24;
+    const markerSize  = 36;
+
     const spaceAbove = markerPoint.y - margin;
     const spaceBelow = mapRect.height - markerPoint.y - markerSize - margin;
-    const spaceLeft = markerPoint.x - margin;
-    const spaceRight = mapRect.width - markerPoint.x - margin;
-    
-    // Determine vertical anchor - check if popup + marker fits
-    let verticalAnchor;
-    let verticalOffset;
-    
-    const spaceNeeded = popupHeight + markerSize;
-    const fitsAbove = spaceAbove >= spaceNeeded;
-    const fitsBelow = spaceBelow >= spaceNeeded;
-    
-    if (fitsAbove && !fitsBelow) {
-      // Only fits above
-      verticalAnchor = 'bottom';
-      verticalOffset = -markerSize;
-    } else if (fitsBelow && !fitsAbove) {
-      // Only fits below
-      verticalAnchor = 'top';
-      verticalOffset = markerSize;
-    } else if (fitsAbove && fitsBelow) {
-      // Fits both ways - prefer below (top anchor)
-      verticalAnchor = 'top';
-      verticalOffset = markerSize;
-    } else {
-      // Doesn't fit either way - use side with more space
-      if (spaceAbove > spaceBelow) {
-        verticalAnchor = 'bottom';
-        verticalOffset = -markerSize;
-      } else {
-        verticalAnchor = 'top';
-        verticalOffset = markerSize;
-      }
+    const spaceLeft  = markerPoint.x - margin;
+    const spaceRight = mapRect.width  - markerPoint.x - margin;
+
+    const fitsAbove = spaceAbove >= popupHeight + markerSize;
+    const fitsBelow = spaceBelow >= popupHeight + markerSize;
+
+    let verticalAnchor, verticalOffset;
+    if      (fitsAbove && !fitsBelow)  { verticalAnchor = 'bottom'; verticalOffset = -markerSize; }
+    else if (fitsBelow && !fitsAbove)  { verticalAnchor = 'top';    verticalOffset =  markerSize; }
+    else if (fitsAbove && fitsBelow)   { verticalAnchor = 'top';    verticalOffset =  markerSize; }
+    else {
+      verticalAnchor = spaceAbove > spaceBelow ? 'bottom' : 'top';
+      verticalOffset = spaceAbove > spaceBelow ? -markerSize : markerSize;
     }
-    
-    // Determine horizontal anchor
-    let horizontalAnchor;
-    let horizontalOffset;
-    
-    const halfPopupWidth = popupWidth / 2;
-    
-    if (spaceLeft < halfPopupWidth) {
-      // Too close to left edge - align popup to left
-      horizontalAnchor = 'left';
-      horizontalOffset = 10;
-    } else if (spaceRight < halfPopupWidth) {
-      // Too close to right edge - align popup to right
-      horizontalAnchor = 'right';
-      horizontalOffset = -10;
-    } else {
-      // Center is fine
-      horizontalAnchor = 'center';
-      horizontalOffset = 0;
-    }
-    
-    // Combine anchors
-    let anchor;
-    if (horizontalAnchor === 'center') {
-      anchor = verticalAnchor;
-    } else {
-      anchor = `${verticalAnchor}-${horizontalAnchor}`;
-    }
-    
-    
+
+    const half = popupWidth / 2;
+    let horizontalAnchor, horizontalOffset;
+    if      (spaceLeft  < half) { horizontalAnchor = 'left';   horizontalOffset =  10; }
+    else if (spaceRight < half) { horizontalAnchor = 'right';  horizontalOffset = -10; }
+    else                        { horizontalAnchor = 'center'; horizontalOffset =  0;  }
+
     return {
-      anchor: anchor,
-      offset: [horizontalOffset, verticalOffset]
+      anchor: horizontalAnchor === 'center'
+        ? verticalAnchor
+        : `${verticalAnchor}-${horizontalAnchor}`,
+      offset: [horizontalOffset, verticalOffset],
     };
   };
 
-  useEffect(() => {
-    if (map.current) return; // Initialize map only once
-
-    try {
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: center,
-        zoom: zoom
-      });
-
-      // Add navigation controls
-      map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-      
-      map.current.on('load', () => {
-
-        setMapLoaded(true);
-      });
-
-      // Update clusters when map moves or zooms
-      // But debounce to avoid destroying popups while user is hovering
-      let moveEndTimeout;
-      map.current.on('moveend', () => {
-
-        clearTimeout(moveEndTimeout);
-        moveEndTimeout = setTimeout(() => {
-          if (clusterIndex.current) {
-            updateMarkers();
-          }
-          // Call onMapMove callback if provided
-          if (onMapMove) {
-            const center = map.current.getCenter();
-            const zoom = map.current.getZoom();
-            onMapMove([center.lng, center.lat], zoom);
-          }
-        }, 100); // Small delay to batch rapid movements
-      });
-
-      map.current.on('zoomstart', () => {
-
-      });
-
-      map.current.on('zoomend', () => {
-
-        if (clusterIndex.current) {
-          updateMarkers();
-        }
-      });
-      
-      map.current.on('error', (e) => {
-        console.error('❌ Map error:', e);
-      });
-      
-    } catch (error) {
-      console.error('❌ Error creating map:', error);
-    }
-  }, []);
-
-  // Create simple card popup for single property (original behavior)
+  // ── Single-property popup HTML ────────────────────────────────────────────
   const createSinglePropertyPopup = (property) => {
-    const popupEl = document.createElement('div');
+    const popupEl  = document.createElement('div');
     const imageUrl = property.thumbnail || property.medium || property.image || '';
-    
+    const specs    = [
+      property.bedrooms  > 0                     ? `${property.bedrooms} bd`                     : null,
+      property.bathrooms > 0                     ? `${property.bathrooms} ba`                    : null,
+      (property.builtUpArea || property.area)    ? `${property.builtUpArea || property.area} m²` : null,
+    ].filter(Boolean).join(' · ');
+    const locStr = getLocationString(property);
+
     popupEl.innerHTML = `
-      <div style="
-        background: white;
-        border-radius: 8px;
-        overflow: hidden;
-        width: 280px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        cursor: pointer;
-        position: relative;
-      ">
-        <button class="favorite-btn-map" data-property-id="${property._id}" style="
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          background: white;
-          border: none;
-          border-radius: 50%;
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-          z-index: 10;
-          font-size: 16px;
-          transition: transform 0.2s;
-        ">❤️</button>
-        ${imageUrl ? 
-          `<img src="${imageUrl}" alt="${property.title}" style="width: 100%; height: 180px; object-fit: cover;" />` :
-          `<div style="width: 100%; height: 180px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 48px;">🏠</div>`
-        }
-        <div style="padding: 12px;">
-          <div style="font-size: 16px; font-weight: 700; color: #667eea; margin-bottom: 6px;">
-            ${property.currency || 'AZN'} ${property.price?.toLocaleString()}
-          </div>
-          <div style="font-size: 14px; color: #333; margin-bottom: 6px; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-            ${property.title}
-          </div>
-          <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
-            ${property.bedrooms || 0} bd • ${property.bathrooms || 0} ba • ${property.builtUpArea || property.area || 0} m²
-          </div>
-          <div style="font-size: 11px; color: #999;">
-            ${property.address}
-          </div>
+      <div class="mp-popup">
+        <div class="mp-popup-img-wrap">
+          ${imageUrl
+            ? `<img src="${imageUrl}" alt="" class="mp-popup-img" />`
+            : `<div class="mp-popup-img-empty">
+                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                   <rect x="3" y="3" width="18" height="18" rx="2"/>
+                   <circle cx="8.5" cy="8.5" r="1.5"/>
+                   <path d="m21 15-5-5L5 21"/>
+                 </svg>
+               </div>`
+          }
+          <button class="mp-popup-fav favorite-btn-map" data-property-id="${property._id}" aria-label="Save property">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="mp-popup-body">
+          <div class="mp-popup-price">${property.currency || 'AZN'} ${property.price?.toLocaleString()}</div>
+          <div class="mp-popup-title">${property.title || ''}</div>
+          ${specs    ? `<div class="mp-popup-specs">${specs}</div>`    : ''}
+          ${locStr   ? `<div class="mp-popup-loc">${locStr}</div>`      : ''}
         </div>
       </div>
     `;
-    
-    // Handle favorite button click
-    const favoriteBtn = popupEl.querySelector('.favorite-btn-map');
-    if (favoriteBtn) {
-      favoriteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        handleFavoriteClick(property._id, favoriteBtn);
-      });
-    }
-    
-    popupEl.addEventListener('click', (e) => {
-      if (!e.target.closest('.favorite-btn-map')) {
-        // Use onPropertySelect if provided (for modal), otherwise navigate
-        if (onPropertySelect) {
-          onPropertySelect(property);
-        } else {
-          window.location.href = `/properties/${property._id}`;
-        }
-      }
+
+    popupEl.querySelector('.favorite-btn-map')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleFavoriteClick(property._id, e.currentTarget);
     });
-    
+
+    popupEl.addEventListener('click', (e) => {
+      if (e.target.closest('.favorite-btn-map')) return;
+      if (onPropertySelect) onPropertySelect(property);
+      else window.location.href = `/properties/${property._id}`;
+    });
+
     return popupEl;
   };
 
-  // Create popup with property cards and pagination (shared by clusters and grouped pins)
+  // ── Multi-property popup HTML ─────────────────────────────────────────────
   const createMultiPropertyPopup = (properties) => {
-    const popupEl = document.createElement('div');
-    
-    const ITEMS_PER_PAGE = 2; // Show 2 listings at once (realtor.ca pattern)
-    let currentPage = 0;
-    const totalPages = Math.ceil(properties.length / ITEMS_PER_PAGE);
-    
-    // Fixed dimensions for consistent popup size (2 listings visible + pagination footer)
-    const POPUP_WIDTH = 340;
-    const POPUP_HEIGHT = 280; // Height for exactly 2 listings + footer
-    
-    popupEl.style.cssText = `
-      background: white; 
-      border-radius: 8px; 
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
-      width: ${POPUP_WIDTH}px; 
-      height: ${POPUP_HEIGHT}px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; 
-      pointer-events: auto; 
-      overflow: hidden; 
-      display: flex; 
-      flex-direction: column;
-    `;
-    popupEl.className = 'popup-card-content';
-    
-    const renderPropertyList = (page) => {
-      const startIdx = page * ITEMS_PER_PAGE;
-      const endIdx = Math.min(startIdx + ITEMS_PER_PAGE, properties.length);
-      const pageProperties = properties.slice(startIdx, endIdx);
-      
+    const popupEl      = document.createElement('div');
+    const ITEMS_PER_PAGE = 2;
+    let   currentPage  = 0;
+    const totalPages   = Math.ceil(properties.length / ITEMS_PER_PAGE);
+
+    popupEl.className = 'mp-popup-multi popup-card-content';
+
+    const renderList = (page) => {
+      const start = page * ITEMS_PER_PAGE;
+      const slice = properties.slice(start, start + ITEMS_PER_PAGE);
+
       return `
-        <div style="height: 230px; overflow-y: auto; overflow-x: hidden;">
-          ${pageProperties.map((prop, idx) => {
+        <div class="mp-multi-list">
+          ${slice.map((prop, idx) => {
             if (!prop) return '';
-            const imageUrl = prop.thumbnail || prop.medium || prop.image || '';
-            const globalIdx = startIdx + idx;
+            const imgUrl = prop.thumbnail || prop.medium || prop.image || '';
+            const specs  = [
+              prop.bedrooms  > 0                   ? `${prop.bedrooms} bd`                   : null,
+              prop.bathrooms > 0                   ? `${prop.bathrooms} ba`                  : null,
+              (prop.builtUpArea || prop.area)      ? `${prop.builtUpArea || prop.area} m²`   : null,
+            ].filter(Boolean).join(' · ');
             return `
-              <div class="property-list-item" data-property-id="${prop._id}" data-index="${globalIdx}" style="display: flex; gap: 10px; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; position: relative;">
-                ${imageUrl ? 
-                  `<img src="${imageUrl}" alt="${prop.title}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 6px; flex-shrink: 0;" />` : 
-                  `<div style="width: 80px; height: 80px; background: #f0f0f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">🏠</div>`
+              <div class="mp-multi-item" data-property-id="${prop._id}" data-index="${start + idx}">
+                ${imgUrl
+                  ? `<img src="${imgUrl}" alt="" class="mp-multi-thumb" />`
+                  : `<div class="mp-multi-thumb-empty">
+                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                         <rect x="3" y="3" width="18" height="18" rx="2"/>
+                         <circle cx="8.5" cy="8.5" r="1.5"/>
+                         <path d="m21 15-5-5L5 21"/>
+                       </svg>
+                     </div>`
                 }
-                <div style="flex: 1; min-width: 0;">
-                  <div style="font-size: 14px; font-weight: 700; color: #667eea; margin-bottom: 3px;">
-                    ${prop.currency || 'AZN'} ${prop.price?.toLocaleString()}
-                  </div>
-                  <div style="font-size: 12px; color: #333; margin-bottom: 3px; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                    ${prop.title}
-                  </div>
-                  <div style="font-size: 11px; color: #666;">
-                    ${prop.bedrooms || 0} bd • ${prop.bathrooms || 0} ba • ${prop.builtUpArea || prop.area || 0} m²
-                  </div>
+                <div class="mp-multi-info">
+                  <div class="mp-multi-price">${prop.currency || 'AZN'} ${prop.price?.toLocaleString()}</div>
+                  <div class="mp-multi-title">${prop.title || ''}</div>
+                  ${specs ? `<div class="mp-multi-specs">${specs}</div>` : ''}
                 </div>
-                <button class="favorite-btn-map" data-property-id="${prop._id}" style="
-                  position: absolute;
-                  top: 8px;
-                  right: 8px;
-                  background: white;
-                  border: none;
-                  border-radius: 50%;
-                  width: 28px;
-                  height: 28px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  cursor: pointer;
-                  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                  z-index: 10;
-                  font-size: 14px;
-                ">❤️</button>
+                <button class="mp-multi-fav favorite-btn-map" data-property-id="${prop._id}" aria-label="Save">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                </button>
               </div>
             `;
           }).join('')}
         </div>
-        ${totalPages > 1 ? `
-          <div style="height: 50px; padding: 10px 12px; border-top: 2px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; flex-shrink: 0;">
-            <button class="prev-page-btn" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; color: #333; transition: all 0.2s;" ${page === 0 ? 'disabled' : ''}>← Prev</button>
-            <span style="font-size: 12px; color: #666; font-weight: 500;">Page ${page + 1} / ${totalPages}</span>
-            <button class="next-page-btn" style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; color: #333; transition: all 0.2s;" ${page === totalPages - 1 ? 'disabled' : ''}>Next →</button>
-          </div>
-        ` : `<div style="height: 50px; padding: 10px 12px; text-align: center; font-size: 12px; color: #666; background: #f8f9fa; border-top: 1px solid #eee; display: flex; align-items: center; justify-content: center;">${properties.length} ${properties.length === 1 ? 'property' : 'properties'}</div>`}
+        ${totalPages > 1
+          ? `<div class="mp-multi-footer">
+               <button class="mp-page-btn mp-prev" ${page === 0 ? 'disabled' : ''}>
+                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>
+               </button>
+               <span class="mp-page-label">${page + 1} / ${totalPages}</span>
+               <button class="mp-page-btn mp-next" ${page === totalPages - 1 ? 'disabled' : ''}>
+                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
+               </button>
+             </div>`
+          : `<div class="mp-multi-footer-count">${properties.length} ${properties.length === 1 ? 'property' : 'properties'} here</div>`
+        }
       `;
     };
-    
-    const updatePopupContent = () => {
-      popupEl.innerHTML = renderPropertyList(currentPage);
-      
-      // Add pagination handlers
-      const prevBtn = popupEl.querySelector('.prev-page-btn');
-      const nextBtn = popupEl.querySelector('.next-page-btn');
-      const listItems = popupEl.querySelectorAll('.property-list-item');
-      
-      if (prevBtn) {
-        prevBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (currentPage > 0) {
-            currentPage--;
-            updatePopupContent();
-          }
-        });
-      }
-      
-      if (nextBtn) {
-        nextBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (currentPage < totalPages - 1) {
-            currentPage++;
-            updatePopupContent();
-          }
-        });
-      }
-      
-      // Add click handlers and hover effects for list items
-      listItems.forEach(item => {
-        const propertyIndex = parseInt(item.dataset.index);
-        const property = properties[propertyIndex];
-        
-        // Add favorite button handler
-        const favoriteBtn = item.querySelector('.favorite-btn-map');
-        if (favoriteBtn) {
-          favoriteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            handleFavoriteClick(property._id, favoriteBtn);
-          });
-        }
-        
-        item.addEventListener('mouseenter', () => {
-          item.style.background = '#f8f9fa';
-        });
-        item.addEventListener('mouseleave', () => {
-          item.style.background = 'transparent';
-        });
-        item.addEventListener('click', (e) => {
-          e.stopPropagation();
-          // Don't navigate if clicking the favorite button
-          if (e.target.closest('.favorite-btn-map')) return;
 
-          // Use onPropertySelect if provided (for modal), otherwise navigate
-          if (onPropertySelect) {
-            onPropertySelect(property);
-          } else if (onMarkerClick) {
-            onMarkerClick(property);
-          } else {
-            // Fallback navigation
-            window.location.href = `/properties/${property._id}`;
-          }
+    const updateContent = () => {
+      popupEl.innerHTML = renderList(currentPage);
+
+      popupEl.querySelector('.mp-prev')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentPage > 0) { currentPage--; updateContent(); }
+      });
+      popupEl.querySelector('.mp-next')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentPage < totalPages - 1) { currentPage++; updateContent(); }
+      });
+
+      popupEl.querySelectorAll('.mp-multi-item').forEach(item => {
+        const property = properties[parseInt(item.dataset.index)];
+
+        item.querySelector('.favorite-btn-map')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          handleFavoriteClick(property._id, e.currentTarget);
+        });
+
+        item.addEventListener('click', (e) => {
+          if (e.target.closest('.favorite-btn-map')) return;
+          if (onPropertySelect)   onPropertySelect(property);
+          else if (onMarkerClick) onMarkerClick(property);
+          else window.location.href = `/properties/${property._id}`;
         });
       });
     };
-    
-    updatePopupContent();
+
+    updateContent();
     return popupEl;
   };
 
+  // ── Render markers for current viewport ──────────────────────────────────
   const updateMarkers = () => {
     if (!map.current || !clusterIndex.current) return;
+    if (!map.current.isStyleLoaded()) return;
 
-    // Clear existing markers BUT preserve active/pinned popups
-    markers.current.forEach(marker => marker.remove());
+    markers.current.forEach(m => m.remove());
     markers.current = [];
+    markerEls.current = {};
 
-    const bounds = map.current.getBounds();
-    const zoom = map.current.getZoom();
-
+    const bounds   = map.current.getBounds();
     const clusters = clusterIndex.current.getClusters(
       [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()],
-      Math.floor(zoom)
+      Math.floor(map.current.getZoom())
     );
 
     clusters.forEach(cluster => {
       const [lng, lat] = cluster.geometry.coordinates;
-      const isCluster = cluster.properties.cluster;
 
-      if (isCluster) {
-        // Create cluster marker (BLUE - multiple properties grouped by zoom level)
-        const count = cluster.properties.point_count;
-        const clusterSize = count > 10 ? 'large' : count > 5 ? 'medium' : 'small';
-        const sizes = { small: 40, medium: 50, large: 60 };
-        const size = sizes[clusterSize];
+      if (cluster.properties.cluster) {
+        // ── Cluster bubble ────────────────────────────────────────────────
+        const count     = cluster.properties.point_count;
+        const sizeClass = count > 10 ? 'large' : count > 5 ? 'medium' : 'small';
 
         const el = document.createElement('div');
-        el.className = 'cluster-marker';
-        el.dataset.markerType = 'cluster';
-        el.innerHTML = `
-          <div style="
-            background: white;
-            border: 3px solid #2563eb;
-            border-radius: 50%;
-            width: ${size}px;
-            height: ${size}px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: ${count > 99 ? '14px' : '16px'};
-            color: #2563eb;
-            cursor: pointer;
-            box-shadow: 0 2px 12px rgba(37, 99, 235, 0.4);
-            transition: all 0.2s;
-          ">${count}</div>
-        `;
+        el.className = 'mp-cluster-wrap';
+        el.innerHTML = `<div class="mp-cluster mp-cluster--${sizeClass}">${count}</div>`;
 
-        el.addEventListener('mouseenter', () => {
-          el.querySelector('div').style.transform = 'scale(1.1)';
-          el.querySelector('div').style.boxShadow = '0 4px 16px rgba(102, 126, 234, 0.6)';
-        });
-
-        el.addEventListener('mouseleave', () => {
-          el.querySelector('div').style.transform = 'scale(1)';
-          el.querySelector('div').style.boxShadow = '0 2px 12px rgba(102, 126, 234, 0.4)';
-        });
-
-        // Add hover popup for cluster showing all properties inside
         if (showPopups) {
-          // Get all properties in this cluster
           const clusterProperties = clusterIndex.current.getLeaves(cluster.id, Infinity);
+          const popupEl    = createMultiPropertyPopup(clusterProperties.map(leaf => leaf.properties));
+          const popupConfig = calculateOptimalAnchor([lng, lat], 320, 260);
 
-          // Create popup for cluster with all properties
-          const popupEl = createMultiPropertyPopup(clusterProperties.map(leaf => leaf.properties));
-          
-          // Calculate optimal anchor based on available space
-          const popupConfig = calculateOptimalAnchor([lng, lat], 340, 280);
-          
-          const popup = new mapboxgl.Popup({ 
+          const popup = new mapboxgl.Popup({
             offset: popupConfig.offset,
             closeButton: true,
             closeOnClick: false,
             className: 'property-hover-popup cluster-popup',
             maxWidth: '320px',
-            anchor: popupConfig.anchor
+            anchor: popupConfig.anchor,
           }).setDOMContent(popupEl);
-          
-          // Track hover state for cluster
-          let isHoveringCluster = false;
-          let isHoveringPopup = false;
-          let hoverTimeout;
 
-          const closePopupIfNotHovering = () => {
+          let hoverCluster = false, hoverPopup = false, hoverTimeout;
+
+          const closeIfIdle = () => {
             hoverTimeout = setTimeout(() => {
-              if (!isHoveringCluster && !isHoveringPopup && activePopupRef.current === popup && pinnedPopupRef.current !== popup) {
+              if (!hoverCluster && !hoverPopup &&
+                  activePopupRef.current === popup && pinnedPopupRef.current !== popup) {
                 popup.remove();
                 activePopupRef.current = null;
               }
             }, 1000);
           };
 
-          // Show popup on cluster hover
-          el.addEventListener('mouseenter', (e) => {
-
+          el.addEventListener('mouseenter', () => {
             clearTimeout(hoverTimeout);
-            isHoveringCluster = true;
-            
-            // Close any existing non-pinned popup
+            hoverCluster = true;
             if (activePopupRef.current && activePopupRef.current !== pinnedPopupRef.current) {
               activePopupRef.current.remove();
             }
-            
-            const isPinned = pinnedPopupRef.current === popup;
-            if (!isPinned) {
+            if (pinnedPopupRef.current !== popup) {
               popup.setLngLat([lng, lat]).addTo(map.current);
-              
-              const popupDOMElement = popup.getElement();
-              if (popupDOMElement) {
-                popupDOMElement.style.zIndex = '9999';
-                popupDOMElement.style.pointerEvents = 'auto';
-              }
-              
+              const pEl = popup.getElement();
+              if (pEl) { pEl.style.zIndex = '9999'; pEl.style.pointerEvents = 'auto'; }
               activePopupRef.current = popup;
             }
-          }, true); // Use capture
+          }, true);
 
           el.addEventListener('mouseleave', () => {
-            isHoveringCluster = false;
-            closePopupIfNotHovering();
-          }, true); // Use capture
+            hoverCluster = false; closeIfIdle();
+          }, true);
 
-          // Keep popup open when hovering it
           popup.on('open', () => {
-            const popupElement = popup.getElement();
-            if (popupElement) {
-              popupElement.addEventListener('mouseenter', () => {
-                clearTimeout(hoverTimeout);
-                hoverTimeout = null;
-                isHoveringPopup = true;
-              }, true);
-              
-              popupElement.addEventListener('mouseleave', () => {
-                isHoveringPopup = false;
-                if (!isHoveringCluster) {
-                  closePopupIfNotHovering();
-                }
-              }, true);
-            }
+            const pEl = popup.getElement();
+            if (!pEl) return;
+            pEl.addEventListener('mouseenter', () => { clearTimeout(hoverTimeout); hoverPopup = true; }, true);
+            pEl.addEventListener('mouseleave', () => {
+              hoverPopup = false;
+              if (!hoverCluster) closeIfIdle();
+            }, true);
           });
         }
 
         el.addEventListener('click', () => {
           const expansionZoom = clusterIndex.current.getClusterExpansionZoom(cluster.id);
-          map.current.easeTo({
-            center: [lng, lat],
-            zoom: expansionZoom + 0.5
-          });
+          map.current.easeTo({ center: [lng, lat], zoom: expansionZoom + 0.5 });
         });
 
-        const marker = new mapboxgl.Marker({
-          element: el,
-          anchor: 'center'
-        })
-          .setLngLat([lng, lat])
-          .addTo(map.current);
+        markers.current.push(
+          new mapboxgl.Marker({ element: el, anchor: 'center' })
+            .setLngLat([lng, lat])
+            .addTo(map.current)
+        );
 
-        markers.current.push(marker);
       } else {
-        // Create individual property marker
-        const property = cluster.properties;
+        // ── Individual price-bubble marker ────────────────────────────────
+        const property    = cluster.properties;
         const hasExactGroup = property.exactGroupSize > 1;
-        
-        // Color coding: Orange = Grouped in same building, Purple = Single property
-        const pinColor = hasExactGroup ? '#ff6b00' : '#667eea';
+        const priceStr    = formatMarkerPrice(property.price);
 
         const el = document.createElement('div');
-        el.className = 'custom-marker';
-        el.dataset.isGrouped = hasExactGroup ? 'true' : 'false';
+        el.className = 'mp-marker-wrap';
         el.dataset.propertyId = property._id || property.title;
-        el.dataset.markerType = hasExactGroup ? 'grouped-building' : 'single';
-        el.innerHTML = `
-          <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; pointer-events: none;">
-            <path d="M16 0C7.163 0 0 7.163 0 16c0 12 16 24 16 24s16-12 16-24c0-8.837-7.163-16-16-16z" fill="${pinColor}"/>
-            <circle cx="16" cy="16" r="6" fill="white"/>
-          </svg>
-          ${hasExactGroup ? `
-            <div style="
-              position: absolute;
-              top: -8px;
-              right: -8px;
-              background: #ef4444;
-              color: white;
-              border-radius: 50%;
-              width: 20px;
-              height: 20px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 11px;
-              font-weight: 700;
-              border: 2px solid white;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-              pointer-events: none;
-            ">${property.exactGroupSize}</div>
-          ` : ''}
-        `;
-        el.style.cssText = `
-          cursor: pointer;
-          filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
-          transition: filter 0.2s;
-          width: 32px;
-          height: 40px;
-          pointer-events: auto;
-        `;
 
-        // Add hover popup and click behavior if enabled
+        const isSpotlightPin = property.promotionTier === 'SPOTLIGHT' && property.isPromoted;
+        const pinEl = document.createElement('div');
+        pinEl.className = [
+          'mp-pin',
+          hasExactGroup  ? 'mp-pin--grouped'   : '',
+          isSpotlightPin ? 'mp-pin--spotlight' : '',
+        ].filter(Boolean).join(' ');
+        pinEl.innerHTML = `
+          <span class="mp-pin-price">${priceStr}</span>
+          ${hasExactGroup ? `<span class="mp-pin-count">${property.exactGroupSize}</span>` : ''}
+        `;
+        el.appendChild(pinEl);
+
+        if (property._id) markerEls.current[property._id] = pinEl;
+
         if (showPopups) {
-          if (hasExactGroup) {
+          const propertiesAtLocation = hasExactGroup
+            ? allPropertiesRef.current.filter(p => {
+                if (!p.coordinates) return false;
+                const pLat = p.coordinates.lat || p.coordinates.latitude;
+                const pLng = p.coordinates.lng || p.coordinates.longitude;
+                if (!pLat || !pLng) return false;
+                return `${pLat.toFixed(4)},${pLng.toFixed(4)}` === property.exactGroupKey;
+              })
+            : [property];
 
-          }
-          
-          // Find all properties at this exact location using the exactGroupKey
-          // IMPORTANT: Use allPropertiesRef.current instead of properties prop
-          const propertiesAtLocation = hasExactGroup ? 
-            allPropertiesRef.current.filter(p => {
-              if (!p.coordinates) {
+          if (propertiesAtLocation.length === 0) propertiesAtLocation.push(property);
 
-                return false;
-              }
-              const pLat = p.coordinates.lat || p.coordinates.latitude;
-              const pLng = p.coordinates.lng || p.coordinates.longitude;
-              if (!pLat || !pLng) {
+          const isSingle    = propertiesAtLocation.length === 1;
+          const popupEl     = isSingle
+            ? createSinglePropertyPopup(propertiesAtLocation[0])
+            : createMultiPropertyPopup(propertiesAtLocation);
+          const popupConfig = calculateOptimalAnchor([lng, lat], isSingle ? 280 : 320, isSingle ? 290 : 260);
 
-                return false;
-              }
-              
-              // Use same key generation as clustering (lat,lng order to match)
-              const pKey = `${pLat.toFixed(4)},${pLng.toFixed(4)}`;
-              const match = pKey === property.exactGroupKey;
-
-              return match;
-            }) : [property];
-
-          if (hasExactGroup) {
-
-          }
-          
-          // Ensure we have at least the current property
-          if (propertiesAtLocation.length === 0) {
-            propertiesAtLocation.push(property);
-          }
-          
-          // Use different popup style for single vs multiple properties
-          const isSingleProperty = propertiesAtLocation.length === 1;
-          let popupEl, popupConfig;
-          
-          if (isSingleProperty) {
-            // Single property - use card-style popup (original behavior)
-            popupEl = createSinglePropertyPopup(propertiesAtLocation[0]);
-            popupConfig = calculateOptimalAnchor([lng, lat], 280, 320); // Original single property dimensions
-          } else {
-            // Multiple properties - use list-style popup with fixed rectangle
-            popupEl = createMultiPropertyPopup(propertiesAtLocation);
-            popupConfig = calculateOptimalAnchor([lng, lat], 340, 280); // Fixed rectangle for 2+ properties
-          }
-
-          const popup = new mapboxgl.Popup({ 
+          const popup = new mapboxgl.Popup({
             offset: popupConfig.offset,
             closeButton: true,
             closeOnClick: false,
             className: 'property-hover-popup',
-            maxWidth: isSingleProperty ? '280px' : '340px',
-            anchor: popupConfig.anchor
+            maxWidth: isSingle ? '280px' : '320px',
+            anchor: popupConfig.anchor,
           }).setDOMContent(popupEl);
 
-          // Track hover state
-          let isHoveringMarker = false;
-          let isHoveringPopup = false;
-          let hoverTimeout;
+          let hoverMarker = false, hoverPopup = false, hoverTimeout;
 
-          const closePopupIfNotHovering = () => {
+          const closeIfIdle = () => {
             hoverTimeout = setTimeout(() => {
-              if (!isHoveringMarker && !isHoveringPopup && activePopupRef.current === popup && pinnedPopupRef.current !== popup) {
+              if (!hoverMarker && !hoverPopup &&
+                  activePopupRef.current === popup && pinnedPopupRef.current !== popup) {
                 popup.remove();
                 activePopupRef.current = null;
               }
-            }, 1000); // 1000ms delay to give time to move mouse to popup
+            }, 1000);
           };
 
-          // Show popup on marker hover
-          el.addEventListener('mouseenter', (event) => {
-            // Check if this will trigger any zoom
-            const currentZoom = map.current.getZoom();
-            const currentCenter = map.current.getCenter();
-            setTimeout(() => {
-              const newZoom = map.current.getZoom();
-              const newCenter = map.current.getCenter();
-              if (newZoom !== currentZoom) {
-
-              }
-              if (currentCenter.lng !== newCenter.lng || currentCenter.lat !== newCenter.lat) {
-
-              }
-            }, 100);
-            
+          el.addEventListener('mouseenter', () => {
             clearTimeout(hoverTimeout);
-            isHoveringMarker = true;
-            
-            // Close any existing non-pinned popup
+            hoverMarker = true;
             if (activePopupRef.current && activePopupRef.current !== pinnedPopupRef.current) {
               activePopupRef.current.remove();
             }
-            
-            // Check if this popup is pinned
-            const isPinned = pinnedPopupRef.current === popup;
-            if (!isPinned) {
-              if (hasExactGroup) {
-
-              }
-              // Set popup coordinates and add to map
+            if (pinnedPopupRef.current !== popup) {
               popup.setLngLat([lng, lat]).addTo(map.current);
-              
-              // Force z-index inline immediately after adding
-              const popupDOMElement = popup.getElement();
-              if (popupDOMElement) {
-                popupDOMElement.style.zIndex = '9999';
-                popupDOMElement.style.pointerEvents = 'auto';
-              }
-              
+              const pEl = popup.getElement();
+              if (pEl) { pEl.style.zIndex = '9999'; pEl.style.pointerEvents = 'auto'; }
               activePopupRef.current = popup;
             }
           });
 
-          // Hide popup when leaving marker (with delay)
           el.addEventListener('mouseleave', () => {
-            isHoveringMarker = false;
-            closePopupIfNotHovering();
+            hoverMarker = false; closeIfIdle();
           });
 
-          // Keep popup open when hovering it
           popup.on('open', () => {
-            const popupElement = popup.getElement();
-            if (popupElement) {
-              // Use capturing phase to catch events before they bubble
-              popupElement.addEventListener('mouseenter', () => {
-                clearTimeout(hoverTimeout);
-                hoverTimeout = null; // Ensure timeout is cleared
-                isHoveringPopup = true;
-              }, true); // Capture phase
-              
-              popupElement.addEventListener('mouseleave', () => {
-                isHoveringPopup = false;
-                // Only close if also not hovering marker
-                if (!isHoveringMarker) {
-                  closePopupIfNotHovering();
-                }
-              }, true); // Capture phase
-            }
+            const pEl = popup.getElement();
+            if (!pEl) return;
+            pEl.addEventListener('mouseenter', () => { clearTimeout(hoverTimeout); hoverPopup = true; }, true);
+            pEl.addEventListener('mouseleave', () => {
+              hoverPopup = false;
+              if (!hoverMarker) closeIfIdle();
+            }, true);
           });
 
-          // Click pin to keep popup open (sticky)
+          el.addEventListener('mouseenter', () => {
+            if (property._id) onPinHoverRef.current?.(property._id);
+          });
+          el.addEventListener('mouseleave', () => {
+            onPinHoverRef.current?.(null);
+          });
+
           el.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            
-            if (hasExactGroup) {
-
-            } else {
-
-            }
-            
-            // Remove previous pinned popup
+            e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
             if (pinnedPopupRef.current && pinnedPopupRef.current !== popup) {
               pinnedPopupRef.current.remove();
             }
-            
-            // Pin this popup
             pinnedPopupRef.current = popup;
             activePopupRef.current = popup;
-            
-            // Ensure popup is added to map
-            if (!popup.isOpen()) {
-              popup.setLngLat([lng, lat]).addTo(map.current);
-            }
+            if (!popup.isOpen()) popup.setLngLat([lng, lat]).addTo(map.current);
           }, { capture: true });
 
-          // Handle popup close button
           popup.on('close', () => {
-            if (pinnedPopupRef.current === popup) {
-              pinnedPopupRef.current = null;
-            }
-            if (activePopupRef.current === popup) {
-              activePopupRef.current = null;
-            }
+            if (pinnedPopupRef.current === popup) pinnedPopupRef.current = null;
+            if (activePopupRef.current === popup) activePopupRef.current = null;
           });
-        } else {
-
         }
 
-        // Create marker and add to map
-        const marker = new mapboxgl.Marker({
-          element: el,
-          anchor: 'bottom',
-          offset: [0, 0]
-        })
-          .setLngLat([lng, lat])
-          .addTo(map.current);
-
-        markers.current.push(marker);
+        markers.current.push(
+          new mapboxgl.Marker({ element: el, anchor: 'center', offset: [0, 0] })
+            .setLngLat([lng, lat])
+            .addTo(map.current)
+        );
       }
     });
+
+    if (highlightedPropertyId && markerEls.current[highlightedPropertyId]) {
+      markerEls.current[highlightedPropertyId].classList.add('mp-pin--active');
+      markerEls.current[highlightedPropertyId].style.zIndex = '100';
+    }
   };
 
+  // ── Map initialization (runs once) ───────────────────────────────────────
+  useEffect(() => {
+    if (map.current) return;
+
+    try {
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/light-v11',
+        center,
+        zoom,
+      });
+
+      map.current.addControl(
+        new mapboxgl.NavigationControl({ showCompass: false }),
+        'top-right'
+      );
+
+      map.current.on('load', () => setMapLoaded(true));
+
+      // ── Viewport ownership detection ───────────────────────────────────
+      // Any direct user drag gesture transfers viewport ownership.
+      map.current.on('dragstart', () => {
+        userOwnsViewport.current = true;
+      });
+
+      // User zoom via scroll wheel, pinch, or +/- buttons carries an
+      // originalEvent. Programmatic easeTo/flyTo/fitBounds does not.
+      map.current.on('zoomstart', (e) => {
+        if (e.originalEvent) {
+          userOwnsViewport.current = true;
+        }
+      });
+
+      let moveEndTimeout;
+      map.current.on('moveend', () => {
+        clearTimeout(moveEndTimeout);
+        moveEndTimeout = setTimeout(() => {
+          if (clusterIndex.current) updateMarkers();
+          if (onMapMove) {
+            const c = map.current.getCenter();
+            onMapMove([c.lng, c.lat], map.current.getZoom());
+          }
+          // Surface the "Search this area" CTA whenever the user owns the viewport.
+          if (userOwnsViewport.current && onSearchAreaRef.current) {
+            setShowSearchArea(true);
+          }
+        }, 100);
+      });
+
+      map.current.on('zoomend', () => {
+        if (clusterIndex.current) updateMarkers();
+      });
+
+      map.current.on('error', (e) => {
+        console.error('Map error:', e);
+        if (e.error?.status === 401 || e.error?.message?.includes('access token')) {
+          setMapError(true);
+        }
+      });
+    } catch (error) {
+      console.error('Error creating map:', error);
+      setMapError(true);
+    }
+
+    return () => {
+      pinnedPopupRef.current?.remove();
+      activePopupRef.current?.remove();
+      markers.current.forEach(m => m.remove());
+      markers.current = [];
+      markerEls.current = {};
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Fly to on explicit request ────────────────────────────────────────────
+  // Explicit navigation always resets user ownership so the map is free to
+  // auto-position again (e.g. after a location search or mode change).
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !flyTo) return;
+    userOwnsViewport.current = false;
+    setShowSearchArea(false);
+    if (flyTo.bounds) {
+      map.current.fitBounds(flyTo.bounds, {
+        padding: flyTo.padding ?? 80,
+        maxZoom: 14,
+        duration: 600,
+        essential: true,
+      });
+    } else {
+      map.current.flyTo({ center: flyTo.center, zoom: flyTo.zoom ?? 12, essential: true, duration: 600 });
+    }
+  }, [flyTo, mapLoaded]);
+
+  // ── Rebuild cluster index when properties change ──────────────────────────
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
 
-    // Clear existing markers
-    markers.current.forEach(marker => marker.remove());
+    pinnedPopupRef.current?.remove(); pinnedPopupRef.current = null;
+    activePopupRef.current?.remove(); activePopupRef.current = null;
+    markers.current.forEach(m => m.remove());
     markers.current = [];
+    markerEls.current = {};
 
-    // If single property view
-    if (singleProperty && singleProperty.coordinates) {
+    // Single-property detail view
+    if (singleProperty?.coordinates) {
       const coords = singleProperty.coordinates;
-      
-      // Create marker element with pin icon
       const el = document.createElement('div');
-      el.className = 'custom-marker';
-      el.innerHTML = `
-        <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
-          <path d="M16 0C7.163 0 0 7.163 0 16c0 12 16 24 16 24s16-12 16-24c0-8.837-7.163-16-16-16z" fill="#667eea"/>
-          <circle cx="16" cy="16" r="6" fill="white"/>
-        </svg>
-      `;
-      el.style.cssText = `
-        cursor: pointer;
-        filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
-        width: 32px;
-        height: 40px;
-      `;
+      el.className = 'mp-marker-wrap';
+      const pinEl = document.createElement('div');
+      pinEl.className = 'mp-pin mp-pin--single-detail';
+      pinEl.innerHTML = `<span class="mp-pin-price">${formatMarkerPrice(singleProperty.price)}</span>`;
+      el.appendChild(pinEl);
 
-      const marker = new mapboxgl.Marker({
-        element: el,
-        anchor: 'bottom',
-        offset: [0, 0]
-      })
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
         .setLngLat([coords.lng || coords.longitude, coords.lat || coords.latitude])
         .addTo(map.current);
 
       if (showPopups) {
-        const popup = new mapboxgl.Popup({ offset: 25 })
-          .setHTML(`
-            <div style="padding: 8px;">
-              <h3 style="margin: 0 0 8px; font-size: 14px; font-weight: 600;">${singleProperty.title}</h3>
-              <p style="margin: 0; color: #667eea; font-weight: 600; font-size: 16px;">
-                ${singleProperty.currency || 'AZN'} ${singleProperty.price?.toLocaleString()}
-              </p>
+        marker.setPopup(
+          new mapboxgl.Popup({ offset: 16, closeButton: false }).setHTML(`
+            <div class="mp-detail-popup">
+              <div class="mp-detail-price">${singleProperty.currency || 'AZN'} ${singleProperty.price?.toLocaleString()}</div>
+              <div class="mp-detail-title">${singleProperty.title}</div>
             </div>
-          `);
-        marker.setPopup(popup);
+          `)
+        );
       }
 
       markers.current.push(marker);
-      
-      // Center map on property only once
+
       if (map.current.getZoom() === zoom) {
         map.current.flyTo({
           center: [coords.lng || coords.longitude, coords.lat || coords.latitude],
           zoom: 16,
-          essential: true
+          essential: true,
         });
       }
-
       return;
     }
 
-    // Multiple properties view - use clustering
-    const propertiesWithCoords = properties.filter(p => p.coordinates && (p.coordinates.lat || p.coordinates.latitude));
+    // Multi-property clustering
+    const propertiesWithCoords = properties.filter(
+      p => p.coordinates && (p.coordinates.lat || p.coordinates.latitude)
+    );
+    if (propertiesWithCoords.length === 0) { clusterIndex.current = null; return; }
 
-    if (propertiesWithCoords.length === 0) return;
-    
-    // Store ALL properties for later matching (crucial for grouped pins)
     allPropertiesRef.current = propertiesWithCoords;
 
-    // Group properties by exact same coordinates (must always be grouped)
-    // Using 4 decimal places = ~11 meters tolerance (good for same building/complex)
-    const exactGroups = {};
-    propertiesWithCoords.forEach(property => {
-      const lat = property.coordinates.lat || property.coordinates.latitude;
-      const lng = property.coordinates.lng || property.coordinates.longitude;
-      const key = `${lat.toFixed(4)},${lng.toFixed(4)}`; // 4 decimals = same building
-      
-      if (!exactGroups[key]) {
-        exactGroups[key] = [];
-      }
-      exactGroups[key].push(property);
-    });
+    const signature = propertiesWithCoords.map(p => p._id).join(',');
+    if (signature !== prevPropsSignatureRef.current) {
+      prevPropsSignatureRef.current = signature;
 
-    // Initialize Supercluster
-    clusterIndex.current = new Supercluster({
-      radius: 40, // Reduced from 60 - less aggressive clustering
-      maxZoom: 18, // Increased from 16 - clusters break apart later
-      minZoom: 0,
-      minPoints: 2 // Minimum 2 points to form a cluster
-    });
-
-    // Convert properties to GeoJSON features
-    const points = propertiesWithCoords.map((property, index) => {
-      const lat = property.coordinates.lat || property.coordinates.latitude;
-      const lng = property.coordinates.lng || property.coordinates.longitude;
-      const exactKey = `${lat.toFixed(4)},${lng.toFixed(4)}`; // Match grouping tolerance
-      const exactGroupSize = exactGroups[exactKey].length;
-      
-      return {
-      type: 'Feature',
-      properties: {
-        ...property,
-        thumbnail: property.images?.[0]?.thumbnail || property.images?.[0]?.medium || property.images?.[0] || '',
-        medium: property.images?.[0]?.medium || property.images?.[0] || '',
-        image: property.images?.[0] || '',
-        exactGroupSize,
-        exactGroupKey: exactKey
-      },
-      geometry: {
-        type: 'Point',
-        coordinates: [
-          property.coordinates.lng || property.coordinates.longitude,
-          property.coordinates.lat || property.coordinates.latitude
-        ]
-      }
-    };
-    });
-
-    clusterIndex.current.load(points);
-
-    // Update markers initially
-    updateMarkers();
-
-    // Update markers initially
-    updateMarkers();
-
-    // Fit bounds to show all markers only on initial load
-    if (propertiesWithCoords.length > 1 && map.current.getZoom() === zoom) {
-      const bounds = new mapboxgl.LngLatBounds();
+      const exactGroups = {};
       propertiesWithCoords.forEach(p => {
-        bounds.extend([p.coordinates.lng || p.coordinates.longitude, p.coordinates.lat || p.coordinates.latitude]);
+        const lat = p.coordinates.lat || p.coordinates.latitude;
+        const lng = p.coordinates.lng || p.coordinates.longitude;
+        const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+        exactGroups[key] = (exactGroups[key] || 0) + 1;
       });
-      map.current.fitBounds(bounds, { padding: 50, maxZoom: 12 });
-    } else if (propertiesWithCoords.length === 1 && map.current.getZoom() === zoom) {
-      const coords = propertiesWithCoords[0].coordinates;
-      map.current.flyTo({
-        center: [coords.lng || coords.longitude, coords.lat || coords.latitude],
-        zoom: 12,
-        essential: true
+
+      clusterIndex.current = new Supercluster({ radius: 40, maxZoom: 18, minZoom: 0, minPoints: 2 });
+
+      const points = propertiesWithCoords.map(p => {
+        const lat      = p.coordinates.lat || p.coordinates.latitude;
+        const lng      = p.coordinates.lng || p.coordinates.longitude;
+        const exactKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+        return {
+          type: 'Feature',
+          properties: {
+            ...p,
+            thumbnail:     p.images?.[0]?.thumbnail || p.images?.[0]?.medium || p.images?.[0] || '',
+            medium:        p.images?.[0]?.medium    || p.images?.[0] || '',
+            image:         p.images?.[0] || '',
+            exactGroupSize: exactGroups[exactKey],
+            exactGroupKey:  exactKey,
+          },
+          geometry: { type: 'Point', coordinates: [lng, lat] },
+        };
       });
+
+      clusterIndex.current.load(points);
+
+      // Only auto-fit when the user has not yet taken viewport ownership.
+      // If the user has dragged or zoomed, we preserve their position.
+      if (!userOwnsViewport.current) {
+        if (propertiesWithCoords.length > 1) {
+          const bounds = new mapboxgl.LngLatBounds();
+          propertiesWithCoords.forEach(p => {
+            bounds.extend([
+              p.coordinates.lng || p.coordinates.longitude,
+              p.coordinates.lat || p.coordinates.latitude,
+            ]);
+          });
+          map.current.fitBounds(bounds, { padding: 80, maxZoom: 14, duration: 600 });
+        } else {
+          const coords = propertiesWithCoords[0].coordinates;
+          map.current.flyTo({
+            center: [coords.lng || coords.longitude, coords.lat || coords.latitude],
+            zoom: 14, essential: true,
+          });
+        }
+      }
     }
 
-  }, [properties, singleProperty, showPopups, onMarkerClick, mapLoaded]);
+    if (map.current.isStyleLoaded()) {
+      updateMarkers();
+    } else {
+      map.current.once('style.load', updateMarkers);
+    }
+  }, [properties, singleProperty, showPopups, onMarkerClick, mapLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Search this area handler ──────────────────────────────────────────────
+  const handleSearchAreaClick = useCallback(() => {
+    if (!map.current || !onSearchAreaRef.current) return;
+    const b = map.current.getBounds();
+    onSearchAreaRef.current({
+      west:  b.getWest(),
+      south: b.getSouth(),
+      east:  b.getEast(),
+      north: b.getNorth(),
+    });
+    setShowSearchArea(false);
+  }, []);
+
+  if (mapError) {
+    return (
+      <div style={{
+        width: '100%', height,
+        background: '#f5f5f4',
+        border: '1px solid #e5e7eb',
+        borderRadius: 12,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        color: '#9ca3af',
+        fontFamily: "'Inter Tight', Inter, sans-serif",
+        fontSize: '0.875rem',
+      }}>
+        <MapPin size={24} strokeWidth={1.5} aria-hidden="true" />
+        Map unavailable
+      </div>
+    );
+  }
 
   return (
-    <div 
-      ref={mapContainer} 
-      style={{ 
-        width: '100%', 
-        height: height,
-        borderRadius: '12px',
-        overflow: 'hidden'
-      }} 
-    />
+    <div style={{ position: 'relative', width: '100%', height }}>
+      <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
+      {showSearchArea && onSearchArea && (
+        <div className="mp-search-area-wrap">
+          <button className="mp-search-area-btn" onClick={handleSearchAreaClick}>
+            <span className="mp-search-area-dot" />
+            Search this area
+          </button>
+        </div>
+      )}
+    </div>
   );
 };
 
 export default PropertyMap;
-

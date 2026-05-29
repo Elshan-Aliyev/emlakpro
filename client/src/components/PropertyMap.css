@@ -1,13 +1,9 @@
-/* PropertyMap.css */
-.custom-marker {
-  transition: all 0.2s ease;
-}
+/* ══════════════════════════════════════════════════════════════════════════════
+   PROPERTY MAP — Premium spatial surface
+   ══════════════════════════════════════════════════════════════════════════════ */
 
-.custom-marker:hover {
-  z-index: 1000 !important;
-}
+/* ── Popup z-index and interaction ──────────────────────────────────────────── */
 
-/* Force popup to appear above everything */
 div.mapboxgl-popup,
 .mapboxgl-popup.property-hover-popup,
 .property-hover-popup {
@@ -18,22 +14,15 @@ div.mapboxgl-popup,
   opacity: 1 !important;
 }
 
-/* Constrain popup to viewport with margins */
 div.mapboxgl-popup {
   max-height: calc(100vh - 80px) !important;
   max-width: calc(100vw - 40px) !important;
 }
 
-/* Ensure popup stays within bounds */
-.mapboxgl-popup-content > div.popup-card-content {
-  max-height: calc(100vh - 120px) !important;
-  overflow: hidden !important;
-}
-
 div.mapboxgl-popup-content,
 .property-hover-popup .mapboxgl-popup-content {
   padding: 0 !important;
-  border-radius: 12px !important;
+  border-radius: 16px !important;
   overflow: visible !important;
   box-shadow: none !important;
   background: transparent !important;
@@ -47,60 +36,633 @@ div.mapboxgl-popup-content,
   max-height: none !important;
 }
 
-/* Our custom content div should have white background */
 .mapboxgl-popup-content > div {
   background: white !important;
-  border-radius: 12px !important;
+  border-radius: 16px !important;
 }
 
-.property-hover-popup {
-  z-index: 500 !important;
+/* Close button */
+.mapboxgl-popup-close-button {
+  font-size: 18px;
+  padding: 8px;
+  color: var(--color-text-muted, #6b7280);
+  background: var(--color-bg-surface, #fff);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  right: 10px !important;
+  top: 10px !important;
+  z-index: 10;
+  box-shadow: 0 1px 6px rgba(15, 23, 42, 0.12);
+  transition: background 180ms cubic-bezier(0.22, 1, 0.36, 1), color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: auto !important;
+  line-height: 1;
 }
 
-.property-hover-popup .mapboxgl-popup-content {
-  padding: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
-  border-radius: 12px !important;
+.mapboxgl-popup-close-button:hover {
+  background: var(--color-bg-sunken, #f5f5f4);
+  color: var(--color-graphite-900, #0F172A);
 }
 
-.property-hover-popup .mapboxgl-popup-tip {
+/* Hide popup tips */
+.property-hover-popup .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-top .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-left .mapboxgl-popup-tip,
+.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
   display: none !important;
   visibility: hidden !important;
   width: 0 !important;
   height: 0 !important;
 }
 
-.mapboxgl-popup-close-button {
-  font-size: 22px;
-  padding: 10px;
-  color: #666;
-  background: white;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
+/* Navigation control — positioned below FilterBar within the search map */
+.sp-map .mapboxgl-ctrl-top-right {
+  top: calc(var(--fb-h, 62px) + 10px) !important;
+  right: 10px !important;
+}
+
+/* Navigation control — clean styling */
+.mapboxgl-ctrl-group {
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.10) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+  border: 1px solid rgba(229, 231, 235, 0.6) !important;
+}
+
+.mapboxgl-ctrl-group button {
+  width: 36px !important;
+  height: 36px !important;
+}
+
+/* ── Cluster bubble ─────────────────────────────────────────────────────────── */
+
+.mp-cluster-wrap { cursor: pointer; }
+
+.mp-cluster {
   display: flex;
   align-items: center;
   justify-content: center;
-  right: 8px !important;
-  top: 8px !important;
-  z-index: 10;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
-  pointer-events: auto !important;
+  border-radius: 50%;
+  background: var(--color-primary, #0F766E);
+  color: #fff;
+  font-weight: 700;
+  font-family: 'Inter Tight', 'Inter', sans-serif;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 3px rgba(15, 118, 110, 0.18),
+    0 4px 16px rgba(15, 118, 110, 0.28);
+  transition:
+    transform  180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.mapboxgl-popup-close-button:hover {
-  background: #f5f5f5;
-  color: #333;
+@media (hover: hover) {
+  .mp-cluster { will-change: transform; }
+}
+
+.mp-cluster:hover {
+  transform: scale(1.10);
+  box-shadow:
+    0 0 0 4px rgba(15, 118, 110, 0.22),
+    0 6px 24px rgba(15, 118, 110, 0.36);
+}
+
+.mp-cluster--small  { width: 36px; height: 36px; font-size: 13px; }
+.mp-cluster--medium { width: 44px; height: 44px; font-size: 14px; }
+.mp-cluster--large  { width: 52px; height: 52px; font-size: 14px; }
+
+/* ── Price bubble marker ────────────────────────────────────────────────────── */
+
+.mp-marker-wrap {
+  cursor: pointer;
+  position: relative;
+  /* inline-flex ensures the wrapper is sized by its pill content, not the
+     parent block width — critical for Mapbox's shrink-to-fit marker container */
+  display: inline-flex;
+}
+
+.mp-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: #fff;
+  /* Border must be opaque enough to separate the white pill from the
+     light-v11 cream basemap — 0.14 opacity was invisible, 0.30 is clear */
+  border: 1.5px solid rgba(15, 23, 42, 0.30);
+  border-radius: 999px;
+  white-space: nowrap;
+  /* Shadow depth must exceed the ambient map surface shadow — tuned for
+     light-v11 where the base is ~#e8e6e3; 0.08/0.10 was invisible */
+  box-shadow:
+    0 2px 6px  rgba(15, 23, 42, 0.18),
+    0 4px 16px rgba(15, 23, 42, 0.14);
+  cursor: pointer;
+  transform-origin: center bottom;
+  /* Explicit color prevents inheritance from Mapbox's container, which has
+     no guaranteed text color — the price text was rendering white-on-white */
+  color: var(--color-graphite-900, #0F172A);
+  transition:
+    background    220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color  220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow    220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform     220ms cubic-bezier(0.22, 1, 0.36, 1),
+    color         220ms cubic-bezier(0.22, 1, 0.36, 1);
+  font-family: 'Inter Tight', 'Inter', sans-serif;
+  position: relative;
+}
+
+.mp-pin:hover {
+  background: var(--color-primary, #0F766E);
+  border-color: var(--color-primary, #0F766E);
+  color: #fff;
+  box-shadow:
+    0 0 0 3px rgba(15, 118, 110, 0.18),
+    0 10px 24px rgba(15, 118, 110, 0.18);
+  transform: translateY(-2px) scale(1.06);
+  z-index: 10;
+}
+
+.mp-pin--active {
+  background: var(--color-primary, #0F766E);
+  border-color: var(--color-primary, #0F766E);
+  color: #fff !important;
+  box-shadow:
+    0 0 0 3px rgba(15, 118, 110, 0.22),
+    0 8px 20px rgba(15, 118, 110, 0.24),
+    0 2px 6px  rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px) scale(1.10);
+}
+
+/* Grouped marker (same building) — amber accent */
+.mp-pin--grouped {
+  border-color: rgba(234, 88, 12, 0.28);
+}
+
+.mp-pin--grouped:hover,
+.mp-pin--grouped.mp-pin--active {
+  background: #ea580c;
+  border-color: #ea580c;
+  box-shadow:
+    0 0 0 3px rgba(234, 88, 12, 0.18),
+    0 6px 20px rgba(234, 88, 12, 0.26);
+}
+
+/* Single-detail view marker */
+.mp-pin--single-detail {
+  background: var(--color-primary, #0F766E);
+  border-color: var(--color-primary, #0F766E);
+  color: #fff;
+  box-shadow:
+    0 0 0 4px rgba(15, 118, 110, 0.20),
+    0 6px 20px rgba(15, 118, 110, 0.30);
+}
+
+/* Spotlight listing — slightly larger, amber ring, no animation, no pulse */
+.mp-pin--spotlight {
+  border-color: #FBBF24;
+  box-shadow:
+    0 0 0 2px rgba(251, 191, 36, 0.20),
+    0 2px 6px  rgba(15, 23, 42, 0.18),
+    0 4px 16px rgba(15, 23, 42, 0.14);
+  transform: scale(1.10);
+  transform-origin: center bottom;
+  z-index: 5;
+}
+
+.mp-pin--spotlight:hover {
+  border-color: #F59E0B;
+  background: #F59E0B;
+  color: #fff;
+  box-shadow:
+    0 0 0 3px rgba(245, 158, 11, 0.24),
+    0 10px 24px rgba(245, 158, 11, 0.20);
+  transform: translateY(-2px) scale(1.14);
+}
+
+.mp-pin-price {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: inherit;
+  line-height: 1;
+}
+
+.mp-pin-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  background: rgba(234, 88, 12, 0.15);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ea580c;
+  padding: 0 3px;
+}
+
+.mp-pin:hover .mp-pin-count,
+.mp-pin--active .mp-pin-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+@media (hover: hover) {
+  .mp-pin { will-change: transform; }
+}
+
+/* ── Mobile map quality ──────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  /* Zoom controls: move to bottom-right, above the listing panel */
+  .sp-map .mapboxgl-ctrl-top-right {
+    top: auto !important;
+    bottom: calc(48vh + 16px) !important;
+    right: 12px !important;
+  }
+
+  /* Zoom controls: 44px touch target for reliable one-thumb tapping */
+  .mapboxgl-ctrl-group button {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  /* Search-area CTA: tall enough for thumb */
+  .mp-search-area-btn {
+    padding: 11px 20px;
+    min-height: 44px;
+    font-size: 0.9375rem;
+  }
+
+  /* Pin press feedback on touch */
+  .mp-pin:active {
+    transform: scale(0.90);
+    transition-duration: 80ms;
+  }
+
+  /* Larger cluster tap target */
+  .mp-cluster-wrap {
+    padding: 6px;
+    margin: -6px;
+  }
+}
+
+/* ── Single-property popup ───────────────────────────────────────────────────── */
+
+@keyframes popup-rise {
+  from { opacity: 0; transform: scale(0.92) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   }
+}
+
+.mp-popup {
+  background: var(--color-bg-surface, #fff);
+  border-radius: 16px;
+  overflow: hidden;
+  width: 272px;
+  cursor: pointer;
+  font-family: 'Inter Tight', 'Inter', -apple-system, sans-serif;
+  box-shadow:
+    0 4px 6px  rgba(15, 23, 42, 0.06),
+    0 10px 30px rgba(15, 23, 42, 0.12);
+  animation: popup-rise 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.mp-popup-img-wrap {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+  background: var(--color-bg-sunken, #f5f5f4);
+}
+
+.mp-popup-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: img-appear 320ms cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+.mp-popup:hover .mp-popup-img { transform: scale(1.04); }
+
+.mp-popup-img-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c9cdd6;
+}
+
+/* Frosted glass fav button */
+.mp-popup-fav {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(10px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.85);
+  z-index: 10;
+  transition: background 180ms cubic-bezier(0.22, 1, 0.36, 1), color 180ms cubic-bezier(0.22, 1, 0.36, 1), transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mp-popup-fav:hover {
+  background: rgba(255, 255, 255, 0.96);
+  color: #1f2937;
   transform: scale(1.1);
 }
 
-/* Hide all popup tips */
-.mapboxgl-popup-anchor-top .mapboxgl-popup-tip,
-.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip,
-.mapboxgl-popup-anchor-left .mapboxgl-popup-tip,
-.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
-  display: none !important;
+.mp-popup-fav.favorited {
+  background: rgba(255, 255, 255, 0.96);
+  color: #1f2937;
+}
+
+.mp-popup-body { padding: 12px 14px 14px; }
+
+.mp-popup-price {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-graphite-900, #0F172A);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.mp-popup-title {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #374151);
+  margin-bottom: 5px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.mp-popup-specs {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #6b7280);
+  margin-bottom: 3px;
+}
+
+.mp-popup-loc {
+  font-size: 0.71875rem;
+  color: var(--color-text-muted, #9ca3af);
+}
+
+/* ── Multi-property popup ────────────────────────────────────────────────────── */
+
+.mp-popup-multi {
+  background: var(--color-bg-surface, #fff);
+  border-radius: 16px;
+  width: 310px;
+  font-family: 'Inter Tight', 'Inter', -apple-system, sans-serif;
+  pointer-events: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 4px 6px  rgba(15, 23, 42, 0.06),
+    0 10px 30px rgba(15, 23, 42, 0.12);
+  animation: popup-rise 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.mp-multi-list {
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.mp-multi-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle, #f3f4f6);
+  cursor: pointer;
+  position: relative;
+  transition: background 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mp-multi-item:last-child { border-bottom: none; }
+.mp-multi-item:hover { background: var(--color-bg-sunken, #f9fafb); }
+
+.mp-multi-thumb {
+  width: 72px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.mp-multi-thumb-empty {
+  width: 72px;
+  height: 60px;
+  background: var(--color-bg-sunken, #f5f5f4);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c9cdd6;
+  flex-shrink: 0;
+}
+
+.mp-multi-info { flex: 1; min-width: 0; }
+
+.mp-multi-price {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-graphite-900, #0F172A);
+  letter-spacing: -0.01em;
+  margin-bottom: 3px;
+}
+
+.mp-multi-title {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #374151);
+  margin-bottom: 3px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.35;
+}
+
+.mp-multi-specs {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted, #6b7280);
+}
+
+.mp-multi-fav {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--color-bg-surface, #fff);
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-muted, #9ca3af);
+  z-index: 10;
+  transition: color 180ms cubic-bezier(0.22, 1, 0.36, 1), background 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mp-multi-fav:hover { color: #1f2937; background: var(--color-bg-sunken, #f5f5f4); }
+.mp-multi-fav.favorited { color: #1f2937; }
+
+/* Pagination footer */
+.mp-multi-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-top: 1px solid var(--border-subtle, #f3f4f6);
+  background: var(--color-bg-sunken, #f9fafb);
+  flex-shrink: 0;
+}
+
+.mp-multi-footer-count {
+  padding: 9px 12px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #6b7280);
+  background: var(--color-bg-sunken, #f9fafb);
+  border-top: 1px solid var(--border-subtle, #f3f4f6);
+}
+
+.mp-page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  background: var(--color-bg-surface, #fff);
+  border-radius: 7px;
+  cursor: pointer;
+  color: var(--color-text-secondary, #374151);
+  transition: background 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mp-page-btn:hover:not(:disabled) {
+  background: var(--color-bg-sunken, #f5f5f4);
+  border-color: var(--border-default, #d1d5db);
+}
+
+.mp-page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.mp-page-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted, #6b7280);
+}
+
+/* ── "Search this area" floating CTA ────────────────────────────────────────── */
+
+@keyframes mp-cta-rise {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0);   }
+}
+
+.mp-search-area-wrap {
+  position: absolute;
+  top: calc(var(--fb-h, 62px) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  pointer-events: none;
+  animation: mp-cta-rise 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.mp-search-area-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.12),
+    0 1px 4px rgba(0, 0, 0, 0.06);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: 'Inter Tight', 'Inter', -apple-system, sans-serif;
+  color: var(--color-graphite-900, #0F172A);
+  cursor: pointer;
+  pointer-events: auto;
+  white-space: nowrap;
+  transition:
+    background 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform  160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mp-search-area-btn:hover {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.14),
+    0 2px 6px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.mp-search-area-btn:active {
+  transform: translateY(0);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.10),
+    0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.mp-search-area-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-primary, #0F766E);
+  flex-shrink: 0;
+}
+
+/* ── Property detail mini popup ──────────────────────────────────────────────── */
+
+.mp-detail-popup {
+  padding: 10px 14px;
+  font-family: 'Inter Tight', 'Inter', -apple-system, sans-serif;
+  background: var(--color-bg-surface, #fff);
+  border-radius: 10px;
+}
+
+.mp-detail-price {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-graphite-900, #0F172A);
+  letter-spacing: -0.02em;
+  margin-bottom: 3px;
+}
+
+.mp-detail-title {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #374151);
+  line-height: 1.35;
 }
