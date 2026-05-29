@@ -1,6 +1,12 @@
 const Property = require('../models/Property');
 const User = require('../models/User');
-const { deleteImage, deleteMultipleImages } = require('../config/cloudinary');
+const { deleteImage, deleteMultipleImages, uploadToStorage, pathFromUrl } = require('../config/supabase');
+const { calculateModerationPriority } = require('../lib/moderationScore');
+const { detectDuplicatesAsync } = require('../lib/duplicateDetection');
+const { recalculateAndStoreQuality } = require('../lib/listingQuality');
+const { checkListingQuota } = require('../lib/accountTrust');
+const { detectAndStoreAgentSignals } = require('../lib/agentDetection');
+const { checkInquiryAllowed } = require('../lib/inquiryGuard');
 
 // Helper function to determine listing badge
 const getListingBadge = (userRole, listingStatus) => {
@@ -13,17 +19,50 @@ const getListingBadge = (userRole, listingStatus) => {
 // Create a property
 exports.createProperty = async (req, res) => {
   try {
+    // ── Trust-based listing quota ─────────────────────────────────────────────
+    const quota = await checkListingQuota(req.user.id);
+    if (!quota.allowed) {
+      const retryMins = quota.retryAfterMs ? Math.ceil(quota.retryAfterMs / 60000) : null;
+      const msg =
+        quota.reason === 'cooldown'
+          ? `Please wait ${retryMins} minute${retryMins !== 1 ? 's' : ''} before creating another listing.`
+          : 'You have reached your daily listing limit. Please try again tomorrow.';
+      return res.status(429).json({ message: msg, retryAfterMs: quota.retryAfterMs });
+    }
+
     const listingBadge = getListingBadge(req.user.role, req.body.listingStatus);
-    const property = new Property({ 
-      ...req.body, 
-      ownerId: req.user.id,
-      listingBadge
+    const property = new Property({
+      ...req.body,
+      ownerId:    req.user.id,
+      listingBadge,
+      // Server-enforced defaults — client cannot override these
+      status:     'pending',
+      isApproved: false,
     });
     await property.save();
-    
+
     // Update user's total listings count
     await User.findByIdAndUpdate(req.user.id, { $inc: { totalListings: 1 } });
-    
+
+    // Score moderation priority async (don't block the response)
+    calculateModerationPriority(property._id, req.user.id)
+      .then(({ score, reasons }) =>
+        Property.findByIdAndUpdate(property._id, { moderationPriority: score, moderationReasons: reasons })
+      )
+      .catch((err) => console.error('[moderation] score error on create:', err));
+
+    // Detect duplicates async (don't block the response)
+    detectDuplicatesAsync(property._id, req.user.id)
+      .catch((err) => console.error('[duplicate] detection error on create:', err));
+
+    // Detect agent/broker behavior async
+    detectAndStoreAgentSignals(property._id, req.user.id)
+      .catch((err) => console.error('[agentDetection] error on create:', err));
+
+    // Score listing quality async (don't block the response)
+    recalculateAndStoreQuality(property._id, req.user.id)
+      .catch((err) => console.error('[quality] score error on create:', err));
+
     res.status(201).json(property);
   } catch (err) {
     console.error('Create property error:', err);
@@ -36,28 +75,93 @@ exports.createProperty = async (req, res) => {
   }
 };
 
-// Get all properties
+// Allowed filter params — strict contract with frontend
+const ALLOWED_FILTER_PARAMS = new Set([
+  'listingStatus', 'city', 'propertyType',
+  'priceMin', 'priceMax', 'bedrooms', 'bathrooms',
+  'keyword',
+  // Pagination
+  'page', 'limit',
+  // System (not user-facing)
+  'ownerId',
+]);
+
+// Minimal fields returned for list/search views
+const SEARCH_SELECT = [
+  'title', 'price', 'currency',
+  'city', 'location', 'address',
+  'coordinates',
+  'bedrooms', 'bathrooms', 'builtUpArea',
+  'images',
+  'listingStatus', 'listingBadge', 'isSponsored', 'status',
+  'createdAt',
+  // Trust signals
+  'qualityScore', 'ownershipVerificationStatus', 'suspectedDuplicate',
+  // Promotion
+  'promotionTier', 'promotionScore', 'isPromoted', 'finalScore',
+].join(' ');
+
+// Get all properties (with server-side filtering + pagination)
 exports.getProperties = async (req, res) => {
   try {
-    let query = {};
-    
-    // Filter by ownerId if provided
-    if (req.query.ownerId) {
-      query.ownerId = req.query.ownerId;
+    const q = req.query;
+
+    // Log unknown params to catch frontend/backend drift
+    const unknown = Object.keys(q).filter(k => !ALLOWED_FILTER_PARAMS.has(k));
+    if (unknown.length > 0) {
+      console.warn('[getProperties] Unknown query params ignored:', unknown);
     }
-    
-    // Filter by status if provided
-    if (req.query.status) {
-      query.status = req.query.status;
+
+    const query = {};
+
+    // System filters
+    if (q.ownerId) query.ownerId = q.ownerId;
+
+    // Always enforce public visibility — callers cannot override these
+    query.status     = 'active';
+    query.isApproved = true;
+
+    // Allowed user filters
+    if (q.listingStatus) query.listingStatus = q.listingStatus;
+    if (q.propertyType)  query.propertyType  = q.propertyType;
+    if (q.city)          query.city          = q.city.trim().toLowerCase();
+
+    if (q.priceMin || q.priceMax) {
+      query.price = {};
+      if (q.priceMin) query.price.$gte = Number(q.priceMin);
+      if (q.priceMax) query.price.$lte = Number(q.priceMax);
     }
-    
-    // Filter by listingStatus if provided
-    if (req.query.listingStatus) {
-      query.listingStatus = req.query.listingStatus;
+    if (q.bedrooms)  query.bedrooms  = { $gte: Number(q.bedrooms) };
+    if (q.bathrooms) query.bathrooms = { $gte: Number(q.bathrooms) };
+
+    // Keyword search — runs against title and description; independent of city
+    if (q.keyword) {
+      const re = { $regex: q.keyword.trim(), $options: 'i' };
+      query.$or = [{ title: re }, { description: re }];
     }
-    
-    const properties = await Property.find(query).populate('ownerId', 'name lastName email phone avatar role verified licenseId brokerage companyName companyLogo totalListings totalViews accountType');
-    res.json(properties);
+
+    // Pagination
+    const page  = Math.max(1, parseInt(q.page)  || 1);
+    const limit = Math.min(Math.max(1, parseInt(q.limit) || 20), 200);
+    const skip  = (page - 1) * limit;
+
+    const [total, properties] = await Promise.all([
+      Property.countDocuments(query),
+      Property.find(query)
+        .sort({ finalScore: -1, qualityScore: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select(SEARCH_SELECT)
+        .populate('ownerId', 'name accountType phoneVerified averageResponseTimeHours responseRate')
+        .lean(),
+    ]);
+
+    res.json({
+      properties,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (err) {
     console.error('Search properties error:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -131,23 +235,197 @@ exports.incrementViews = async (req, res) => {
     
     property.views = (property.views || 0) + 1;
     property.viewsCount = (property.viewsCount || 0) + 1;
+
+    // Track daily views — reset counter if it's a new calendar day
+    const today = new Date().toDateString();
+    const lastReset = property.lastDailyViewsReset
+      ? new Date(property.lastDailyViewsReset).toDateString()
+      : null;
+    if (lastReset !== today) {
+      property.dailyViewsCount = 1;
+      property.lastDailyViewsReset = new Date();
+    } else {
+      property.dailyViewsCount = (property.dailyViewsCount || 0) + 1;
+    }
+
     await property.save();
     
-    res.json({ views: property.views });
+    res.json({ views: property.views, dailyViewsCount: property.dailyViewsCount });
   } catch (err) {
     console.error('Increment views error:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
+// Increment property share count (one per button click, no external confirmation needed)
+exports.incrementShares = async (req, res) => {
+  try {
+    const property = await Property.findById(req.params.id);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+
+    property.sharesCount = (property.sharesCount || 0) + 1;
+    await property.save();
+
+    res.json({ sharesCount: property.sharesCount });
+  } catch (err) {
+    console.error('Increment shares error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+const { sendInquiryNotification } = require('../lib/mailer');
+
+// Submit inquiry — creates message + increments inquiryCount
+exports.submitInquiry = async (req, res) => {
+  try {
+    const { name, phone, message } = req.body;
+    if (!message?.trim()) {
+      return res.status(400).json({ message: 'Message is required.' });
+    }
+
+    // ── Inquiry abuse guard ───────────────────────────────────────────────────
+    const guard = await checkInquiryAllowed(req.user.id, req.params.id, message.trim());
+    if (!guard.allowed) {
+      // Keep UX messages calm — do not expose the specific detection signal
+      const userMessages = {
+        already_sent:  'You have already sent an inquiry to this property recently.',
+        hourly_limit:  'You are sending inquiries too quickly. Please wait a moment before trying again.',
+        daily_limit:   'You have reached your inquiry limit for today.',
+        copy_paste:    'Your message appears identical to several recent inquiries. Please personalise your message.',
+      };
+      return res.status(429).json({
+        message: userMessages[guard.reason] || 'Unable to send inquiry at this time.',
+      });
+    }
+
+    const property = await Property.findById(req.params.id)
+      .select('ownerId title')
+      .lean();
+    if (!property) return res.status(404).json({ message: 'Property not found.' });
+
+    // Build structured content
+    const lines = [];
+    if (name?.trim())  lines.push(`Contact name: ${name.trim()}`);
+    if (phone?.trim()) lines.push(`Contact phone: ${phone.trim()}`);
+    if (lines.length)  lines.push('');
+    lines.push(message.trim());
+
+    const Message = require('../models/Message');
+    const conversationId = Message.generateConversationId(
+      req.user.id, property.ownerId, req.params.id
+    );
+    await Message.create({
+      sender:         req.user.id,
+      recipient:      property.ownerId,
+      property:       req.params.id,
+      subject:        `Property Inquiry: ${property.title}`,
+      content:        lines.join('\n'),
+      conversationId,
+    });
+
+    // Create conversation record for response-rate tracking (upsert — safe for duplicate sends)
+    const Conversation = require('../models/Conversation');
+    await Conversation.findOneAndUpdate(
+      { conversationId },
+      { $setOnInsert: {
+          conversationId,
+          seller:           property.ownerId,
+          buyer:            req.user.id,
+          property:         req.params.id,
+          inquiryCreatedAt: new Date(),
+      }},
+      { upsert: true }
+    );
+
+    await Property.findByIdAndUpdate(req.params.id, { $inc: { inquiryCount: 1 } });
+
+    // Fire-and-forget email to seller — failure must never block inquiry creation
+    const User = require('../models/User');
+    User.findById(property.ownerId).select('email name notificationPreferences').lean()
+      .then((seller) => {
+        if (!seller?.email) return;
+        if (seller.notificationPreferences?.emailMessages === false) return;
+        const preview = message.trim().slice(0, 120) + (message.trim().length > 120 ? '…' : '');
+        sendInquiryNotification({
+          sellerEmail:     seller.email,
+          sellerName:      seller.name,
+          buyerName:       name?.trim() || req.user.name || 'A potential buyer',
+          propertyTitle:   property.title,
+          messagePreview:  preview,
+        });
+      })
+      .catch(() => {});
+
+    res.json({ message: 'Inquiry sent.' });
+  } catch (err) {
+    console.error('submitInquiry error:', err);
+    res.status(500).json({ message: 'Failed to send inquiry.' });
+  }
+};
+
+// Reveal phone — authenticated; returns phone number and increments counter
+exports.revealPhone = async (req, res) => {
+  try {
+    const property = await Property.findById(req.params.id)
+      .populate('ownerId', 'phone')
+      .lean();
+    if (!property) return res.status(404).json({ message: 'Property not found.' });
+    if (!property.ownerId?.phone) return res.status(404).json({ message: 'No phone number on file.' });
+
+    await Property.findByIdAndUpdate(req.params.id, { $inc: { phoneRevealCount: 1 } });
+    res.json({ phone: property.ownerId.phone });
+  } catch (err) {
+    console.error('revealPhone error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Mark listing as sold or rented (owner only)
+exports.markPropertyStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['sold', 'rented'].includes(status)) {
+      return res.status(400).json({ message: "Status must be 'sold' or 'rented'." });
+    }
+
+    const property = await Property.findById(req.params.id);
+    if (!property) return res.status(404).json({ message: 'Property not found.' });
+
+    const ownerId = property.ownerId?.toString?.() || property.ownerId;
+    if (ownerId !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorised.' });
+    }
+
+    property.status     = status;
+    property.isApproved = false; // deactivate from search
+    await property.save();
+
+    res.json({ message: `Listing marked as ${status}.`, status });
+  } catch (err) {
+    console.error('markPropertyStatus error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // Get single property
 exports.getProperty = async (req, res) => {
   try {
-    const property = await Property.findById(req.params.id).populate('ownerId', 'name lastName email phone avatar bio role verified licenseId brokerage companyName companyLogo website totalListings totalViews');
+    const property = await Property.findById(req.params.id).populate('ownerId', 'name lastName email avatar bio role verified phoneVerified accountType licenseId brokerage companyName companyLogo website totalListings totalViews averageResponseTimeHours responseRate');
     if (!property) return res.status(404).json({ message: 'Property not found' });
     
-    // Increment view count
+    // Increment view count and daily view count
+    property.views = (property.views || 0) + 1;
     property.viewsCount = (property.viewsCount || 0) + 1;
+    const today = new Date().toDateString();
+    const lastReset = property.lastDailyViewsReset
+      ? new Date(property.lastDailyViewsReset).toDateString()
+      : null;
+    if (lastReset !== today) {
+      property.dailyViewsCount = 1;
+      property.lastDailyViewsReset = new Date();
+    } else {
+      property.dailyViewsCount = (property.dailyViewsCount || 0) + 1;
+    }
     await property.save();
     
     res.json(property);
@@ -162,45 +440,21 @@ exports.updateProperty = async (req, res) => {
   try {
     console.log('\n=== Update Property Request ===');
     console.log('Property ID:', req.params.id);
-    console.log('User ID from token:', req.user.id);
-    console.log('User role from token:', req.user.role);
-    console.log('User ID type:', typeof req.user.id);
-
+    console.log('User:', req.user.id, req.user.role);
+    console.log('Images in request:', req.body.images ? req.body.images.length : 0);
+    if (req.body.images) {
+      console.log('Image URLs:', req.body.images);
+    }
+    
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ message: 'Property not found' });
 
-    console.log('Property ownerId:', property.ownerId);
-    console.log('Property ownerId type:', typeof property.ownerId);
-    console.log('Property ownerId toString():', property.ownerId.toString());
-
     // allow admin/superadmin to edit any property
-    // Handle both populated object and ObjectId cases
-    let ownerIdString;
-    if (typeof property.ownerId === 'object' && property.ownerId && property.ownerId._id) {
-      // Populated case: ownerId is an object with _id
-      ownerIdString = property.ownerId._id.toString();
-    } else if (property.ownerId && typeof property.ownerId === 'object') {
-      // ObjectId case: ownerId is a mongoose ObjectId
-      ownerIdString = property.ownerId.toString();
-    } else {
-      // String case (fallback)
-      ownerIdString = property.ownerId;
-    }
-    
-    const isOwner = ownerIdString === req.user.id;
+    const isOwner = property.ownerId.toString() === req.user.id;
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
-
-    console.log('Extracted ownerId string:', ownerIdString);
-    console.log('Is owner check:', isOwner);
-    console.log('Is admin check:', isAdmin);
-    console.log('Final authorization:', isOwner || isAdmin);
-
     if (!isOwner && !isAdmin) {
-      console.log('❌ Authorization failed - returning 401');
       return res.status(401).json({ message: 'Unauthorized' });
     }
-
-    console.log('✅ Authorization passed - proceeding with update');
 
     // regular owners cannot change the address/location
     if (isOwner && !isAdmin && req.body.location && req.body.location !== property.location) {
@@ -208,9 +462,38 @@ exports.updateProperty = async (req, res) => {
       delete req.body.location;
     }
 
+    if (req.body.city) req.body.city = req.body.city.trim().toLowerCase();
+
+    // Record owner activity; track price history on price change
+    req.body.lastOwnerActivityAt = new Date();
+    if (req.body.price !== undefined && Number(req.body.price) !== property.price) {
+      req.body.previousPrice  = property.price;
+      req.body.priceChangedAt = new Date();
+      req.body.priceDelta     = property.price > 0
+        ? Math.round(((Number(req.body.price) - property.price) / property.price) * 100)
+        : 0;
+    }
+
     const updatedProperty = await Property.findByIdAndUpdate(req.params.id, req.body, { new: true });
     console.log('✅ Property updated. Images in DB:', updatedProperty.images ? updatedProperty.images.length : 0);
     console.log('Saved images:', updatedProperty.images);
+
+    // Rescore moderation priority after update (async — don't block response)
+    const ownerId = updatedProperty.ownerId;
+    calculateModerationPriority(updatedProperty._id, ownerId)
+      .then(({ score, reasons }) =>
+        Property.findByIdAndUpdate(updatedProperty._id, { moderationPriority: score, moderationReasons: reasons })
+      )
+      .catch((err) => console.error('[moderation] score error on update:', err));
+
+    // Re-run duplicate detection after update (async — don't block response)
+    detectDuplicatesAsync(updatedProperty._id, ownerId)
+      .catch((err) => console.error('[duplicate] detection error on update:', err));
+
+    // Rescore listing quality after update (async — don't block response)
+    recalculateAndStoreQuality(updatedProperty._id, ownerId)
+      .catch((err) => console.error('[quality] score error on update:', err));
+
     res.json(updatedProperty);
   } catch (err) {
     console.error('Update property error:', err);
@@ -223,37 +506,21 @@ exports.deleteProperty = async (req, res) => {
   try {
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ message: 'Property not found' });
-    
-    // Handle both populated object and ObjectId cases
-    let ownerIdString;
-    if (typeof property.ownerId === 'object' && property.ownerId && property.ownerId._id) {
-      // Populated case: ownerId is an object with _id
-      ownerIdString = property.ownerId._id.toString();
-    } else if (property.ownerId && typeof property.ownerId === 'object') {
-      // ObjectId case: ownerId is a mongoose ObjectId
-      ownerIdString = property.ownerId.toString();
-    } else {
-      // String case (fallback)
-      ownerIdString = property.ownerId;
-    }
-    
-    const isOwner = ownerIdString === req.user.id;
+    const isOwner = property.ownerId.toString() === req.user.id;
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
     if (!isOwner && !isAdmin) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    // Delete images from Cloudinary if they exist
+    // Delete images from Supabase Storage if they exist
     if (property.images && property.images.length > 0) {
-      const publicIds = property.images.map(url => {
-        const parts = url.split('/');
-        const filename = parts[parts.length - 1];
-        return `properties/${filename.split('.')[0]}`;
-      });
-      try {
-        await deleteMultipleImages(publicIds);
-      } catch (imgErr) {
-        console.error('Error deleting images:', imgErr);
+      const paths = property.images.map(url => pathFromUrl(url)).filter(Boolean);
+      if (paths.length > 0) {
+        try {
+          await deleteMultipleImages(paths);
+        } catch (imgErr) {
+          console.error('Error deleting images from storage:', imgErr);
+        }
       }
     }
 
@@ -272,91 +539,45 @@ exports.deleteProperty = async (req, res) => {
 // Upload property images
 exports.uploadPropertyImages = async (req, res) => {
   try {
-    console.log('\n=== Image Upload Request ===');
-    console.log('📥 Files received:', req.files ? req.files.length : 0);
-    console.log('👤 User:', req.user ? req.user.id : 'No user');
-    console.log('📊 Body:', Object.keys(req.body));
-    
     if (!req.files || req.files.length === 0) {
-      console.log('❌ No files in request');
-      return res.status(400).json({ 
-        message: 'No images uploaded. Please select images first.',
-        error: 'NO_FILES'
-      });
+      return res.status(400).json({ message: 'No images uploaded. Please select images first.', error: 'NO_FILES' });
     }
 
-    // Validate Cloudinary upload and create multiple size URLs
-    const failedUploads = [];
     const imageData = [];
-    
-    req.files.forEach((file, index) => {
-      if (!file.path) {
-        console.log(`❌ File ${index + 1} failed to upload to Cloudinary`);
-        failedUploads.push(file.originalname);
-      } else {
-        console.log(`✅ File ${index + 1} uploaded:`, file.originalname);
-        console.log(`   Public ID: ${file.filename}`);
-        console.log(`   Original URL: ${file.path}`);
-        
-        // Extract public_id from the uploaded file
-        const publicId = file.filename; // This is the public_id from Cloudinary
-        
-        // Generate URLs for different sizes using Cloudinary transformations
-        const baseUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload`;
-        
-        const imageUrls = {
-          // Thumbnail: 400x300, optimized for cards/previews
-          thumbnail: `${baseUrl}/w_400,h_300,c_fill,q_auto:low,f_auto/${publicId}`,
-          
-          // Medium: 800x600, for gallery/listing pages
-          medium: `${baseUrl}/w_800,h_600,c_limit,q_auto:good,f_auto/${publicId}`,
-          
-          // Large: 1600x1200, for detail view
-          large: `${baseUrl}/w_1600,h_1200,c_limit,q_auto:good,f_auto/${publicId}`,
-          
-          // Original/Full: as uploaded (but with auto format)
-          full: `${baseUrl}/q_auto:best,f_auto/${publicId}`,
-          
-          // Store the public_id for deletion later
-          publicId: publicId,
-          
-          // Original filename for reference
+    const failedUploads = [];
+
+    for (const file of req.files) {
+      try {
+        const ext = (file.originalname.split('.').pop() || 'jpg').toLowerCase();
+        const storagePath = `properties/property_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+        const { publicUrl, path } = await uploadToStorage(file.buffer, storagePath, file.mimetype);
+
+        imageData.push({
+          thumbnail: publicUrl,
+          medium: publicUrl,
+          large: publicUrl,
+          full: publicUrl,
+          publicId: path,
           originalName: file.originalname
-        };
-        
-        console.log(`   📐 Generated URLs:`);
-        console.log(`      Thumbnail: ${imageUrls.thumbnail}`);
-        console.log(`      Medium: ${imageUrls.medium}`);
-        console.log(`      Large: ${imageUrls.large}`);
-        
-        imageData.push(imageUrls);
+        });
+      } catch (uploadErr) {
+        console.error(`Failed to upload ${file.originalname}:`, uploadErr.message);
+        failedUploads.push(file.originalname);
       }
-    });
-    
+    }
+
     if (failedUploads.length > 0) {
-      console.log('⚠️ Some uploads failed:', failedUploads);
       return res.status(500).json({
-        message: `Failed to upload ${failedUploads.length} file(s) to cloud storage: ${failedUploads.join(', ')}`,
-        error: 'CLOUDINARY_ERROR',
+        message: `Failed to upload ${failedUploads.length} file(s): ${failedUploads.join(', ')}`,
+        error: 'UPLOAD_ERROR',
         failedFiles: failedUploads
       });
     }
-    
-    console.log('✅ Upload successful:', imageData.length, 'images uploaded with multiple sizes\n');
-    
-    res.json({
-      message: 'Images uploaded successfully',
-      images: imageData,
-      count: imageData.length
-    });
+
+    res.json({ message: 'Images uploaded successfully', images: imageData, count: imageData.length });
   } catch (err) {
-    console.error('❌ Upload images error:', err);
-    console.error('Stack:', err.stack);
-    res.status(500).json({ 
-      message: 'Server error during image upload', 
-      error: err.message,
-      code: 'SERVER_ERROR'
-    });
+    console.error('Upload images error:', err);
+    res.status(500).json({ message: 'Server error during image upload', error: err.message, code: 'SERVER_ERROR' });
   }
 };
 
@@ -366,20 +587,7 @@ exports.addPropertyImages = async (req, res) => {
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ message: 'Property not found' });
 
-    // Handle both populated object and ObjectId cases
-    let ownerIdString;
-    if (typeof property.ownerId === 'object' && property.ownerId && property.ownerId._id) {
-      // Populated case: ownerId is an object with _id
-      ownerIdString = property.ownerId._id.toString();
-    } else if (property.ownerId && typeof property.ownerId === 'object') {
-      // ObjectId case: ownerId is a mongoose ObjectId
-      ownerIdString = property.ownerId.toString();
-    } else {
-      // String case (fallback)
-      ownerIdString = property.ownerId;
-    }
-    
-    const isOwner = ownerIdString === req.user.id;
+    const isOwner = property.ownerId.toString() === req.user.id;
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
     if (!isOwner && !isAdmin) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -389,8 +597,14 @@ exports.addPropertyImages = async (req, res) => {
       return res.status(400).json({ message: 'No images uploaded' });
     }
 
-    // Extract image URLs from Cloudinary response
-    const newImageUrls = req.files.map(file => file.path);
+    // Upload files to Supabase Storage and collect public URLs
+    const newImageUrls = [];
+    for (const file of req.files) {
+      const ext = (file.originalname.split('.').pop() || 'jpg').toLowerCase();
+      const storagePath = `properties/property_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+      const { publicUrl } = await uploadToStorage(file.buffer, storagePath, file.mimetype);
+      newImageUrls.push(publicUrl);
+    }
     
     // Add new images to existing images array
     property.images = [...(property.images || []), ...newImageUrls];
@@ -421,20 +635,7 @@ exports.deletePropertyImage = async (req, res) => {
     
     if (!property) return res.status(404).json({ message: 'Property not found' });
 
-    // Handle both populated object and ObjectId cases
-    let ownerIdString;
-    if (typeof property.ownerId === 'object' && property.ownerId && property.ownerId._id) {
-      // Populated case: ownerId is an object with _id
-      ownerIdString = property.ownerId._id.toString();
-    } else if (property.ownerId && typeof property.ownerId === 'object') {
-      // ObjectId case: ownerId is a mongoose ObjectId
-      ownerIdString = property.ownerId.toString();
-    } else {
-      // String case (fallback)
-      ownerIdString = property.ownerId;
-    }
-    
-    const isOwner = ownerIdString === req.user.id;
+    const isOwner = property.ownerId.toString() === req.user.id;
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
     if (!isOwner && !isAdmin) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -453,19 +654,32 @@ exports.deletePropertyImage = async (req, res) => {
     
     await property.save();
 
-    // Delete from Cloudinary
+    // Delete from Supabase Storage
     try {
-      const parts = decodedUrl.split('/');
-      const filename = parts[parts.length - 1];
-      const publicId = `properties/${filename.split('.')[0]}`;
-      await deleteImage(publicId);
+      const storagePath = pathFromUrl(decodedUrl);
+      if (storagePath) await deleteImage(storagePath);
     } catch (imgErr) {
-      console.error('Error deleting image from Cloudinary:', imgErr);
+      console.error('Error deleting image from storage:', imgErr);
     }
 
     res.json({ message: 'Image deleted successfully', property });
   } catch (err) {
     console.error('Delete property image error:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+
+// GET /api/properties/stats (public)
+exports.getPublicStats = async (req, res) => {
+  try {
+    const [totalListings, verifiedOwners] = await Promise.all([
+      Property.countDocuments({}),
+      User.countDocuments({ phoneVerified: true }),
+    ]);
+    res.json({ totalListings, verifiedOwners });
+  } catch (err) {
+    console.error('getPublicStats error:', err);
+    res.status(500).json({ message: 'Stats unavailable' });
   }
 };
