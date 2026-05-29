@@ -8,7 +8,7 @@ const propertySchema = new mongoose.Schema({
     type: String, 
     enum: [
       // Residential
-      'apartment', 'house', 'townhouse', 'villa', 'penthouse', 'studio', 'duplex',
+      'apartment', 'old-building', 'new-building', 'house', 'townhouse', 'villa', 'penthouse', 'studio', 'duplex',
       // Commercial
       'commercial-retail', 'commercial-unit', 'office', 'industrial', 'warehouse', 'shop', 'restaurant',
       // Land
@@ -29,7 +29,7 @@ const propertySchema = new mongoose.Schema({
   },
   status: { 
     type: String, 
-    enum: ['active', 'sold', 'pending', 'rented', 'paused'],
+    enum: ['active', 'sold', 'pending', 'rented', 'paused', 'draft'],
     default: 'active'
   },
   occupancy: { type: String, enum: ['owner-occupied', 'vacant', 'tenanted'] },
@@ -51,6 +51,8 @@ const propertySchema = new mongoose.Schema({
   city: { type: String },
   district: { type: String },
   street: { type: String },
+  streetNumber: { type: String },
+  nearestMetro: { type: String },
   buildingName: { type: String },
   floorNumber: { type: Number },
   unitNumber: { type: String },
@@ -107,9 +109,10 @@ const propertySchema = new mongoose.Schema({
   openLayoutKitchen: { type: Boolean, default: false },
 
   // 6. INTERIOR FEATURES
-  flooringType: { type: String, enum: ['tile', 'hardwood', 'laminate', 'carpet', 'other'] },
-  heating: { type: Boolean, default: false },
-  cooling: { type: String },
+  flooringType: { type: String },
+  heating: { type: String },
+  cooling: { type: Boolean, default: false },
+  hotWater: { type: String },
   kitchenAppliances: { type: Boolean, default: false },
   waterHeater: { type: Boolean, default: false },
   smartHome: { type: Boolean, default: false },
@@ -158,8 +161,9 @@ const propertySchema = new mongoose.Schema({
   propertyTax: { type: Number },
 
   // 11. LEGAL & FINANCIAL
-  ownershipType: { type: String, enum: ['freehold', 'leasehold'] },
+  ownershipType: { type: String, enum: ['ownership-certificate', 'contract', 'none', 'freehold', 'leasehold'] },
   titleDeedAvailable: { type: Boolean, default: false },
+  hasMortgage: { type: Boolean, default: false },
   mortgageAllowed: { type: Boolean, default: false },
   developerName: { type: String },
   projectName: { type: String },
@@ -195,6 +199,9 @@ const propertySchema = new mongoose.Schema({
   daysOnMarket: { type: Number },
   viewsCount: { type: Number, default: 0 },
   views: { type: Number, default: 0 }, // Alias for frontend
+  dailyViewsCount: { type: Number, default: 0 },
+  lastDailyViewsReset: { type: Date, default: null },
+  sharesCount: { type: Number, default: 0 },
   favoritesCount: { type: Number, default: 0 },
   likes: { type: Number, default: 0 }, // Alias for frontend
   clicks: { type: Number, default: 0 },
@@ -217,7 +224,27 @@ const propertySchema = new mongoose.Schema({
   isSponsored: { type: Boolean, default: false },
   promotionExpiry: { type: Date },
   sponsoredUntil: { type: Date },
-  
+
+  // Promotion tier system (Phase 5.2)
+  promotionTier: {
+    type: String,
+    enum: ['FREE', 'FEATURED', 'PREMIUM', 'SPOTLIGHT'],
+    default: 'FREE',
+  },
+  promotionScore: { type: Number, default: 1 }, // 1=FREE 2=FEATURED 3=PREMIUM 4=SPOTLIGHT
+  promotionStartDate: { type: Date, default: null },
+  promotionEndDate:   { type: Date, default: null },
+  // finalScore = organicScore × promotionMultiplier (updated by ranking engine)
+  finalScore: { type: Number, default: 0 },
+
+  // Fraud reporting architecture (Phase 5.2) — no UI yet
+  fraudReportCount: { type: Number, default: 0 },
+  fraudStatus: {
+    type: String,
+    enum: ['NORMAL', 'WARNING', 'REVIEW', 'SUSPENDED'],
+    default: 'NORMAL',
+  },
+
   // Listing Status
   isApproved: { type: Boolean, default: false },
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -226,35 +253,129 @@ const propertySchema = new mongoose.Schema({
   // Contact Preferences
   allowContact: { type: Boolean, default: true },
   showPhoneNumber: { type: Boolean, default: true },
-  showEmail: { type: Boolean, default: true }
+  showEmail: { type: Boolean, default: true },
+
+  // Contact tracking
+  inquiryCount:     { type: Number, default: 0 },
+  phoneRevealCount: { type: Number, default: 0 },
+
+  // Listing quality score (internal)
+  qualityScore:   { type: Number, default: 0 },
+  qualityReasons: [{ type: String }],
+
+  // Duplicate / spam detection (Phase 1)
+  suspectedDuplicate: { type: Boolean, default: false },
+  duplicateGroupId:   { type: String },
+  duplicateReasons:   [{ type: String }],
+  imageHashes:        [{ type: String }],  // dHash per image for similarity comparison
+
+  // Ownership verification (Phase 1)
+  ownershipVerificationStatus: {
+    type: String,
+    enum: ['none', 'pending', 'approved', 'rejected'],
+    default: 'none',
+  },
+  ownershipDocuments: [{
+    type:       { type: String },
+    url:        { type: String },
+    uploadedAt: { type: Date, default: Date.now },
+  }],
+  ownershipReviewNote: { type: String },
+  ownershipReviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  ownershipReviewedAt: { type: Date },
+
+  // Moderation notes (internal audit trail)
+  moderationNotes: [{
+    adminId:   { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    action:    { type: String, enum: ['approved', 'rejected', 'note'], default: 'note' },
+    reason:    { type: String },
+    note:      { type: String },
+    createdAt: { type: Date, default: Date.now },
+  }],
+
+  // Moderation
+  reportCount: { type: Number, default: 0 },
+  flaggedForReview: { type: Boolean, default: false },
+  moderationPriority: { type: Number, default: 0 },
+  moderationReasons: [{ type: String }],
+
+  // Hygiene & Freshness
+  lastOwnerActivityAt: { type: Date },
+  lastConfirmedAvailableAt: { type: Date },
+  reconfirmationSentCount: { type: Number, default: 0 },
+  previousPrice: { type: Number },
+  priceChangedAt: { type: Date },
+  priceDelta: { type: Number },
+  priceHistory: [{
+    price: { type: Number },
+    changedAt: { type: Date, default: Date.now },
+  }],
+  inquiryResponseRate: { type: Number },
+
+  // Agent / broker behavior detection
+  agentScore:   { type: Number, default: 0 },
+  agentSignals: [{ type: String }],
+
+  // Search integrity — composite penalty applied at query time
+  // Higher = lower search placement. Computed from staleness, duplicate, agent signals.
+  searchPenalty: { type: Number, default: 0 },
+
+  // Report escalation level (derived from reportEscalation lib)
+  reportEscalationLevel: {
+    type: String,
+    enum: ['normal', 'elevated', 'urgent'],
+    default: 'normal',
+  },
 }, { timestamps: true });
+
+// Indexes for query performance
+propertySchema.index({ listingStatus: 1, status: 1 });
+propertySchema.index({ city: 1 });
+propertySchema.index({ price: 1 });
+propertySchema.index({ createdAt: -1 });
+propertySchema.index({ bedrooms: 1 });
+propertySchema.index({ propertyType: 1 });
+propertySchema.index({ finalScore: -1 });
+propertySchema.index({ promotionTier: 1, isPromoted: 1, promotionEndDate: 1 });
+propertySchema.index({ fraudStatus: 1 });
 
 // Pre-save middleware to generate listingId and calculate fields
 propertySchema.pre('save', function(next) {
   if (!this.listingId) {
     this.listingId = 'PROP-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9).toUpperCase();
   }
-  
+
+  // Normalize city for exact-match index usage
+  if (this.city) {
+    this.city = this.city.trim().toLowerCase();
+  }
+
   // Calculate age of property
   if (this.yearBuilt) {
     this.ageOfProperty = new Date().getFullYear() - this.yearBuilt;
   }
-  
+
   // Calculate price per sqm
   if (this.price && this.builtUpArea) {
     this.pricePerSqm = Math.round(this.price / this.builtUpArea);
   }
-  
+
   // Calculate annual rent from monthly
   if (this.monthlyRent && !this.annualRent) {
     this.annualRent = this.monthlyRent * 12;
   }
-  
+
   // Generate slug from title
   if (this.title && !this.slug) {
     this.slug = this.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   }
-  
+
+  // Sync promotionScore from tier — single source of truth is constants.js
+  const TIER_SCORES_PRESAVE = { FREE: 1, FEATURED: 2, PREMIUM: 3, SPOTLIGHT: 4 };
+  if (this.promotionTier) {
+    this.promotionScore = TIER_SCORES_PRESAVE[this.promotionTier] || 1;
+  }
+
   next();
 });
 
