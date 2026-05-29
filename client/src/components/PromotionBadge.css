@@ -1,0 +1,49 @@
+/* PromotionBadge
+   FEATURED:  slate graphite (elegant, subtle)
+   PREMIUM:   emerald-tinted
+   SPOTLIGHT: warm amber
+   No gradients. No neon. Matches platform design system.
+*/
+
+.promo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: var(--radius-full, 9999px);
+  font-family: var(--font-sans, 'Inter Tight', sans-serif);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  line-height: 1.4;
+}
+
+/* FEATURED — slate graphite */
+.promo-badge--featured {
+  background:   var(--gray-100,  #F1F5F9);
+  color:        var(--gray-700,  #334155);
+  border-color: var(--gray-200,  #E2E8F0);
+}
+
+/* PREMIUM — emerald tint */
+.promo-badge--premium {
+  background:   var(--color-primary-light, rgba(15, 118, 110, 0.08));
+  color:        var(--color-primary,       #0F766E);
+  border-color: var(--color-primary-tint,  rgba(15, 118, 110, 0.18));
+}
+
+/* SPOTLIGHT — warm amber */
+.promo-badge--spotlight {
+  background:   #FEF3C7;
+  color:        #92400E;
+  border-color: #FDE68A;
+}
+
+/* Size modifier */
+.promo-badge--md {
+  font-size: 0.75rem;
+  padding: 3px 9px;
+  gap: 4px;
+}
