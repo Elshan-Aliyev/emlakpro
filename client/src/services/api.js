@@ -1,9 +1,63 @@
 import axios from 'axios';
 
-// Base axios instance (uses proxy automatically)
+// ── Axios instance ──────────────────────────────────────────────────────────────
+// baseURL reads from env first so production builds can point at the real API
+// without changing source. Fallback keeps local dev working out of the box.
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api', // Points to backend via proxy
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5001/api',
+  timeout: 15000, // 15 s — guards against hung connections
+  headers: { 'Content-Type': 'application/json' },
 });
+
+// ── Request interceptor ─────────────────────────────────────────────────────────
+// Automatically attach the stored token so callers don't have to repeat it.
+// Individual calls that pass their own Authorization header take precedence.
+api.interceptors.request.use(
+  (config) => {
+    if (!config.headers['Authorization']) {
+      const token = localStorage.getItem('token');
+      if (token) config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
+
+// ── Response interceptor ────────────────────────────────────────────────────────
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const config = error.config;
+    const status = error.response?.status;
+
+    // 401 — token expired or invalid; notify immediately, no retry
+    if (status === 401) {
+      window.dispatchEvent(new CustomEvent('auth:expired'));
+      return Promise.reject(error);
+    }
+
+    // Silent retry — network failures or temporary server errors (503/504)
+    // Up to 2 retries with linear back-off (800 ms, 1600 ms) before surfacing
+    const isRetriable = !error.response || status === 503 || status === 504;
+    config._retries = config._retries ?? 0;
+    if (isRetriable && config._retries < 2) {
+      config._retries++;
+      await new Promise(r => setTimeout(r, config._retries * 800));
+      return api(config);
+    }
+
+    // Structured console log for easier debugging (swap for Sentry later)
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[API Error]', {
+        url:     error.config?.url,
+        status:  status ?? 'network',
+        message: error.response?.data?.message || error.message,
+      });
+    }
+
+    return Promise.reject(error);
+  },
+);
 
 // ==================== AUTH API ====================
 export const registerUser = (data) => api.post('/auth/register', data);
@@ -53,6 +107,7 @@ export const getSavedSearches = (token) =>
 
 // ==================== PROPERTIES API ====================
 export const getProperties = (params = {}) => api.get('/properties', { params });
+export const getPublicStats = () => api.get('/properties/stats');
 
 export const createProperty = (data, token) =>
   api.post('/properties', data, { headers: { Authorization: `Bearer ${token}` } });
@@ -76,15 +131,31 @@ export const getSavedProperties = (token) =>
 export const incrementPropertyViews = (id) =>
   api.post(`/properties/${id}/view`);
 
+// Increment property share count
+export const incrementPropertyShares = (id) =>
+  api.post(`/properties/${id}/share`);
+
 // Admin API endpoints
 export const getAdminStats = (token) =>
   api.get('/admin/stats', { headers: { Authorization: `Bearer ${token}` } });
+
+export const getOpsDashboard = (token) =>
+  api.get('/admin/ops-dashboard', { headers: { Authorization: `Bearer ${token}` } });
+
+export const getSellerResponseStats = (token) =>
+  api.get('/admin/seller-responsiveness', { headers: { Authorization: `Bearer ${token}` } });
 
 export const getAllListingsAdmin = (token, params) =>
   api.get('/admin/listings', { headers: { Authorization: `Bearer ${token}` }, params });
 
 export const approveProperty = (id, token) =>
   api.put(`/admin/properties/${id}/approve`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+export const adminApproveProperty = (id, data, token) =>
+  api.put(`/admin/properties/${id}/approve`, data, { headers: { Authorization: `Bearer ${token}` } });
+
+export const adminRejectProperty = (id, data, token) =>
+  api.put(`/admin/properties/${id}/reject`, data, { headers: { Authorization: `Bearer ${token}` } });
 
 export const bulkDeleteProperties = (ids, token) =>
   api.post('/admin/properties/bulk-delete', { ids }, { headers: { Authorization: `Bearer ${token}` } });
@@ -231,5 +302,83 @@ export const uploadVerificationDocument = (formData, token) =>
 
 export const processVerificationPayment = (data, token) =>
   api.post('/verification/payment', data, { headers: { Authorization: `Bearer ${token}` } });
+
+// ==================== OWNERSHIP VERIFICATION API ====================
+export const getMyListings = (token) =>
+  api.get('/ownership/my-listings', { headers: { Authorization: `Bearer ${token}` } });
+
+export const getMyListingsHealth = (token) =>
+  api.get('/listing-health/my-health', { headers: { Authorization: `Bearer ${token}` } });
+
+export const confirmListingAvailability = (id, token) =>
+  api.post(`/listing-health/${id}/confirm`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+export const uploadOwnershipDocument = (propertyId, formData, token) =>
+  api.post(`/ownership/${propertyId}/upload-document`, formData, {
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
+  });
+
+export const submitOwnershipRequest = (propertyId, token) =>
+  api.post(`/ownership/${propertyId}/submit-request`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+export const getOwnershipRequests = (status, token) =>
+  api.get('/ownership/requests', { params: { status }, headers: { Authorization: `Bearer ${token}` } });
+
+export const approveOwnership = (propertyId, data, token) =>
+  api.put(`/ownership/${propertyId}/approve`, data, { headers: { Authorization: `Bearer ${token}` } });
+
+export const rejectOwnership = (propertyId, data, token) =>
+  api.put(`/ownership/${propertyId}/reject`, data, { headers: { Authorization: `Bearer ${token}` } });
+
+// ==================== REPORTS API ====================
+export const submitReport = (data, token) =>
+  api.post('/reports', data, { headers: { Authorization: `Bearer ${token}` } });
+
+export const getReports = (params, token) =>
+  api.get('/reports', { params, headers: { Authorization: `Bearer ${token}` } });
+
+export const getReportStats = (token) =>
+  api.get('/reports/stats', { headers: { Authorization: `Bearer ${token}` } });
+
+export const updateReport = (id, data, token) =>
+  api.patch(`/reports/${id}`, data, { headers: { Authorization: `Bearer ${token}` } });
+
+// ==================== INQUIRY & PHONE REVEAL ====================
+export const submitInquiry = (id, data, token) =>
+  api.post(`/properties/${id}/inquiry`, data, { headers: { Authorization: `Bearer ${token}` } });
+
+export const revealPhone = (id, token) =>
+  api.get(`/properties/${id}/phone`, { headers: { Authorization: `Bearer ${token}` } });
+
+export const markPropertyStatus = (id, status, token) =>
+  api.patch(`/properties/${id}/status`, { status }, { headers: { Authorization: `Bearer ${token}` } });
+
+// ==================== PHONE VERIFICATION API ====================
+export const sendPhoneOtp = (phone, token) =>
+  api.post('/phone-verification/send', { phone }, { headers: { Authorization: `Bearer ${token}` } });
+
+export const verifyPhoneOtp = (phone, code, token) =>
+  api.post('/phone-verification/verify', { phone, code }, { headers: { Authorization: `Bearer ${token}` } });
+
+// ==================== ADMIN ABUSE API ====================
+const authH = (token) => ({ headers: { Authorization: `Bearer ${token}` } });
+
+export const getAbuseStats       = (token)         => api.get('/admin/abuse/stats',             authH(token));
+export const getLinkedAccounts   = (token)         => api.get('/admin/abuse/linked-accounts',   authH(token));
+export const getRepeatOffenders  = (token)         => api.get('/admin/abuse/repeat-offenders',  authH(token));
+export const getFlaggedListings  = (params, token) => api.get('/admin/abuse/flagged-listings',  { ...authH(token), params });
+export const getUserAbuseHistory = (userId, token) => api.get(`/admin/abuse/history/${userId}`, authH(token));
+export const adminBulkAction     = (data, token)   => api.post('/admin/abuse/bulk-action',      data, authH(token));
+
+// ── Promotion management (admin only) ─────────────────────────────────────────
+export const updatePropertyPromotion = (propertyId, data, token) =>
+  api.put(`/admin/properties/${propertyId}/promotion`, data, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const expireStalePromotionsAdmin = (token) =>
+  api.post('/admin/promotions/expire-stale', {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
 export default api;
