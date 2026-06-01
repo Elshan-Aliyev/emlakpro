@@ -1,0 +1,95 @@
+.unverified-message-modal {
+  padding: 0 0 8px 0;
+}
+.agent-info-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.agent-avatar-placeholder {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #f2f2f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  margin-right: 8px;
+}
+.agent-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 2px;
+}
+.agent-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 2px;
+}
+.agent-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1rem;
+  color: #8c9ba5;
+  margin-bottom: 2px;
+}
+.agent-star {
+  color: #f7b500;
+  font-size: 1.1rem;
+}
+.agent-sales {
+  color: #8c9ba5;
+  font-size: 0.95rem;
+}
+.agent-contact-row {
+  font-size: 1rem;
+  color: #222;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.agent-divider {
+  border: none;
+  border-top: 1px solid #ececec;
+  margin: 12px 0 16px 0;
+}
+.unverified-message-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.form-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 2px;
+}
+.unverified-input {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 1rem;
+  outline: none;
+  transition: border 0.2s;
+  background: #fafbfc;
+}
+.unverified-input:focus {
+  border: 1.5px solid var(--color-primary);
+  background: #fff;
+}
+.form-error {
+  color: var(--error-500);
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+.form-success {
+  color: var(--success-500);
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}

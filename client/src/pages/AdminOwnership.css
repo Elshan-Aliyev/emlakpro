@@ -1,0 +1,384 @@
+/* Admin Ownership Verification page */
+
+.ao-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.ao-filter-btn {
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.ao-filter-btn:hover {
+  border-color: var(--gray-400);
+}
+
+.ao-filter-btn--active {
+  font-weight: 700;
+}
+
+.ao-count {
+  margin-left: auto;
+  font-size: 0.875rem;
+  color: var(--gray-500);
+}
+
+.ao-loading,
+.ao-empty {
+  text-align: center;
+  padding: 48px;
+  color: var(--gray-500);
+  font-size: 0.9375rem;
+}
+
+/* Request cards */
+.ao-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ao-card {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.ao-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.ao-card-thumb {
+  width: 72px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: var(--gray-100);
+}
+
+.ao-card-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.ao-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: 3px;
+}
+
+.ao-card-sub {
+  font-size: 0.8125rem;
+  color: var(--gray-500);
+  line-height: 1.4;
+}
+
+.ao-card-status-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ao-status-chip {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.ao-view-link {
+  font-size: 0.8125rem;
+  color: var(--primary, #e02020);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.ao-view-link:hover {
+  text-decoration: underline;
+}
+
+/* Owner row */
+.ao-owner-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--gray-700);
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.ao-owner-label {
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.ao-owner-sep {
+  color: var(--gray-300);
+}
+
+.ao-account-type {
+  padding: 1px 8px;
+  background: var(--gray-100);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gray-600);
+}
+
+/* Documents */
+.ao-docs {
+  margin-bottom: 14px;
+}
+
+.ao-docs-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  margin-bottom: 8px;
+}
+
+.ao-doc-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ao-doc-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  background: var(--gray-50);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--gray-800);
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ao-doc-link:hover {
+  border-color: var(--primary, #e02020);
+  background: #fef2f2;
+  color: var(--primary, #e02020);
+}
+
+.ao-doc-icon {
+  font-size: 1rem;
+}
+
+.ao-doc-date {
+  color: var(--gray-400);
+  font-size: 0.75rem;
+}
+
+.ao-no-docs {
+  font-size: 0.875rem;
+  color: var(--gray-400);
+  margin: 0;
+}
+
+/* Review note */
+.ao-review-note {
+  padding: 10px 14px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--gray-700);
+  margin-bottom: 14px;
+}
+
+/* Card action buttons */
+.ao-card-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--gray-100);
+}
+
+.ao-btn {
+  height: 38px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.ao-btn--approve {
+  background: #16a34a;
+  color: #fff;
+}
+
+.ao-btn--reject {
+  background: #dc2626;
+  color: #fff;
+}
+
+.ao-btn:hover {
+  opacity: 0.85;
+}
+
+/* Review modal */
+.ao-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.ao-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 460px;
+  padding: 28px;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+}
+
+.ao-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: var(--gray-400);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.ao-modal-close:hover {
+  background: var(--gray-100);
+  color: var(--gray-700);
+}
+
+.ao-modal-title {
+  margin: 0 0 4px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.ao-modal-property {
+  margin: 0 0 16px;
+  font-size: 0.875rem;
+  color: var(--gray-500);
+}
+
+.ao-modal-warning {
+  padding: 12px 14px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: #78350f;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.ao-modal-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: 6px;
+}
+
+.ao-modal-optional {
+  color: var(--gray-400);
+  font-weight: 400;
+}
+
+.ao-modal-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  font-family: inherit;
+  color: var(--gray-900);
+  transition: border-color 0.15s;
+}
+
+.ao-modal-textarea:focus {
+  border-color: var(--primary, #e02020);
+}
+
+.ao-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ao-modal-cancel {
+  height: 38px;
+  padding: 0 16px;
+  background: none;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--gray-700);
+  cursor: pointer;
+}
+
+.ao-modal-confirm {
+  height: 38px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.ao-modal-confirm:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ao-modal-confirm--approve {
+  background: #16a34a;
+}
+
+.ao-modal-confirm--reject {
+  background: #dc2626;
+}

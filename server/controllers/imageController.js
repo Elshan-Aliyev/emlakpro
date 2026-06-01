@@ -1,5 +1,5 @@
 const Image = require('../models/Image');
-const cloudinary = require('../config/cloudinary');
+const { uploadToStorage, deleteImage } = require('../config/supabase');
 
 // @desc    Upload new image
 // @route   POST /api/images
@@ -23,19 +23,21 @@ exports.uploadImage = async (req, res) => {
       });
     }
     
+    // Upload file buffer to Supabase Storage
+    const ext = (req.file.originalname.split('.').pop() || 'jpg').toLowerCase();
+    const storagePath = `general/${type}_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+    const { publicUrl, path } = await uploadToStorage(req.file.buffer, storagePath, req.file.mimetype);
+
     // Create image record
     const imageData = {
       type,
-      url: req.file.path, // Cloudinary URL from multer
-      publicId: req.file.filename,
+      url: publicUrl,
+      publicId: path,
       altText: altText || '',
       title,
       description,
       heroCategory,
-      format: req.file.format,
-      width: req.file.width,
-      height: req.file.height,
-      size: req.file.bytes,
+      size: req.file.size,
       uploadedBy: req.user._id
     };
     
@@ -196,12 +198,12 @@ exports.deleteImage = async (req, res) => {
       });
     }
     
-    // Delete from Cloudinary if publicId exists
+    // Delete from Supabase Storage if publicId (storage path) exists
     if (image.publicId) {
       try {
-        await cloudinary.uploader.destroy(image.publicId);
-      } catch (cloudinaryError) {
-        console.error('Cloudinary deletion error:', cloudinaryError);
+        await deleteImage(image.publicId);
+      } catch (storageError) {
+        console.error('Storage deletion error:', storageError);
       }
     }
     
@@ -238,14 +240,14 @@ exports.bulkDeleteImages = async (req, res) => {
     
     const images = await Image.find({ _id: { $in: imageIds } });
     
-    // Delete from Cloudinary
-    for (const image of images) {
-      if (image.publicId) {
-        try {
-          await cloudinary.uploader.destroy(image.publicId);
-        } catch (cloudinaryError) {
-          console.error('Cloudinary deletion error:', cloudinaryError);
-        }
+    // Delete from Supabase Storage
+    const paths = images.map(img => img.publicId).filter(Boolean);
+    if (paths.length > 0) {
+      try {
+        const { deleteMultipleImages } = require('../config/supabase');
+        await deleteMultipleImages(paths);
+      } catch (storageError) {
+        console.error('Storage bulk deletion error:', storageError);
       }
     }
     

@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
+import { Home, Heart, Eye, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
 import './Account.css';
+
+// ── Icon aliases ───────────────────────────────────────────────────────────────
+const IconHome    = () => <Home          size={18} strokeWidth={1.75} aria-hidden="true" />;
+const IconHeart   = () => <Heart         size={18} strokeWidth={1.75} aria-hidden="true" />;
+const IconEye     = () => <Eye           size={18} strokeWidth={1.75} aria-hidden="true" />;
+const IconMessage = () => <MessageSquare size={18} strokeWidth={1.75} aria-hidden="true" />;
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 const AccountProfile = () => {
   const { user } = useAuth();
@@ -16,10 +25,7 @@ const AccountProfile = () => {
   });
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
@@ -30,20 +36,9 @@ const AccountProfile = () => {
   };
 
   const getRoleBadge = () => {
-    const roleColors = {
-      superadmin: '#8B5CF6',
-      admin: '#DC2626',
-      realtor: '#0EA5E9',
-      corporate: '#F59E0B',
-      buyer: '#10B981',
-    };
-    
     const role = user?.role || 'buyer';
     return (
-      <span
-        className="role-badge"
-        style={{ background: roleColors[role] }}
-      >
+      <span className="role-badge">
         {role.charAt(0).toUpperCase() + role.slice(1)}
       </span>
     );
@@ -53,16 +48,20 @@ const AccountProfile = () => {
     <div className="account-page">
       <div className="account-container">
         <div className="account-header">
-          <h1>My Account</h1>
+          <h1>My profile</h1>
           <p>View and manage your profile information</p>
         </div>
 
         <div className="profile-content">
-          {/* Profile Header Card */}
+          {/* ── Profile header card ── */}
           <div className="profile-header-card">
             <div className="profile-avatar-section">
               <div className="profile-avatar-large">
-                {user?.name?.charAt(0).toUpperCase() || 'U'}
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={user.name} />
+                ) : (
+                  user?.name?.charAt(0).toUpperCase() || 'U'
+                )}
               </div>
               <div className="profile-header-info">
                 <h2>{user?.name || 'User'}</h2>
@@ -71,28 +70,27 @@ const AccountProfile = () => {
                   <span className="profile-email">{user?.email}</span>
                 </div>
                 <p className="member-since">
-                  Member since {new Date(user?.createdAt).toLocaleDateString('en-US', { 
-                    month: 'long', 
-                    year: 'numeric' 
+                  Member since{' '}
+                  {new Date(user?.createdAt).toLocaleDateString('en-US', {
+                    month: 'long',
+                    year: 'numeric',
                   })}
                 </p>
               </div>
             </div>
             {!isEditing && (
-              <Button onClick={() => setIsEditing(true)}>
-                Edit Profile
-              </Button>
+              <Button onClick={() => setIsEditing(true)}>Edit profile</Button>
             )}
           </div>
 
-          {/* Profile Details */}
+          {/* ── Profile details card ── */}
           <div className="profile-details-card">
-            <h3>Profile Information</h3>
-            
+            <h3>Profile information</h3>
+
             {isEditing ? (
               <form onSubmit={handleSubmit} className="profile-form">
                 <div className="form-group">
-                  <label>Full Name</label>
+                  <label className="form-label">Full name</label>
                   <input
                     type="text"
                     name="name"
@@ -103,7 +101,7 @@ const AccountProfile = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>Email Address</label>
+                  <label className="form-label">Email address</label>
                   <input
                     type="email"
                     name="email"
@@ -112,11 +110,11 @@ const AccountProfile = () => {
                     className="form-input"
                     disabled
                   />
-                  <small>Email cannot be changed</small>
+                  <small className="form-helper">Email cannot be changed</small>
                 </div>
 
                 <div className="form-group">
-                  <label>Phone Number</label>
+                  <label className="form-label">Phone number</label>
                   <input
                     type="tel"
                     name="phone"
@@ -130,7 +128,7 @@ const AccountProfile = () => {
                 {(user?.role === 'realtor' || user?.role === 'corporate') && (
                   <>
                     <div className="form-group">
-                      <label>Company</label>
+                      <label className="form-label">Company</label>
                       <input
                         type="text"
                         name="company"
@@ -142,7 +140,7 @@ const AccountProfile = () => {
                     </div>
 
                     <div className="form-group">
-                      <label>License Number</label>
+                      <label className="form-label">License number</label>
                       <input
                         type="text"
                         name="licenseNumber"
@@ -156,19 +154,19 @@ const AccountProfile = () => {
                 )}
 
                 <div className="form-group">
-                  <label>Bio</label>
+                  <label className="form-label">Bio</label>
                   <textarea
                     name="bio"
                     value={formData.bio}
                     onChange={handleChange}
-                    placeholder="Tell us about yourself..."
+                    placeholder="Tell buyers a little about yourself…"
                     className="form-textarea"
                     rows="4"
                   />
                 </div>
 
                 <div className="form-actions">
-                  <Button type="submit">Save Changes</Button>
+                  <Button type="submit">Save changes</Button>
                   <Button variant="secondary" onClick={() => setIsEditing(false)}>
                     Cancel
                   </Button>
@@ -177,15 +175,15 @@ const AccountProfile = () => {
             ) : (
               <div className="profile-info-display">
                 <div className="info-row">
-                  <span className="info-label">Full Name</span>
+                  <span className="info-label">Full name</span>
                   <span className="info-value">{user?.name || 'Not set'}</span>
                 </div>
-                
+
                 <div className="info-row">
                   <span className="info-label">Email</span>
                   <span className="info-value">{user?.email}</span>
                 </div>
-                
+
                 <div className="info-row">
                   <span className="info-label">Phone</span>
                   <span className="info-value">{user?.phone || 'Not set'}</span>
@@ -199,7 +197,7 @@ const AccountProfile = () => {
                     </div>
 
                     <div className="info-row">
-                      <span className="info-label">License Number</span>
+                      <span className="info-label">License number</span>
                       <span className="info-value">{user?.licenseNumber || 'Not set'}</span>
                     </div>
                   </>
@@ -211,43 +209,43 @@ const AccountProfile = () => {
                 </div>
 
                 <div className="info-row">
-                  <span className="info-label">Account Type</span>
+                  <span className="info-label">Account type</span>
                   <span className="info-value">{getRoleBadge()}</span>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Account Stats */}
+          {/* ── Account stats ── */}
           <div className="profile-stats-card">
-            <h3>Account Statistics</h3>
+            <h3>Account activity</h3>
             <div className="stats-grid">
               <div className="stat-item">
-                <span className="stat-icon">🏠</span>
+                <span className="stat-icon"><IconHome /></span>
                 <div className="stat-info">
                   <span className="stat-value">{user?.totalListings || 0}</span>
-                  <span className="stat-label">Total Listings</span>
+                  <span className="stat-label">Listings</span>
                 </div>
               </div>
-              
+
               <div className="stat-item">
-                <span className="stat-icon">❤️</span>
+                <span className="stat-icon"><IconHeart /></span>
                 <div className="stat-info">
                   <span className="stat-value">{user?.savedProperties?.length || 0}</span>
-                  <span className="stat-label">Saved Properties</span>
+                  <span className="stat-label">Saved</span>
                 </div>
               </div>
-              
+
               <div className="stat-item">
-                <span className="stat-icon">👁️</span>
+                <span className="stat-icon"><IconEye /></span>
                 <div className="stat-info">
                   <span className="stat-value">{user?.totalViews || 0}</span>
-                  <span className="stat-label">Profile Views</span>
+                  <span className="stat-label">Profile views</span>
                 </div>
               </div>
-              
+
               <div className="stat-item">
-                <span className="stat-icon">💬</span>
+                <span className="stat-icon"><IconMessage /></span>
                 <div className="stat-info">
                   <span className="stat-value">{user?.messages?.length || 0}</span>
                   <span className="stat-label">Messages</span>

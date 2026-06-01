@@ -1,0 +1,215 @@
+/* Moderation priority badge */
+.mp-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* Tooltip showing risk reasons */
+.mp-tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: #f9fafb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+.mp-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 5px 5px;
+  border-style: solid;
+  border-color: transparent transparent #1f2937;
+}
+
+.mp-tooltip-item {
+  padding: 1px 0;
+}
+
+/* Sort toggle button */
+.mp-sort-btn {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gray-700);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.mp-sort-btn:hover {
+  border-color: #d97706;
+  color: #d97706;
+}
+
+.mp-sort-btn--active {
+  border-color: #dc2626;
+  background: #fef2f2;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* Listing quality badge */
+.ql-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.ql-tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: #f9fafb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+.ql-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 5px 5px;
+  border-style: solid;
+  border-color: transparent transparent #1f2937;
+}
+
+.ql-tooltip-item {
+  padding: 1px 0;
+}
+
+/* Quality sort button */
+.ql-sort-btn {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gray-700);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.ql-sort-btn:hover {
+  border-color: #15803d;
+  color: #15803d;
+}
+
+.ql-sort-btn--active {
+  border-color: #15803d;
+  background: #f0fdf4;
+  color: #15803d;
+  font-weight: 600;
+}
+
+/* Duplicate detection badge */
+.dup-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border: 1px solid #fcd34d;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #92400e;
+  background: #fffbeb;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.dup-tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: #f9fafb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+.dup-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 5px 5px;
+  border-style: solid;
+  border-color: transparent transparent #1f2937;
+}
+
+.dup-tooltip-item {
+  padding: 1px 0;
+}
+
+/* Duplicate filter toggle button */
+.dup-filter-btn {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gray-700);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.dup-filter-btn:hover {
+  border-color: #d97706;
+  color: #92400e;
+}
+
+.dup-filter-btn--active {
+  border-color: #d97706;
+  background: #fffbeb;
+  color: #92400e;
+  font-weight: 600;
+}

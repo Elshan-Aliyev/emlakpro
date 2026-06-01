@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-import { getProperties } from '../services/api';
+import { getSavedProperties, unsavePropertyFromFavourites } from '../services/api';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import './Account.css';
 
 const AccountSaved = () => {
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const { success, error: showError } = useToast();
+  const navigate = useNavigate();
   const [savedProperties, setSavedProperties] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,18 +21,12 @@ const AccountSaved = () => {
 
   const fetchSavedProperties = async () => {
     try {
-      // Get all properties
-      const res = await getProperties();
-      const allProperties = res.data || [];
-      
-      // Filter only saved properties
-      const savedIds = user?.savedProperties || [];
-      const saved = allProperties.filter(p => savedIds.includes(p._id));
-      
-      setSavedProperties(saved);
+      const token = localStorage.getItem('token');
+      if (!token) { setLoading(false); return; }
+      const res = await getSavedProperties(token);
+      setSavedProperties(res.data || []);
     } catch (err) {
-      console.error('Error fetching saved properties:', err);
-      showError('Failed to load saved properties');
+      showError('Unable to retrieve your saved properties — please try again.');
     } finally {
       setLoading(false);
     }
@@ -38,18 +34,13 @@ const AccountSaved = () => {
 
   const handleUnsave = async (propertyId) => {
     try {
-      // Update local state immediately for better UX
+      const token = localStorage.getItem('token');
+      if (!token) { showError('Please sign in to manage saved properties'); return; }
+      await unsavePropertyFromFavourites(propertyId, token);
       setSavedProperties(prev => prev.filter(p => p._id !== propertyId));
-      
-      // Update user's saved properties
-      const updatedSaved = (user?.savedProperties || []).filter(id => id !== propertyId);
-      await updateUser({ savedProperties: updatedSaved });
-      
-      success('Property removed from saved');
+      success('Removed from saved');
     } catch (err) {
-      console.error('Error unsaving property:', err);
       showError('Failed to remove property');
-      // Revert on error
       fetchSavedProperties();
     }
   };
@@ -58,9 +49,21 @@ const AccountSaved = () => {
     return (
       <div className="account-page">
         <div className="account-container">
-          <div style={{ textAlign: 'center', padding: '4rem' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
-            <p>Loading saved properties...</p>
+          <div className="account-header">
+            <h1>Saved</h1>
+            <p>Your shortlisted properties</p>
+          </div>
+          <div className="saved-grid">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="saved-skeleton-card">
+                <div className="saved-skeleton-img" />
+                <div className="saved-skeleton-body">
+                  {[55, 80, 45].map((w, j) => (
+                    <div key={j} className="saved-skeleton-line" style={{ width: `${w}%`, height: j === 0 ? 18 : 13 }} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -70,54 +73,45 @@ const AccountSaved = () => {
   return (
     <div className="account-page">
       <div className="account-container">
-        {/* Header */}
         <div className="account-header">
-          <h1>Saved Properties</h1>
-          <p>Your favorite listings in one place</p>
+          <h1>Saved</h1>
+          <p>Properties you're watching — all in one place</p>
         </div>
 
-        {/* Saved Properties Grid */}
         {savedProperties.length === 0 ? (
-          <div className="recent-section">
-            <div className="empty-state">
-              <div className="empty-state-icon">❤️</div>
-              <h3>No Saved Properties</h3>
-              <p>Start saving properties to view them here later</p>
-              <Link to="/search">
-                <Button>Browse Properties</Button>
-              </Link>
+          <div className="dash-empty">
+            <div className="dash-empty-icon">
+              <Heart size={22} strokeWidth={1.75} aria-hidden="true" />
             </div>
+            <h3>No saved properties yet</h3>
+            <p>Save listings while browsing to revisit and compare them here.</p>
+            <Link to="/search">
+              <Button>Browse listings</Button>
+            </Link>
           </div>
         ) : (
           <>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-              gap: 'var(--space-6)',
-              marginBottom: 'var(--space-8)'
-            }}>
+            <div className="saved-count-bar">
+              <span>{savedProperties.length} saved {savedProperties.length === 1 ? 'property' : 'properties'}</span>
+              <Link to="/search" className="view-all-link">Browse more</Link>
+            </div>
+
+            <div className="saved-grid">
               {savedProperties.map((property) => (
                 <Card
                   key={property._id}
                   property={property}
                   isSaved={true}
                   onSaveToggle={() => handleUnsave(property._id)}
+                  onClick={() => navigate(`/properties/${property._id}`)}
                 />
               ))}
             </div>
 
-            <div style={{ 
-              textAlign: 'center', 
-              padding: 'var(--space-6)',
-              background: 'white',
-              borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--gray-200)'
-            }}>
-              <p style={{ color: 'var(--gray-600)', marginBottom: 'var(--space-4)' }}>
-                Showing {savedProperties.length} saved {savedProperties.length === 1 ? 'property' : 'properties'}
-              </p>
+            <div className="saved-browse-bar">
+              <p>Looking for something different?</p>
               <Link to="/search">
-                <Button variant="outline">Browse More Properties</Button>
+                <Button variant="outline">Browse all listings</Button>
               </Link>
             </div>
           </>

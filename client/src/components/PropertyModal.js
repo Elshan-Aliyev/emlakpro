@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { ArrowLeft, Share2 } from 'lucide-react';
 import PropertyDetail from '../pages/PropertyDetail';
 import FavoriteButton from './FavoriteButton';
 import './PropertyModal.css';
@@ -22,17 +23,15 @@ const PropertyModal = ({ property, onClose }) => {
         url: window.location.href,
       });
     } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
-      alert('Link copied to clipboard!');
+      navigator.clipboard.writeText(window.location.href).catch(() => {});
     }
   };
 
   useEffect(() => {
-    // Prevent body scroll when modal is open
     document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = 'unset';
+      // Use '' not 'unset' — removes the inline style so CSS cascade applies correctly
+      document.body.style.overflow = '';
     };
   }, []);
 
@@ -55,9 +54,7 @@ const PropertyModal = ({ property, onClose }) => {
         {/* Zillow-style Top Bar */}
         <div className="property-modal-top-bar">
           <button className="back-to-search-btn" onClick={onClose}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
+            <ArrowLeft size={20} strokeWidth={2} aria-hidden="true" />
             Back to search
           </button>
           
@@ -68,11 +65,7 @@ const PropertyModal = ({ property, onClose }) => {
               isModal={true}
             />
             <button className="share-btn" onClick={handleShare}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                <polyline points="16,6 12,2 8,6"/>
-                <line x1="12" y1="2" x2="12" y2="15"/>
-              </svg>
+              <Share2 size={20} strokeWidth={2} aria-hidden="true" />
               Share
             </button>
           </div>

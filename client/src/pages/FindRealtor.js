@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Search, Building2, Check, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getRealtors, getRealtorReviews } from '../services/api';
 import { getAvatarUrl } from '../utils/imageUtils';
@@ -148,7 +149,7 @@ const FindRealtor = () => {
     return (
       <div className="find-realtor-page">
         <div className="loading-state">
-          <div className="spinner">⏳</div>
+          <div className="spinner" aria-hidden="true" />
           <p>Loading realtors...</p>
         </div>
       </div>
@@ -169,21 +170,21 @@ const FindRealtor = () => {
           <div className="filter-row">
             <Input
               type="text"
-              placeholder="🔍 Search by name or company..."
+              placeholder="Search by name or company..."
               value={filters.searchKeyword}
               onChange={(e) => handleFilterChange('searchKeyword', e.target.value)}
             />
             
             <Input
               type="text"
-              placeholder="📍 Location"
+              placeholder="Location"
               value={filters.location}
               onChange={(e) => handleFilterChange('location', e.target.value)}
             />
             
             <Input
               type="text"
-              placeholder="🏢 Company"
+              placeholder="Company"
               value={filters.company}
               onChange={(e) => handleFilterChange('company', e.target.value)}
             />
@@ -229,7 +230,7 @@ const FindRealtor = () => {
 
             <Input
               type="text"
-              placeholder="🗣️ Language"
+              placeholder="Language"
               value={filters.language}
               onChange={(e) => handleFilterChange('language', e.target.value)}
             />
@@ -248,7 +249,7 @@ const FindRealtor = () => {
         {/* Realtors Grid */}
         {filteredRealtors.length === 0 ? (
           <div className="no-results">
-            <div className="no-results-icon">🔍</div>
+            <div className="no-results-icon" aria-hidden="true"><Search size={36} strokeWidth={1.5} /></div>
             <h3>No Realtors Found</h3>
             <p>Try adjusting your filters to see more results</p>
             <Button onClick={clearFilters}>Clear All Filters</Button>
@@ -273,7 +274,9 @@ const FindRealtor = () => {
                   </div>
                   
                   <div className="realtor-badge">
-                    {realtor.accountType === 'corporate' ? '🏢 Corporate' : '✓ Realtor'}
+                    {realtor.accountType === 'corporate'
+                      ? <><Building2 size={11} strokeWidth={2} aria-hidden="true" /> Corporate</>
+                      : <><Check size={11} strokeWidth={2.5} aria-hidden="true" /> Realtor</>}
                   </div>
                 </div>
 
@@ -303,7 +306,7 @@ const FindRealtor = () => {
                   <div className="stat">
                     <span className="stat-value">
                       {realtor.reviewStats?.averageRating?.toFixed(1) || 'N/A'}
-                      {realtor.reviewStats?.averageRating > 0 && ' ⭐'}
+                      {realtor.reviewStats?.averageRating > 0 && <Star size={11} strokeWidth={2} aria-hidden="true" />}
                     </span>
                     <span className="stat-label">Rating</span>
                   </div>

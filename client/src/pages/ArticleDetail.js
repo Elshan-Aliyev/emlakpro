@@ -105,14 +105,14 @@ const ArticleDetail = () => {
             </div>
             <div className="article-stats">
               <span>
-                📅 {new Date(article.publishedAt || article.createdAt).toLocaleDateString('en-US', {
+                {new Date(article.publishedAt || article.createdAt).toLocaleDateString('en-US', {
                   month: 'long',
                   day: 'numeric',
                   year: 'numeric'
                 })}
               </span>
-              <span>• 👁️ {article.views || 0} views</span>
-              <span>• ❤️ {article.likes || 0} likes</span>
+              <span>• {article.views || 0} views</span>
+              <span>• {article.likes || 0} likes</span>
             </div>
           </div>
         </header>
@@ -142,10 +142,10 @@ const ArticleDetail = () => {
             onClick={handleLike}
             disabled={liked}
           >
-            ❤️ {liked ? 'Liked!' : 'Like this article'}
+            {liked ? 'Liked!' : 'Like this article'}
           </Button>
           <Button variant="outline" onClick={() => window.print()}>
-            🖨️ Print
+            Print
           </Button>
         </div>
 

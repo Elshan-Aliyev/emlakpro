@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Search, User } from 'lucide-react';
 import { getUsers } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import './Agents.css';
@@ -73,7 +74,6 @@ const Agents = () => {
       <div className="agents-page">
         <div className="agents-container">
           <div style={{ textAlign: 'center', padding: '4rem' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
             <p>Loading agents...</p>
           </div>
         </div>
@@ -93,7 +93,9 @@ const Agents = () => {
         {/* Search and Filter */}
         <div className="agents-controls">
           <div className="search-box">
-            <span className="search-icon">🔍</span>
+            <span className="search-icon" aria-hidden="true">
+              <Search size={16} strokeWidth={2} />
+            </span>
             <input
               type="text"
               placeholder="Search agents by name, email, or company..."
@@ -117,7 +119,9 @@ const Agents = () => {
         {/* Agents Grid */}
         {filteredAgents.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">👤</div>
+            <div className="empty-icon" aria-hidden="true">
+              <User size={40} strokeWidth={1.5} />
+            </div>
             <h3>No Agents Found</h3>
             <p>Try adjusting your search or filters</p>
           </div>
@@ -145,7 +149,7 @@ const Agents = () => {
                     <h3 className="agent-name">{agent.name || 'Anonymous'}</h3>
                     <p className="agent-role">{getRoleLabel(agent.role)}</p>
                     {agent.company && (
-                      <p className="agent-company">🏢 {agent.company}</p>
+                      <p className="agent-company">{agent.company}</p>
                     )}
                   </div>
 
@@ -162,11 +166,11 @@ const Agents = () => {
 
                   <div className="agent-contact">
                     <a href={`mailto:${agent.email}`} className="contact-btn email-btn">
-                      📧 Email
+                      Email
                     </a>
                     {agent.phone && (
                       <a href={`tel:${agent.phone}`} className="contact-btn phone-btn">
-                        📞 Call
+                        Call
                       </a>
                     )}
                   </div>

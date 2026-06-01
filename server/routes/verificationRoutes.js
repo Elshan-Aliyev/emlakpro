@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
+const { checkAccountStatus } = require('../middleware/authMiddleware');
 const { isAdmin } = require('../middleware/roleMiddleware');
 const verificationController = require('../controllers/verificationController');
 
@@ -13,8 +14,8 @@ router.use(authMiddleware);
 // Get my application status
 router.get('/my-application', verificationController.getMyApplicationStatus);
 
-// Submit new verification application
-router.post('/apply', verificationController.submitVerificationApplication);
+// Submit new verification application — blocked/inactive users cannot apply
+router.post('/apply', checkAccountStatus, verificationController.submitVerificationApplication);
 
 // Upload verification documents
 router.post('/documents', verificationController.uploadVerificationDocument);

@@ -141,8 +141,8 @@ const PropertyMap = ({
     const popupEl  = document.createElement('div');
     const imageUrl = property.thumbnail || property.medium || property.image || '';
     const specs    = [
-      property.bedrooms  > 0                     ? `${property.bedrooms} bd`                     : null,
-      property.bathrooms > 0                     ? `${property.bathrooms} ba`                    : null,
+      property.bedrooms  > 0                     ? `${property.bedrooms} bd${property.bedrooms !== 1 ? 's' : ''}`                     : null,
+      property.bathrooms > 0                     ? `${property.bathrooms} ba${property.bathrooms !== 1 ? 's' : ''}`                    : null,
       (property.builtUpArea || property.area)    ? `${property.builtUpArea || property.area} m²` : null,
     ].filter(Boolean).join(' · ');
     const locStr = getLocationString(property);
@@ -208,8 +208,8 @@ const PropertyMap = ({
             if (!prop) return '';
             const imgUrl = prop.thumbnail || prop.medium || prop.image || '';
             const specs  = [
-              prop.bedrooms  > 0                   ? `${prop.bedrooms} bd`                   : null,
-              prop.bathrooms > 0                   ? `${prop.bathrooms} ba`                  : null,
+              prop.bedrooms  > 0                   ? `${prop.bedrooms} bd${prop.bedrooms !== 1 ? 's' : ''}`                   : null,
+              prop.bathrooms > 0                   ? `${prop.bathrooms} ba${prop.bathrooms !== 1 ? 's' : ''}`                  : null,
               (prop.builtUpArea || prop.area)      ? `${prop.builtUpArea || prop.area} m²`   : null,
             ].filter(Boolean).join(' · ');
             return `

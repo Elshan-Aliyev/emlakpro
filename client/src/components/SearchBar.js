@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Search } from 'lucide-react';
 import Button from './Button';
 import Input from './Input';
 import './SearchBar.css';
@@ -30,7 +31,7 @@ const SearchBar = ({
             placeholder="Search by location, city, or property name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            leftIcon={<span>🔍</span>}
+            leftIcon={<Search size={16} strokeWidth={2} aria-hidden="true" />}
           />
         </div>
 
@@ -84,27 +85,27 @@ const SearchBar = ({
                   <option value="farm">Farm</option>
                 </optgroup>
                 <optgroup label="Short-term / Unique">
-                  <option value="cabin">🏕️ Cabin</option>
-                  <option value="cottage">🏠 Cottage</option>
-                  <option value="bungalow">🏘️ Bungalow</option>
-                  <option value="chalet">🏔️ Chalet</option>
-                  <option value="loft">🏙️ Loft</option>
-                  <option value="tiny-house">🏠 Tiny House</option>
-                  <option value="mobile-home">🚐 Mobile Home</option>
-                  <option value="rv">🚐 RV</option>
-                  <option value="camper-van">🚐 Camper Van</option>
-                  <option value="boat">⛵ Boat</option>
-                  <option value="treehouse">🌳 Treehouse</option>
-                  <option value="dome">🏔️ Dome</option>
-                  <option value="a-frame">🏔️ A-Frame</option>
-                  <option value="barn">🏭 Barn</option>
-                  <option value="castle">🏰 Castle</option>
-                  <option value="cave">🕳️ Cave</option>
-                  <option value="windmill">🌾 Windmill</option>
-                  <option value="lighthouse">🏮 Lighthouse</option>
-                  <option value="room">🛏️ Room</option>
-                  <option value="shared-room">👥 Shared Room</option>
-                  <option value="entire-place">🏠 Entire Place</option>
+                  <option value="cabin">Cabin</option>
+                  <option value="cottage">Cottage</option>
+                  <option value="bungalow">Bungalow</option>
+                  <option value="chalet">Chalet</option>
+                  <option value="loft">Loft</option>
+                  <option value="tiny-house">Tiny House</option>
+                  <option value="mobile-home">Mobile Home</option>
+                  <option value="rv">RV</option>
+                  <option value="camper-van">Camper Van</option>
+                  <option value="boat">Boat</option>
+                  <option value="treehouse">Treehouse</option>
+                  <option value="dome">Dome</option>
+                  <option value="a-frame">A-Frame</option>
+                  <option value="barn">Barn</option>
+                  <option value="castle">Castle</option>
+                  <option value="cave">Cave</option>
+                  <option value="windmill">Windmill</option>
+                  <option value="lighthouse">Lighthouse</option>
+                  <option value="room">Room</option>
+                  <option value="shared-room">Shared Room</option>
+                  <option value="entire-place">Entire Place</option>
                 </optgroup>
               </select>
             </div>

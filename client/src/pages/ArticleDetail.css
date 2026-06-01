@@ -232,7 +232,7 @@
 .related-article-card:hover {
   border-color: var(--primary);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  transform: translateY(-2px);
+  transform: none;
 }
 
 .related-article-card img {

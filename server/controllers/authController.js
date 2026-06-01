@@ -2,6 +2,8 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { sendPasswordReset } = require('../lib/mailer');
 
 // REGISTER
 exports.register = async (req, res) => {
@@ -39,6 +41,10 @@ exports.login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: 'Invalid password' });
+
+    if (user.isBlocked || !user.isActive) {
+      return res.status(403).json({ message: 'Your account has been restricted.' });
+    }
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.json({ token });
@@ -126,6 +132,63 @@ exports.changePassword = async (req, res) => {
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
     console.error('CHANGE PASSWORD ERROR:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// FORGOT PASSWORD — generate token, send email
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required.' });
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    // Always respond 200 to prevent email enumeration
+    if (!user) return res.json({ message: 'If that email exists, a reset link has been sent.' });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    user.passwordResetToken   = crypto.createHash('sha256').update(token).digest('hex');
+    user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    const CLIENT_URL = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/$/, '');
+    const resetUrl = `${CLIENT_URL}/reset-password/${token}`;
+
+    await sendPasswordReset({ toEmail: user.email, resetUrl });
+
+    res.json({ message: 'If that email exists, a reset link has been sent.' });
+  } catch (err) {
+    console.error('FORGOT PASSWORD ERROR:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// RESET PASSWORD — validate token, update password
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+    }
+
+    const hashed = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({
+      passwordResetToken:   hashed,
+      passwordResetExpires: { $gt: Date.now() },
+    });
+
+    if (!user) return res.status(400).json({ message: 'Reset link is invalid or has expired.' });
+
+    user.password             = password; // hashed by pre-save hook
+    user.passwordResetToken   = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    res.json({ message: 'Password reset successfully.' });
+  } catch (err) {
+    console.error('RESET PASSWORD ERROR:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };

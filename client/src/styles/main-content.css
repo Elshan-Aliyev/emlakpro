@@ -1,0 +1,18 @@
+/* main-layout already reserves --nav-height via padding-top; no margin needed here */
+
+/* ── Route transition — soft fade-in on each pathname change ───────────────── */
+
+@keyframes route-fade-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.route-transition {
+  animation: route-fade-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Search page manages its own visual continuity — keep it at full height */
+.route-transition:has(.search-page) {
+  height: 100%;
+  display: contents;
+}

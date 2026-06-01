@@ -61,7 +61,7 @@
   background: var(--theme-background-low, var(--theme-bg-lowest));
   border-color: var(--theme-hover);
   color: var(--theme-hover);
-  transform: translateY(-2px);
+  transform: none;
 }
 
 .category-tab.active {
@@ -87,7 +87,7 @@
 
 .article-item:hover {
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-  transform: translateY(-4px);
+  transform: none;
 }
 
 .article-link {

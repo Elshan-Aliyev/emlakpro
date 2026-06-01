@@ -7,11 +7,7 @@ const checkRole = (...allowedRoles) => {
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'Access denied. Insufficient permissions.',
-        requiredRole: allowedRoles,
-        currentRole: req.user.role
-      });
+      return res.status(403).json({ message: 'Access denied.' });
     }
 
     next();

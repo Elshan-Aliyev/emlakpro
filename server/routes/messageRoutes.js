@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
+const { checkAccountStatus } = require('../middleware/authMiddleware');
 const messageController = require('../controllers/messageController');
 
 // All routes require authentication
 router.use(authMiddleware);
 
-// Send a new message
-router.post('/', messageController.sendMessage);
+// Send a new message — blocked/inactive users cannot send messages
+router.post('/', checkAccountStatus, messageController.sendMessage);
 
 // Get all conversations for logged-in user
 router.get('/conversations', messageController.getConversations);

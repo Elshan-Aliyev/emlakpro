@@ -1,38 +1,28 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Image } from 'lucide-react';
 import './ServicePages.css';
 
 const DigitalStaging = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const [showAdminBypass, setShowAdminBypass] = useState(false);
-
-  React.useEffect(() => {
-    if (user && (user.role === 'admin' || user.role === 'superadmin')) {
-      setShowAdminBypass(true);
-    }
-  }, [user]);
-
-  const handleAdminBypass = () => {
-    alert('Admin bypass - Digital staging service activated');
-  };
 
   return (
     <div className="service-page">
       <div className="service-hero">
         <div className="service-hero-content">
-          <h1>✨ Digital Staging Services</h1>
+          <h1>Digital Staging Services</h1>
           <p>Virtually furnish empty properties to help buyers visualize the space</p>
         </div>
       </div>
 
       <div className="service-container">
         <div className="coming-soon-box">
-          <div className="coming-soon-icon">🏗️</div>
+          <div className="coming-soon-icon">
+            <Image size={40} strokeWidth={1.5} aria-hidden="true" />
+          </div>
           <h2>Coming Soon</h2>
           <p>Professional digital staging service to transform empty rooms into beautiful living spaces</p>
-          
+
           <div className="service-preview">
             <div className="preview-images">
               <div className="preview-item">
@@ -55,15 +45,6 @@ const DigitalStaging = () => {
             <li>Unlimited revisions</li>
             <li>Pricing: AZN 50 per room</li>
           </ul>
-
-          {showAdminBypass && (
-            <div className="admin-section">
-              <div className="admin-badge">Admin Tools</div>
-              <button onClick={handleAdminBypass} className="btn-admin-bypass">
-                🔓 Bypass Payment (Testing)
-              </button>
-            </div>
-          )}
 
           <div className="coming-soon-timeline">
             <p><strong>Expected Launch:</strong> Q1 2025</p>

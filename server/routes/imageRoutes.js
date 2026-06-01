@@ -1,32 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const cloudinary = require('../config/cloudinary');
-const { 
-  uploadImage, 
-  getImages, 
-  getImage, 
-  updateImage, 
+const {
+  uploadImage,
+  getImages,
+  getImage,
+  updateImage,
   deleteImage,
-  bulkDeleteImages 
+  bulkDeleteImages
 } = require('../controllers/imageController');
 const authMiddleware = require('../middleware/authMiddleware');
 const { isAdmin } = require('../middleware/roleMiddleware');
 
-// Configure Cloudinary storage for images
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'general-images',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-    transformation: [{ width: 1920, height: 1080, crop: 'limit' }]
-  }
-});
-
-const upload = multer({ 
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+// Use memory storage — the controller handles the Supabase upload
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }
 });
 
 // Public routes

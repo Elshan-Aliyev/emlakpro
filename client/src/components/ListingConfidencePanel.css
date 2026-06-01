@@ -1,0 +1,89 @@
+/* ─── Container ──────────────────────────────────────────────────────────── */
+
+.lcp-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: #fafafa;
+  margin-top: 14px;
+}
+
+/* ─── Heading ─────────────────────────────────────────────────────────────── */
+
+.lcp-heading {
+  margin: 0 0 10px;
+  font-size: 0.6875rem;       /* 11px */
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+/* ─── List ────────────────────────────────────────────────────────────────── */
+
+.lcp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.lcp-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.8125rem;       /* 13px */
+  line-height: 1.45;
+  color: #374151;
+}
+
+/* ─── Icons ───────────────────────────────────────────────────────────────── */
+
+.lcp-icon {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  margin-top: 1px;
+  width: 14px;
+  text-align: center;
+}
+
+.lcp-item--positive .lcp-icon {
+  color: #4b7c54;
+}
+
+.lcp-item--note .lcp-icon {
+  color: #92400e;
+}
+
+.lcp-item--note {
+  color: #6b4c2a;
+}
+
+/* ─── Divider ─────────────────────────────────────────────────────────────── */
+
+.lcp-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 10px 0;
+}
+
+/* ─── Text ────────────────────────────────────────────────────────────────── */
+
+.lcp-text {
+  flex: 1;
+}
+
+/* ─── Mobile ──────────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .lcp-panel {
+    margin-top: 12px;
+    padding: 12px 14px;
+  }
+
+  .lcp-item {
+    font-size: 0.8rem;
+  }
+}

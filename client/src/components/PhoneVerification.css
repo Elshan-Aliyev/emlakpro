@@ -1,0 +1,143 @@
+.pv-root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pv-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.pv-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pv-input {
+  flex: 1;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  color: var(--gray-900);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.pv-input:focus {
+  border-color: var(--primary, #e02020);
+}
+
+.pv-input-code {
+  max-width: 160px;
+  letter-spacing: 0.12em;
+  font-size: 1.125rem;
+  text-align: center;
+}
+
+.pv-btn {
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.pv-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pv-btn-primary {
+  background: var(--primary, #e02020);
+  color: #fff;
+}
+
+.pv-btn-primary:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.pv-resend-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.8125rem;
+}
+
+.pv-btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8125rem;
+  color: var(--primary, #e02020);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pv-btn-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pv-cooldown {
+  color: var(--gray-500);
+  font-size: 0.8125rem;
+}
+
+.pv-sent-notice {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  margin-bottom: 2px;
+}
+
+.pv-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--error-600, #dc2626);
+}
+
+.pv-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--gray-400);
+}
+
+/* Verified state */
+.pv-verified {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 8px;
+}
+
+.pv-check {
+  font-size: 1rem;
+  color: #166534;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pv-verified-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #166534;
+}
+
+.pv-verified-number {
+  font-size: 0.875rem;
+  color: #15803d;
+  margin-left: auto;
+}

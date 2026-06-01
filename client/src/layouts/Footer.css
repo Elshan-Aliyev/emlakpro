@@ -1,132 +1,204 @@
-.footer {
-  background: var(--gray-900);
-  color: var(--gray-300);
-  padding: var(--space-16) 0 var(--space-8);
-  margin-top: var(--space-20);
+/* ═══════════════════════════════════════════════════════════════════════════
+   SITE FOOTER — Minimal / architectural / editorial
+   Linear · Stripe · Bloomberg style
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.site-footer {
+  background: #0c0c0d;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: 0;
 }
 
-.footer-content {
+.footer-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+/* ── Top section: brand + nav grid ──────────────────────────────────────── */
+
+.footer-top {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-8);
-  margin-bottom: var(--space-12);
+  grid-template-columns: 280px 1fr;
+  gap: 80px;
+  padding: 64px 0 56px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.footer-section {
+/* ── Brand column ────────────────────────────────────────────────────────── */
+
+.footer-brand {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 12px;
 }
 
-.footer-title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 1.5rem;
-  color: white;
-  margin-bottom: var(--space-2);
+.footer-wordmark {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  font-family: var(--font-sans);
+  transition: color 140ms;
+  display: inline-block;
 }
 
-.footer-logo-icon {
-  font-size: 2rem;
+.footer-wordmark:hover {
+  color: #fff;
 }
 
-.footer-description {
-  color: var(--gray-400);
+.footer-tagline {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.32);
   line-height: 1.6;
-  margin-bottom: var(--space-4);
+  margin: 0;
+  max-width: 200px;
 }
 
-.footer-social {
+/* ── Nav columns ─────────────────────────────────────────────────────────── */
+
+.footer-nav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+}
+
+.footer-col {
   display: flex;
-  gap: var(--space-3);
+  flex-direction: column;
+  gap: 16px;
 }
 
-.social-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--gray-800);
-  color: var(--gray-300);
-  text-decoration: none;
-  font-size: 1.25rem;
-  transition: all var(--transition-fast);
-}
-
-.social-link:hover {
-  background: var(--primary-600);
-  color: white;
-  transform: translateY(-2px);
-}
-
-.footer-section-title {
-  color: white;
-  font-size: 1.125rem;
+.footer-col-title {
+  font-size: 0.6875rem;
   font-weight: 600;
-  margin-bottom: var(--space-3);
+  color: rgba(255, 255, 255, 0.36);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0;
+  font-family: var(--font-sans);
 }
 
-.footer-links {
+.footer-col ul {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-}
-
-.footer-links a {
-  color: var(--gray-400);
-  text-decoration: none;
-  transition: color var(--transition-fast);
-  font-size: 0.9375rem;
-}
-
-.footer-links a:hover {
-  color: white;
-}
-
-.footer-contact {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  font-size: 0.9375rem;
-  color: var(--gray-400);
-}
-
-.footer-bottom {
-  padding-top: var(--space-8);
-  border-top: 1px solid var(--gray-800);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-}
-
-.footer-copyright,
-.footer-credits {
-  font-size: 0.875rem;
-  color: var(--gray-500);
+  gap: 11px;
+  padding: 0;
   margin: 0;
 }
 
-/* Mobile Responsive */
-@media (max-width: 768px) {
-  .footer {
-    padding: var(--space-12) 0 var(--space-6);
-    margin-top: var(--space-12);
+.footer-col ul a {
+  font-size: 0.875rem;
+  font-weight: 450;
+  color: rgba(255, 255, 255, 0.46);
+  text-decoration: none;
+  font-family: var(--font-sans);
+  transition: color 140ms;
+  display: inline-block;
+}
+
+.footer-col ul a:hover {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+/* ── Bottom bar ──────────────────────────────────────────────────────────── */
+
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+}
+
+.footer-copy {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.24);
+  margin: 0;
+  font-family: var(--font-sans);
+}
+
+/* ── Social icons ────────────────────────────────────────────────────────── */
+
+.footer-socials {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.footer-social-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.28);
+  transition: color 140ms, background 140ms;
+  text-decoration: none;
+}
+
+.footer-social-btn:hover {
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .footer-inner {
+    padding: 0 28px;
   }
 
-  .footer-content {
+  .footer-top {
+    grid-template-columns: 220px 1fr;
+    gap: 48px;
+    padding: 48px 0 44px;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer-inner {
+    padding: 0 20px;
+    /* respect iPhone home indicator */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .footer-top {
     grid-template-columns: 1fr;
-    gap: var(--space-6);
+    gap: 40px;
+    padding: 44px 0 36px;
+  }
+
+  .footer-brand {
+    gap: 10px;
+  }
+
+  .footer-tagline {
+    max-width: none;
+  }
+
+  .footer-nav {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
   }
 
   .footer-bottom {
-    flex-direction: column;
-    text-align: center;
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 0 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-nav {
+    grid-template-columns: 1fr 1fr;
+    gap: 28px 20px;
+  }
+
+  .footer-col:last-child {
+    grid-column: span 2;
   }
 }

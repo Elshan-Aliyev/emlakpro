@@ -4,9 +4,30 @@ import { useToast } from '../components/Toast';
 import { getUsers, updateUser, deleteUser } from '../services/api';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
-import Badge from '../components/Badge';
 import Input from '../components/Input';
 import './Admin.css';
+
+const ACCOUNT_TYPE_PILL = {
+  'verified-user':   { label: 'Verified',         bg: 'rgba(15,118,110,0.1)', fg: '#0F766E' },
+  'verified-seller': { label: 'Verified Seller',  bg: 'rgba(15,118,110,0.1)', fg: '#0F766E' },
+  'realtor':         { label: 'Realtor',           bg: '#FEF3C7',              fg: '#92400E' },
+  'corporate':       { label: 'Corporate',         bg: '#EDE9FE',              fg: '#5B21B6' },
+  'unverified-user': { label: 'Unverified',        bg: '#F1F5F9',              fg: '#64748B' },
+};
+const ROLE_PILL = {
+  admin:      { bg: '#FEE2E2', fg: '#991B1B' },
+  superadmin: { bg: '#FEE2E2', fg: '#7F1D1D' },
+  realtor:    { bg: '#FEF3C7', fg: '#92400E' },
+};
+const PILL_STYLE = { padding: '2px 8px', borderRadius: '999px', fontSize: '0.6875rem', fontWeight: 600, whiteSpace: 'nowrap' };
+const renderAccountType = (accountType) => {
+  const cfg = ACCOUNT_TYPE_PILL[accountType] || ACCOUNT_TYPE_PILL['unverified-user'];
+  return <span style={{ ...PILL_STYLE, background: cfg.bg, color: cfg.fg }}>{cfg.label}</span>;
+};
+const renderRole = (role) => {
+  const cfg = ROLE_PILL[role] || { bg: '#F1F5F9', fg: '#475569' };
+  return <span style={{ ...PILL_STYLE, background: cfg.bg, color: cfg.fg }}>{role || 'registered'}</span>;
+};
 
 const AdminUsers = () => {
   const { user: currentUser } = useAuth();
@@ -128,9 +149,26 @@ const AdminUsers = () => {
     return (
       <div className="admin-page">
         <div className="admin-container">
-          <div style={{ textAlign: 'center', padding: '4rem' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
-            <p>Loading users...</p>
+          <div className="admin-header">
+            <h1>Manage Users <span className="admin-badge">Admin</span></h1>
+            <p>View and manage all registered users</p>
+          </div>
+          <div className="admin-section">
+            {Array.from({ length: 6 }, (_, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 'var(--space-4)',
+                padding: 'var(--space-4)', borderBottom: '1px solid var(--gray-100)',
+              }}>
+                {[20, 28, 14, 18, 12, 10, 8].map((w, j) => (
+                  <div key={j} style={{
+                    height: 14, width: `${w}%`, borderRadius: 4, flexShrink: 0,
+                    background: 'linear-gradient(90deg, #f0f0ef 25%, #e8e8e6 50%, #f0f0ef 75%)',
+                    backgroundSize: '200% 100%',
+                    animation: 'shimmer 1.4s infinite linear',
+                  }} />
+                ))}
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -166,8 +204,8 @@ const AdminUsers = () => {
             <div className="admin-stat-label">Verified Users</div>
           </div>
           <div className="admin-stat-card">
-            <div className="admin-stat-value">{stats.agents}</div>
-            <div className="admin-stat-label">Agents</div>
+            <div className="admin-stat-value">{stats.sellers}</div>
+            <div className="admin-stat-label">Sellers</div>
           </div>
           <div className="admin-stat-card">
             <div className="admin-stat-value">{stats.admins}</div>
@@ -254,33 +292,12 @@ const AdminUsers = () => {
                       <td>
                         <strong>{user.name}</strong>
                         {user._id === currentUser?.id && (
-                          <Badge variant="info" style={{ marginLeft: 'var(--space-2)' }}>You</Badge>
+                          <span style={{ ...PILL_STYLE, background: 'rgba(15,118,110,0.1)', color: '#0F766E', marginLeft: '6px' }}>You</span>
                         )}
                       </td>
                       <td>{user.email}</td>
-                      <td>
-                        <Badge
-                          variant={
-                            ['admin', 'superadmin'].includes(user.role)
-                              ? 'danger'
-                              : user.role === 'realtor'
-                              ? 'warning'
-                              : 'secondary'
-                          }
-                        >
-                          {user.role || 'registered'}
-                        </Badge>
-                      </td>
-                      <td>
-                        <Badge variant={user.accountType === 'unverified-user' ? 'secondary' : 'success'}>
-                          {user.accountType === 'unverified-user' ? 'Unverified' :
-                           user.accountType === 'verified-user' ? 'Verified User' :
-                           user.accountType === 'verified-seller' ? 'Verified Seller' :
-                           user.accountType === 'realtor' ? 'Realtor' :
-                           user.accountType === 'corporate' ? 'Corporate' :
-                           'Unverified'}
-                        </Badge>
-                      </td>
+                      <td>{renderRole(user.role)}</td>
+                      <td>{renderAccountType(user.accountType)}</td>
                       <td>{user.phone || '-'}</td>
                       <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                       <td>

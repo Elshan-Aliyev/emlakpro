@@ -1,0 +1,223 @@
+.ovm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.ovm-dialog {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 540px;
+  padding: 28px;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.ovm-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: var(--gray-400);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ovm-close:hover {
+  background: var(--gray-100);
+  color: var(--gray-700);
+}
+
+.ovm-header {
+  margin-bottom: 24px;
+}
+
+.ovm-title {
+  margin: 0 0 4px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.ovm-subtitle {
+  margin: 0 0 8px;
+  font-size: 0.875rem;
+  color: var(--gray-500);
+}
+
+.ovm-desc {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  line-height: 1.5;
+}
+
+/* Document slots */
+.ovm-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ovm-slot {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  background: var(--gray-50);
+  transition: border-color 0.15s;
+}
+
+.ovm-slot--done {
+  border-color: #BBF7D0;
+  background: #F0FDF4;
+}
+
+.ovm-slot-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ovm-slot-label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.ovm-check {
+  color: #166534;
+  font-size: 1rem;
+}
+
+.ovm-slot-hint {
+  font-size: 0.8125rem;
+  color: var(--gray-500);
+  line-height: 1.4;
+}
+
+.ovm-slot-error {
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  color: #dc2626;
+}
+
+.ovm-existing-link {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  color: var(--primary, #e02020);
+  text-decoration: none;
+}
+
+.ovm-existing-link:hover {
+  text-decoration: underline;
+}
+
+/* Upload label-as-button */
+.ovm-upload-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+  user-select: none;
+}
+
+.ovm-upload-btn:hover:not(.ovm-upload-btn--busy) {
+  border-color: var(--primary, #e02020);
+  color: var(--primary, #e02020);
+}
+
+.ovm-upload-btn--busy {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Notice */
+.ovm-notice {
+  font-size: 0.75rem;
+  color: var(--gray-400);
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.ovm-error {
+  margin: 0 0 12px;
+  font-size: 0.8125rem;
+  color: #dc2626;
+}
+
+/* Actions */
+.ovm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ovm-btn-cancel {
+  height: 40px;
+  padding: 0 18px;
+  background: none;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.ovm-btn-cancel:hover:not(:disabled) {
+  border-color: var(--gray-400);
+}
+
+.ovm-btn-submit {
+  height: 40px;
+  padding: 0 20px;
+  background: var(--primary, #e02020);
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.ovm-btn-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ovm-btn-submit:hover:not(:disabled) {
+  opacity: 0.88;
+}

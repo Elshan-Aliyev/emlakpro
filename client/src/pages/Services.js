@@ -1,14 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import Navbar from '../components/Navbar';
-import Footer from '../layouts/Footer';
 import Button from '../components/Button';
 import './StaticPages.css';
 
 const Services = () => {
   return (
     <div className="static-page-container">
-      <Navbar />
       <div className="static-page-content">
         <h1>Our Services</h1>
         <p className="subtitle">Professional real estate services to help you succeed</p>
@@ -139,7 +136,6 @@ const Services = () => {
           </div>
         </section>
       </div>
-      <Footer />
     </div>
   );
 };

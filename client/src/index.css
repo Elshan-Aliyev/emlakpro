@@ -42,3 +42,41 @@ img {
 .button-group > *, .filter-bar-content > * {
   flex-shrink: 0;
 }
+
+/* ── Mobile production hardening ─────────────────────────────────────────────
+   Eliminates browser-feeling moments: overscroll bounce, viewport jumps,
+   layout instability from keyboard, and text-size adjustments.           */
+
+html {
+  /* min-height (not height) — allows the document to grow and scroll.
+     fill-available anchors the minimum so iOS Safari doesn't shrink below
+     the visible viewport when the address bar shows/hides. */
+  min-height: -webkit-fill-available;
+  /* Prevent iOS Safari text size inflation in landscape */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  /* Anchor body to fill-available height for stable viewport calculations */
+  min-height: -webkit-fill-available;
+  /* Prevent pull-to-refresh interfering with custom sheet gestures */
+  overscroll-behavior-y: contain;
+}
+
+@media (max-width: 768px) {
+  /* Prevent layout jumps when the browser address bar shows/hides */
+  .main-layout {
+    min-height: 100dvh;
+  }
+
+  /* Sharper tap feedback — eliminates 300ms tap delay on older mobile browsers */
+  a, button, [role="button"] {
+    touch-action: manipulation;
+  }
+
+  /* Prevent horizontal scroll leakage from absolutely-positioned elements */
+  .main-content {
+    overflow-x: clip;
+  }
+}

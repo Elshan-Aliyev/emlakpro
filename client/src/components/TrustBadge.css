@@ -1,0 +1,159 @@
+/* ── Trust Chip ── */
+.trust-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--theme-font);
+  border: 1px solid transparent;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.trust-chip-icon {
+  flex-shrink: 0;
+}
+
+/* pending */
+.trust-chip--pending {
+  background: var(--gray-100);
+  color: var(--gray-500);
+  border-color: var(--gray-200);
+}
+
+/* email */
+.trust-chip--email {
+  background: var(--gray-50);
+  color: var(--gray-700);
+  border-color: var(--gray-200);
+}
+
+/* phone */
+.trust-chip--phone {
+  background: #F0FDF4;
+  color: #166534;
+  border-color: #BBF7D0;
+}
+
+/* id */
+.trust-chip--id {
+  background: #EFF6FF;
+  color: #1E40AF;
+  border-color: #BFDBFE;
+}
+
+/* ownership — strongest emphasis */
+.trust-chip--ownership {
+  background: #FFFBEB;
+  color: #78350F;
+  border-color: #FDE68A;
+  font-weight: 700;
+}
+
+/* ── Trust Footer ── */
+.trust-footer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-family: var(--theme-font);
+  padding-top: 10px;
+  border-top: 1px solid var(--gray-100);
+  margin-top: 10px;
+}
+
+.trust-footer-icon {
+  flex-shrink: 0;
+}
+
+.trust-footer--pending {
+  color: var(--gray-400);
+}
+
+.trust-footer--email,
+.trust-footer--phone {
+  color: #166534;
+}
+
+.trust-footer--id {
+  color: #1E40AF;
+}
+
+.trust-footer--ownership {
+  color: #78350F;
+  font-weight: 600;
+}
+
+/* ── Trust Ladder (detail variant) ── */
+.trust-ladder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trust-ladder-heading {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gray-400);
+  margin-bottom: 4px;
+  margin-top: 0;
+}
+
+.trust-ladder-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trust-ladder-row--pending .trust-ladder-label {
+  color: var(--gray-300);
+}
+
+.trust-ladder-row--achieved .trust-ladder-label {
+  color: var(--gray-700);
+}
+
+.trust-ladder-row--ownership .trust-ladder-label {
+  color: var(--gray-900);
+  font-weight: 600;
+}
+
+.trust-ladder-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--gray-100);
+  border: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.trust-ladder-dot--achieved {
+  background: #F0FDF4;
+  border-color: #86EFAC;
+  color: #166534;
+}
+
+.trust-ladder-dot--ownership {
+  background: #FFFBEB;
+  border-color: #FCD34D;
+  color: #78350F;
+}
+
+.trust-ladder-check {
+  display: block;
+}
+
+.trust-ladder-label {
+  font-size: 0.825rem;
+  font-weight: 500;
+  font-family: var(--theme-font);
+  line-height: 1;
+}

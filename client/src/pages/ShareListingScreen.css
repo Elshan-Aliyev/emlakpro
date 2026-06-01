@@ -1,0 +1,349 @@
+/* ShareListingScreen.css */
+
+.share-listing-screen {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding: 2rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.share-container {
+  max-width: 650px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Success Header */
+.success-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.success-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.success-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.success-subtitle {
+  font-size: 1rem;
+  color: #666;
+}
+
+/* Property Preview */
+.property-preview {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.preview-image {
+  width: 100px;
+  height: 100px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #e5e7eb;
+}
+
+.preview-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.placeholder-image {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+}
+
+.preview-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.35rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-price {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1E4E8C;
+  margin-bottom: 0.2rem;
+}
+
+.preview-location {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+/* Stats row inside preview */
+.preview-stats-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.preview-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  color: #555;
+  font-weight: 500;
+}
+
+.stat-icon {
+  font-size: 0.85rem;
+}
+
+/* Share Section */
+.share-section {
+  background: white;
+  border-radius: 8px;
+  padding: 1.75rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.share-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 0.4rem;
+}
+
+.share-subtitle {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 1.25rem;
+}
+
+/* Share Buttons Grid */
+.share-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.875rem;
+}
+
+.share-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 1rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  text-align: center;
+  min-height: 120px;
+}
+
+.share-btn:hover {
+  border-color: #9ca3af;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.share-btn-icon {
+  font-size: 2rem;
+  margin-bottom: 0.6rem;
+  display: block;
+}
+
+.share-btn-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.2rem;
+  display: block;
+}
+
+.share-btn-hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  display: block;
+}
+
+/* Individual Button Styles */
+.share-btn-copy {
+  border-color: #bfdbfe;
+  background: #f8fbff;
+}
+
+.share-btn-copy:hover {
+  border-color: #93c5fd;
+}
+
+.share-btn-copy.success {
+  border-color: #6ee7b7;
+  background: #f0fdf4;
+}
+
+.share-btn-whatsapp {
+  border-color: #bbf7d0;
+  background: #f7fef9;
+}
+
+.share-btn-whatsapp:hover {
+  border-color: #86efac;
+}
+
+.share-btn-telegram {
+  border-color: #bfdbfe;
+  background: #f8fbff;
+}
+
+.share-btn-telegram:hover {
+  border-color: #93c5fd;
+}
+
+.share-btn-facebook {
+  border-color: #bfdbfe;
+  background: #f8fbff;
+}
+
+.share-btn-facebook:hover {
+  border-color: #93c5fd;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.btn-continue {
+  width: 100%;
+  padding: 0.9rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  background: #1E4E8C;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-continue:hover {
+  background: #163d6d;
+}
+
+.btn-skip {
+  width: 100%;
+  padding: 0.8rem 2rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #666;
+  background: white;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-skip:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  text-align: center;
+  font-size: 1.25rem;
+  color: #666;
+  padding: 4rem 2rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .share-listing-screen {
+    padding: 1rem;
+  }
+
+  .success-title {
+    font-size: 1.5rem;
+  }
+
+  .property-preview {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .preview-image {
+    width: 100%;
+    height: 180px;
+  }
+
+  .preview-title {
+    white-space: normal;
+    overflow: visible;
+  }
+
+  .preview-stats-row {
+    justify-content: center;
+  }
+
+  .share-buttons-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .share-btn {
+    min-height: 100px;
+  }
+
+  .share-section {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .success-icon {
+    font-size: 2.5rem;
+  }
+
+  .success-title {
+    font-size: 1.35rem;
+  }
+
+  .preview-price {
+    font-size: 1.1rem;
+  }
+
+  .share-btn-icon {
+    font-size: 1.75rem;
+  }
+
+  .share-btn-text {
+    font-size: 0.95rem;
+  }
+}

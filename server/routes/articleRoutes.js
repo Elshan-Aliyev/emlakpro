@@ -14,28 +14,9 @@ const {
 const verifyToken = require('../middleware/authMiddleware');
 const { isAdmin } = require('../middleware/roleMiddleware');
 const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const cloudinary = require('../config/cloudinary');
 
-// Configure multer for article images
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'articles',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-    transformation: [
-      {
-        width: 1200,
-        height: 800,
-        crop: 'limit',
-        quality: 'auto:good',
-        fetch_format: 'auto'
-      }
-    ]
-  }
-});
-
-const upload = multer({ storage });
+// Use memory storage — the controller handles the Supabase upload
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Public routes
 router.get('/', getArticles);

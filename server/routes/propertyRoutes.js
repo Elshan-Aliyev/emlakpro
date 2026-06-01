@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/authMiddleware');
-const { uploadPropertyImages } = require('../config/cloudinary');
+const { checkAccountStatus } = require('../middleware/authMiddleware');
+const { uploadPropertyImages } = require('../config/supabase');
+const { listingCreateLimiter, inquiryLimiter } = require('../middleware/rateLimiter');
 
 const {
   createProperty,
@@ -14,14 +16,20 @@ const {
   deletePropertyImage,
   toggleSaveProperty,
   getSavedProperties,
-  incrementViews
+  incrementViews,
+  incrementShares,
+  submitInquiry,
+  revealPhone,
+  markPropertyStatus,
+  getPublicStats,
 } = require('../controllers/propertyController');
 
 // Property CRUD routes
-router.post('/', verifyToken, createProperty);
+router.post('/', verifyToken, checkAccountStatus, listingCreateLimiter, createProperty);
 router.get('/', getProperties);
+router.get('/stats', getPublicStats);  // must be before /:id
 router.get('/:id', getProperty);
-router.put('/:id', verifyToken, updateProperty);
+router.put('/:id', verifyToken, checkAccountStatus, updateProperty);
 router.delete('/:id', verifyToken, deleteProperty);
 
 // Image upload routes with error handling
@@ -73,5 +81,17 @@ router.get('/saved/my-properties', verifyToken, getSavedProperties);
 
 // View tracking
 router.post('/:id/view', incrementViews);
+
+// Share tracking
+router.post('/:id/share', incrementShares);
+
+// Inquiry submission (authenticated)
+router.post('/:id/inquiry', verifyToken, checkAccountStatus, inquiryLimiter, submitInquiry);
+
+// Phone reveal — authenticated, returns phone number
+router.get('/:id/phone', verifyToken, revealPhone);
+
+// Mark listing sold / rented (owner only)
+router.patch('/:id/status', verifyToken, markPropertyStatus);
 
 module.exports = router;

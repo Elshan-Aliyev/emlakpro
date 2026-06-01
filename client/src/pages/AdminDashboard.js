@@ -1,10 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AlertTriangle, Home, AlertCircle, Users, Eye, FileText, Settings, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getProperties, getUsers } from '../services/api';
 import Button from '../components/Button';
-import Badge from '../components/Badge';
 import './Admin.css';
+
+const ACCOUNT_TYPE_PILL = {
+  'verified-user':   { label: 'Verified',         bg: 'rgba(15,118,110,0.1)', fg: '#0F766E' },
+  'verified-seller': { label: 'Verified Seller',  bg: 'rgba(15,118,110,0.1)', fg: '#0F766E' },
+  'realtor':         { label: 'Realtor',           bg: '#FEF3C7',              fg: '#92400E' },
+  'corporate':       { label: 'Corporate',         bg: '#EDE9FE',              fg: '#5B21B6' },
+  'unverified-user': { label: 'Unverified',        bg: '#F1F5F9',              fg: '#64748B' },
+};
+const PILL_STYLE = { padding: '2px 8px', borderRadius: '999px', fontSize: '0.6875rem', fontWeight: 600, whiteSpace: 'nowrap' };
+const renderAccountType = (accountType) => {
+  const cfg = ACCOUNT_TYPE_PILL[accountType] || ACCOUNT_TYPE_PILL['unverified-user'];
+  return <span style={{ ...PILL_STYLE, background: cfg.bg, color: cfg.fg }}>{cfg.label}</span>;
+};
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -31,7 +44,7 @@ const AdminDashboard = () => {
       
       // Fetch properties
       const propertiesRes = await getProperties();
-      const properties = propertiesRes.data || [];
+      const properties = propertiesRes.data.properties || [];
       
       // Fetch users
       const usersRes = await getUsers(token);
@@ -72,9 +85,14 @@ const AdminDashboard = () => {
     return (
       <div className="admin-page">
         <div className="admin-container">
-          <div style={{ textAlign: 'center', padding: '4rem' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
-            <p>Loading dashboard...</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 16 }}>
+            {[80, 140, 200].map((h, i) => (
+              <div key={i} style={{
+                height: h, borderRadius: 16,
+                background: 'linear-gradient(90deg, #f0f0ef 25%, #e8e8e6 50%, #f0f0ef 75%)',
+                backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite',
+              }} />
+            ))}
           </div>
         </div>
       </div>
@@ -95,13 +113,15 @@ const AdminDashboard = () => {
               <Button>+ Create Listing</Button>
             </Link>
           </div>
-          <p>Welcome back, {user?.name}! Here's what's happening with your platform.</p>
+          <p>Platform overview for {user?.name}.</p>
         </div>
 
         {/* Alerts */}
         {stats.pendingListings > 0 && (
           <div className="admin-alert warning">
-            <div className="admin-alert-icon">⚠️</div>
+            <div className="admin-alert-icon">
+            <AlertTriangle size={18} strokeWidth={2} aria-hidden="true" />
+          </div>
             <div className="admin-alert-content">
               <div className="admin-alert-title">Pending Approvals</div>
               <div>You have {stats.pendingListings} listings waiting for approval.</div>
@@ -116,46 +136,46 @@ const AdminDashboard = () => {
         <div className="admin-stats-grid">
           <div className="admin-stat-card">
             <div className="admin-stat-header">
-              <div className="admin-stat-icon">🏠</div>
+              <div className="admin-stat-icon">
+                <Home size={18} strokeWidth={1.75} aria-hidden="true" />
+              </div>
             </div>
             <div className="admin-stat-value">{stats.totalListings}</div>
-            <div className="admin-stat-label">Total Listings</div>
-            <div className="admin-stat-change positive">
-              {stats.activeListings} active
-            </div>
+            <div className="admin-stat-label">Listings</div>
+            <div className="admin-stat-change positive">{stats.activeListings} active</div>
           </div>
 
           <div className="admin-stat-card">
             <div className="admin-stat-header">
-              <div className="admin-stat-icon warning">⏳</div>
+              <div className="admin-stat-icon warning">
+                <AlertCircle size={18} strokeWidth={1.75} aria-hidden="true" />
+              </div>
             </div>
             <div className="admin-stat-value">{stats.pendingListings}</div>
-            <div className="admin-stat-label">Pending Approval</div>
-            <div className="admin-stat-change">
-              Needs review
-            </div>
+            <div className="admin-stat-label">Pending review</div>
+            <div className="admin-stat-change">Awaiting approval</div>
           </div>
 
           <div className="admin-stat-card">
             <div className="admin-stat-header">
-              <div className="admin-stat-icon success">👥</div>
+              <div className="admin-stat-icon success">
+                <Users size={18} strokeWidth={1.75} aria-hidden="true" />
+              </div>
             </div>
             <div className="admin-stat-value">{stats.totalUsers}</div>
-            <div className="admin-stat-label">Total Users</div>
-            <div className="admin-stat-change positive">
-              +{stats.newUsers} this week
-            </div>
+            <div className="admin-stat-label">Users</div>
+            <div className="admin-stat-change positive">+{stats.newUsers} this week</div>
           </div>
 
           <div className="admin-stat-card">
             <div className="admin-stat-header">
-              <div className="admin-stat-icon info">👁️</div>
+              <div className="admin-stat-icon info">
+                <Eye size={18} strokeWidth={1.75} aria-hidden="true" />
+              </div>
             </div>
             <div className="admin-stat-value">{stats.totalViews.toLocaleString()}</div>
-            <div className="admin-stat-label">Total Views</div>
-            <div className="admin-stat-change positive">
-              All time
-            </div>
+            <div className="admin-stat-label">Views</div>
+            <div className="admin-stat-change positive">All time</div>
           </div>
         </div>
 
@@ -164,26 +184,34 @@ const AdminDashboard = () => {
           <h2 style={{ marginBottom: 'var(--space-4)' }}>Quick Actions</h2>
           <div className="admin-quick-actions">
             <Link to="/admin/listings" className="admin-quick-action">
-              <div className="admin-quick-action-icon">📋</div>
-              <div className="admin-quick-action-title">Manage Listings</div>
-              <div className="admin-quick-action-desc">Review and approve properties</div>
+              <div className="admin-quick-action-icon">
+                <FileText size={20} strokeWidth={1.75} aria-hidden="true" />
+              </div>
+              <div className="admin-quick-action-title">Listings</div>
+              <div className="admin-quick-action-desc">Review and approve</div>
             </Link>
 
             <Link to="/admin/users" className="admin-quick-action">
-              <div className="admin-quick-action-icon">👥</div>
-              <div className="admin-quick-action-title">Manage Users</div>
-              <div className="admin-quick-action-desc">View and moderate users</div>
+              <div className="admin-quick-action-icon">
+                <Users size={20} strokeWidth={1.75} aria-hidden="true" />
+              </div>
+              <div className="admin-quick-action-title">Users</div>
+              <div className="admin-quick-action-desc">View and moderate</div>
             </Link>
 
             <Link to="/admin/settings" className="admin-quick-action">
-              <div className="admin-quick-action-icon">⚙️</div>
-              <div className="admin-quick-action-title">Site Settings</div>
-              <div className="admin-quick-action-desc">Configure platform settings</div>
+              <div className="admin-quick-action-icon">
+                <Settings size={20} strokeWidth={1.75} aria-hidden="true" />
+              </div>
+              <div className="admin-quick-action-title">Settings</div>
+              <div className="admin-quick-action-desc">Platform configuration</div>
             </Link>
 
             <Link to="/properties/create" className="admin-quick-action">
-              <div className="admin-quick-action-icon">➕</div>
-              <div className="admin-quick-action-title">Add Listing</div>
+              <div className="admin-quick-action-icon">
+                <Plus size={20} strokeWidth={2} aria-hidden="true" />
+              </div>
+              <div className="admin-quick-action-title">Add listing</div>
               <div className="admin-quick-action-desc">Create new property</div>
             </Link>
           </div>
@@ -272,7 +300,6 @@ const AdminDashboard = () => {
                     <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
-                    <th>User Type</th>
                     <th>Account Type</th>
                     <th>Joined</th>
                     <th>Status</th>
@@ -283,29 +310,8 @@ const AdminDashboard = () => {
                     <tr key={user._id}>
                       <td><strong>{user.name}</strong></td>
                       <td>{user.email}</td>
-                      <td>{user.role || 'user'}</td>
-                      <td>
-                        <Badge variant={
-                          user.userType === 'agent' ? 'warning' :
-                          user.userType === 'seller' ? 'info' :
-                          'secondary'
-                        }>
-                          {user.userType === 'buyer' ? 'Buyer' :
-                           user.userType === 'seller' ? 'Seller' :
-                           user.userType === 'agent' ? 'Agent' :
-                           'Buyer'}
-                        </Badge>
-                      </td>
-                      <td>
-                        <Badge variant={user.accountType === 'unverified-user' ? 'secondary' : 'success'}>
-                          {user.accountType === 'unverified-user' ? 'Unverified' :
-                           user.accountType === 'verified-user' ? 'Verified User' :
-                           user.accountType === 'verified-seller' ? 'Verified Seller' :
-                           user.accountType === 'realtor' ? 'Realtor' :
-                           user.accountType === 'corporate' ? 'Corporate' :
-                           'Unverified'}
-                        </Badge>
-                      </td>
+                      <td>{user.role || 'registered'}</td>
+                      <td>{renderAccountType(user.accountType)}</td>
                       <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                       <td>
                         <span className="approved-badge">

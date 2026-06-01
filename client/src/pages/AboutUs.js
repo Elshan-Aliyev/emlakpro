@@ -1,12 +1,9 @@
 import React from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../layouts/Footer';
 import './StaticPages.css';
 
 const AboutUs = () => {
   return (
     <div className="static-page-container">
-      <Navbar />
       <div className="static-page-content">
         <h1>About Us</h1>
         <p className="subtitle">Learn more about Real Estate App and our mission</p>
@@ -83,7 +80,6 @@ const AboutUs = () => {
           </div>
         </section>
       </div>
-      <Footer />
     </div>
   );
 };

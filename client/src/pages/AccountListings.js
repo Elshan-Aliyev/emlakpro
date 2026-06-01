@@ -1,98 +1,184 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-import { getProperties, deleteProperty } from '../services/api';
-import Button from '../components/Button';
-import Badge from '../components/Badge';
-import Modal from '../components/Modal';
+import { getMyListings, deleteProperty, getMyListingsHealth, confirmListingAvailability, markPropertyStatus } from '../services/api';
+import OwnershipVerificationModal from '../components/OwnershipVerificationModal';
 import './Account.css';
+import './AccountListings.css';
+
+const STATUS_META = {
+  active:  { label: 'Active',   color: '#16a34a', bg: '#f0fdf4' },
+  pending: { label: 'Pending',  color: '#d97706', bg: '#fffbeb' },
+  paused:  { label: 'Paused',   color: '#6b7280', bg: '#f9fafb' },
+  sold:    { label: 'Sold',     color: '#1d4ed8', bg: '#eff6ff' },
+  rented:  { label: 'Rented',   color: '#7c3aed', bg: '#f5f3ff' },
+  draft:   { label: 'Draft',    color: '#6b7280', bg: '#f9fafb' },
+};
+
+const OV_META = {
+  none:     { label: 'Not submitted',    color: '#6b7280', bg: '#f9fafb' },
+  pending:  { label: 'Under review',     color: '#d97706', bg: '#fffbeb' },
+  approved: { label: 'Docs reviewed',    color: '#166534', bg: '#f0fdf4' },
+  rejected: { label: 'Rejected',         color: '#dc2626', bg: '#fef2f2' },
+};
+
+const getImageUrl = (images) => {
+  if (!images || images.length === 0) return null;
+  const img = images[0];
+  if (typeof img === 'string') return img;
+  return img.thumbnail || img.medium || img.large || null;
+};
+
+const getLocation = (p) => {
+  if (typeof p.location === 'string') return p.location;
+  if (p.city) return p.city;
+  return 'N/A';
+};
 
 const AccountListings = () => {
   const { user } = useAuth();
   const { success, error: showError } = useToast();
   const navigate = useNavigate();
+
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [deleteModal, setDeleteModal] = useState({ isOpen: false, property: null });
-  const [filter, setFilter] = useState('all'); // all, active, paused, sold
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [statusTarget, setStatusTarget] = useState(null); // { property, status }
+  const [markingStatus, setMarkingStatus] = useState(false);
+  const [ovModal, setOvModal] = useState(null);
+  const [healthMap, setHealthMap] = useState({});
+  const [confirming, setConfirming] = useState(null);
 
-  useEffect(() => {
-    fetchProperties();
-  }, [user]);
-
-  const fetchProperties = async () => {
+  const fetchProperties = useCallback(async () => {
     try {
-      const res = await getProperties();
-      const allProperties = res.data || [];
-      
-      // Filter user's properties
-      const userProperties = allProperties.filter(
-        (p) => p.ownerId?._id === user?.id || p.ownerId === user?.id
-      );
+      const token = localStorage.getItem('token');
+      const [listingsRes, healthRes] = await Promise.allSettled([
+        getMyListings(token),
+        getMyListingsHealth(token),
+      ]);
 
-      setProperties(userProperties);
+      if (listingsRes.status === 'fulfilled') {
+        setProperties(listingsRes.value.data || []);
+      }
+
+      if (healthRes.status === 'fulfilled') {
+        const map = {};
+        (healthRes.value.data.health || []).forEach((h) => { map[h._id] = h; });
+        setHealthMap(map);
+      }
     } catch (err) {
-      console.error('Error fetching properties:', err);
-      showError('Failed to load your listings');
+      console.error('fetchProperties error:', err);
+      showError('Failed to load listings.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [showError]);
 
-  const handleDelete = async () => {
-    if (!deleteModal.property) return;
-
+  const handleConfirmAvailability = async (propertyId) => {
+    setConfirming(propertyId);
     try {
       const token = localStorage.getItem('token');
-      await deleteProperty(deleteModal.property._id, token);
-      success('Property deleted successfully');
-      setDeleteModal({ isOpen: false, property: null });
-      fetchProperties(); // Refresh list
+      await confirmListingAvailability(propertyId, token);
+      success('Availability confirmed — listing is marked fresh.');
+      // Refresh health data
+      const healthRes = await getMyListingsHealth(token);
+      const map = {};
+      (healthRes.data.health || []).forEach((h) => { map[h._id] = h; });
+      setHealthMap(map);
     } catch (err) {
-      console.error('Error deleting property:', err);
-      showError(err.response?.data?.message || 'Failed to delete property');
+      showError('Failed to confirm availability.');
+    } finally {
+      setConfirming(null);
     }
   };
 
-  const openDeleteModal = (property) => {
-    setDeleteModal({ isOpen: true, property });
-  };
+  useEffect(() => {
+    fetchProperties();
+  }, [fetchProperties]);
 
-  const closeDeleteModal = () => {
-    setDeleteModal({ isOpen: false, property: null });
-  };
+  const filtered = statusFilter === 'all'
+    ? properties
+    : properties.filter(p => (p.status || 'active') === statusFilter);
 
-  const getFilteredProperties = () => {
-    if (filter === 'all') return properties;
-    return properties.filter(p => {
-      const status = p.status || 'active';
-      return status === filter;
-    });
-  };
-
-  const filteredProperties = getFilteredProperties();
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'active':
-        return <Badge variant="success">Active</Badge>;
-      case 'paused':
-        return <Badge variant="warning">Paused</Badge>;
-      case 'sold':
-        return <Badge variant="secondary">Sold</Badge>;
-      default:
-        return <Badge variant="success">Active</Badge>;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem('token');
+      await deleteProperty(deleteTarget._id, token);
+      success('Listing deleted.');
+      setDeleteTarget(null);
+      fetchProperties();
+    } catch (err) {
+      showError(err.response?.data?.message || 'Failed to delete listing.');
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const handleMarkStatus = async () => {
+    if (!statusTarget) return;
+    setMarkingStatus(true);
+    try {
+      const token = localStorage.getItem('token');
+      await markPropertyStatus(statusTarget.property._id, statusTarget.status, token);
+      success(`Listing marked as ${statusTarget.status}.`);
+      setStatusTarget(null);
+      fetchProperties();
+    } catch (err) {
+      showError(err.response?.data?.message || 'Failed to update listing status.');
+    } finally {
+      setMarkingStatus(false);
+    }
+  };
+
+  const canRequestVerification = (p) => {
+    const s = p.ownershipVerificationStatus || 'none';
+    return s === 'none' || s === 'rejected';
   };
 
   if (loading) {
     return (
       <div className="account-page">
         <div className="account-container">
-          <div style={{ textAlign: 'center', padding: '4rem' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
-            <p>Loading your listings...</p>
+          <div className="account-header">
+            <h1>My Listings</h1>
+            <p>Manage your property listings and request ownership verification</p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            {Array.from({ length: 3 }, (_, i) => (
+              <div key={i} style={{
+                background: 'white',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--gray-200)',
+                padding: 'var(--space-4)',
+                display: 'flex',
+                gap: 'var(--space-4)',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  width: 120, height: 90, borderRadius: 8, flexShrink: 0,
+                  background: 'linear-gradient(90deg, #f0f0ef 25%, #e8e8e6 50%, #f0f0ef 75%)',
+                  backgroundSize: '200% 100%',
+                  animation: 'shimmer 1.4s infinite linear',
+                }} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[60, 40, 80].map((w, j) => (
+                    <div key={j} style={{
+                      height: j === 0 ? 18 : 13,
+                      width: `${w}%`,
+                      borderRadius: 4,
+                      background: 'linear-gradient(90deg, #f0f0ef 25%, #e8e8e6 50%, #f0f0ef 75%)',
+                      backgroundSize: '200% 100%',
+                      animation: 'shimmer 1.4s infinite linear',
+                    }} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -103,190 +189,259 @@ const AccountListings = () => {
     <div className="account-page">
       <div className="account-container">
         {/* Header */}
-        <div className="dashboard-section">
-          <div className="account-header">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h1>My Listings</h1>
-                <p>Manage your property listings</p>
-              </div>
-              <Link to="/properties/create">
-                <Button>+ Create Listing</Button>
-              </Link>
-            </div>
-          </div>
+        <div className="account-header">
+          <h1>My Listings</h1>
+          <p>Manage your property listings and request ownership verification</p>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="dashboard-section">
-          <div className="section-header">
-            <h2>Filter Listings</h2>
-            <p>View listings by status</p>
+        {/* Toolbar */}
+        <div className="al-toolbar">
+          <div className="al-filter-tabs">
+            {['all', 'active', 'pending', 'paused', 'sold', 'rented'].map((s) => (
+              <button
+                key={s}
+                className={`al-tab ${statusFilter === s ? 'al-tab--active' : ''}`}
+                onClick={() => setStatusFilter(s)}
+              >
+                {s === 'all' ? 'All' : STATUS_META[s]?.label || s}
+                <span className="al-tab-count">
+                  {s === 'all' ? properties.length : properties.filter(p => (p.status || 'active') === s).length}
+                </span>
+              </button>
+            ))}
           </div>
-          <div style={{ 
-            display: 'flex', 
-            gap: 'var(--space-2)', 
-            flexWrap: 'wrap'
-          }}>
-          <Button 
-            variant={filter === 'all' ? 'primary' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('all')}
-          >
-            All ({properties.length})
-          </Button>
-          <Button 
-            variant={filter === 'active' ? 'primary' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('active')}
-          >
-            Active ({properties.filter(p => (p.status || 'active') === 'active').length})
-          </Button>
-          <Button 
-            variant={filter === 'paused' ? 'primary' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('paused')}
-          >
-            Paused ({properties.filter(p => p.status === 'paused').length})
-          </Button>
-          <Button 
-            variant={filter === 'sold' ? 'primary' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('sold')}
-          >
-            Sold ({properties.filter(p => p.status === 'sold').length})
-          </Button>
+          <button className="al-create-btn" onClick={() => navigate('/properties/create')}>
+            + New Listing
+          </button>
         </div>
-        </div>
+
+        {/* Seller visibility tip */}
+        {properties.length > 0 && (
+          <div className="al-seller-tip">
+            <strong>Visibility tip:</strong> Listings with photos, confirmed availability, and ownership verification appear higher in search results.{' '}
+            <Link to="/trust" className="al-seller-tip-link">Learn how rankings work</Link>
+          </div>
+        )}
 
         {/* Listings */}
-        <div className="dashboard-section">
-          <div className="section-header">
-            <h2>Your Properties</h2>
-            <p>{filteredProperties.length} {filter === 'all' ? 'total' : filter} listing{filteredProperties.length !== 1 ? 's' : ''}</p>
-          </div>
-          {filteredProperties.length === 0 ? (
-            <div className="recent-section">
-              <div className="empty-state">
-              <div className="empty-state-icon">🏘️</div>
-              <h3>
-                {filter === 'all' 
-                  ? 'No Listings Yet' 
-                  : `No ${filter.charAt(0).toUpperCase() + filter.slice(1)} Listings`
-                }
-              </h3>
-              <p>
-                {filter === 'all'
-                  ? 'Start by creating your first property listing'
-                  : `You don't have any ${filter} listings at the moment`
-                }
-              </p>
-              {filter === 'all' && (
-                <Link to="/properties/create">
-                  <Button>Create Listing</Button>
-                </Link>
-              )}
-            </div>
+        {filtered.length === 0 ? (
+          <div className="al-empty">
+            <p>{statusFilter === 'all' ? "You haven't created any listings yet." : `No ${statusFilter} listings.`}</p>
+            <button className="al-create-btn" onClick={() => navigate('/properties/create')}>
+              Create Your First Listing
+            </button>
           </div>
         ) : (
-          <div className="property-list">
-            {filteredProperties.map((property) => (
-              <div key={property._id} className="property-item">
-                {property.images?.[0] ? (
-                  <img
-                    src={property.images[0].url}
-                    alt={property.title}
-                    className="property-item-image"
-                  />
-                ) : (
-                  <div className="property-item-image-placeholder">🏠</div>
-                )}
+          <div className="al-list">
+            {filtered.map((property) => {
+              const sm = STATUS_META[property.status] || STATUS_META.pending;
+              const ovm = OV_META[property.ownershipVerificationStatus || 'none'];
+              const imgUrl = getImageUrl(property.images);
+              const ovStatus = property.ownershipVerificationStatus || 'none';
+              const health = healthMap[property._id];
+              const stalenessLevel = health?.staleness?.level || 'fresh';
+              const needsReconfirm = health?.staleness?.needsReconfirm || false;
 
-                <div className="property-item-content">
-                  <div>
-                    <div className="property-item-header">
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
-                          <div className="property-item-title">{property.title}</div>
-                          {getStatusBadge(property.status)}
-                          {property.isSponsored && <Badge variant="info">Sponsored</Badge>}
-                        </div>
-                        <div className="property-item-location">
-                          📍 {property.location?.city || 'Location not set'}
-                        </div>
-                      </div>
-                      <div className="property-item-price">
-                        ${property.price?.toLocaleString() || '0'}
-                      </div>
-                    </div>
-
-                    <div className="property-item-meta">
-                      <div className="property-item-meta-item">
-                        🛏️ {property.bedrooms || 0} beds
-                      </div>
-                      <div className="property-item-meta-item">
-                        🚿 {property.bathrooms || 0} baths
-                      </div>
-                      <div className="property-item-meta-item">
-                        📏 {property.builtUpArea || property.area || 0} m²
-                      </div>
-                      <div className="property-item-meta-item">
-                        🏷️ {property.propertyType?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'N/A'}
-                      </div>
-                    </div>
+              return (
+                <div key={property._id} className={`al-card${stalenessLevel !== 'fresh' ? ` al-card--${stalenessLevel}` : ''}`}>
+                  {/* Thumbnail */}
+                  <div className="al-card-thumb">
+                    {imgUrl ? (
+                      <img src={imgUrl} alt={property.title} />
+                    ) : (
+                      <div className="al-card-thumb-placeholder">No photo</div>
+                    )}
                   </div>
 
-                  <div className="property-item-footer">
-                    <div className="property-item-stats">
-                      <span>👁️ {property.views || 0} views</span>
-                      <span>❤️ {property.likes || 0} saves</span>
-                      <span>🕒 {new Date(property.createdAt).toLocaleDateString()}</span>
+                  {/* Info */}
+                  <div className="al-card-info">
+                    <div className="al-card-top">
+                      <div>
+                        <h3 className="al-card-title">{property.title}</h3>
+                        <p className="al-card-location">{getLocation(property)}</p>
+                      </div>
+                      <div className="al-card-price">
+                        {property.currency || 'AZN'} {property.price?.toLocaleString() || '—'}
+                      </div>
                     </div>
-                    <div className="property-item-actions">
-                      <Link to={`/listing/${property._id}`}>
-                        <Button variant="outline" size="sm">View</Button>
-                      </Link>
-                      <Link to={`/properties/update/${property._id}`}>
-                        <Button variant="outline" size="sm">Edit</Button>
-                      </Link>
-                      <Button 
-                        variant="danger" 
-                        size="sm"
-                        onClick={() => openDeleteModal(property)}
+
+                    {/* Status chips */}
+                    <div className="al-card-chips">
+                      <span className="al-chip" style={{ color: sm.color, background: sm.bg }}>
+                        {sm.label}
+                      </span>
+                      {!property.isApproved && property.status !== 'sold' && (
+                        <span className="al-chip" style={{ color: '#d97706', background: '#fffbeb' }}>
+                          Awaiting approval
+                        </span>
+                      )}
+                      <span
+                        className="al-chip al-chip--ov"
+                        style={{ color: ovm.color, background: ovm.bg }}
+                        title={ovStatus === 'rejected' && property.ownershipReviewNote
+                          ? `Reason: ${property.ownershipReviewNote}`
+                          : undefined}
                       >
-                        Delete
-                      </Button>
+                        {ovStatus === 'approved' && '✓ '}
+                        {ovm.label}
+                      </span>
+                      {/* Health badge */}
+                      {health && stalenessLevel !== 'fresh' && (
+                        <span className={`al-chip al-health-badge al-health-badge--${stalenessLevel}`}>
+                          {stalenessLevel === 'aging'    && `Aging · ${health.staleness.days}d`}
+                          {stalenessLevel === 'stale'    && `Stale · ${health.staleness.days}d`}
+                          {stalenessLevel === 'critical' && `Critical · ${health.staleness.days}d`}
+                        </span>
+                      )}
+                      {/* Photo count warning */}
+                      {health && health.photo.count === 0 && (
+                        <span className="al-chip al-photo-warn">No photos</span>
+                      )}
                     </div>
+
+                    {/* Rejection note */}
+                    {ovStatus === 'rejected' && property.ownershipReviewNote && (
+                      <p className="al-rejection-note">
+                        Review note: "{property.ownershipReviewNote}"
+                      </p>
+                    )}
+
+                    {/* Reconfirmation prompt */}
+                    {needsReconfirm && (
+                      <div className="al-reconfirm-prompt">
+                        <span className="al-reconfirm-text">Is this listing still available?</span>
+                        <button
+                          className="al-reconfirm-btn"
+                          onClick={() => handleConfirmAvailability(property._id)}
+                          disabled={confirming === property._id}
+                        >
+                          {confirming === property._id ? 'Confirming…' : 'Yes, still available'}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Visibility score bar */}
+                    {health && (
+                      <div className="al-visibility-bar" title={`Visibility score: ${health.visibility}/100`}>
+                        <div className="al-visibility-track">
+                          <div
+                            className="al-visibility-fill"
+                            style={{ width: `${health.visibility}%` }}
+                          />
+                        </div>
+                        <span className="al-visibility-label">{health.visibility}% visibility</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="al-card-actions">
+                    <Link to={`/listing/${property._id}`} className="al-action-link">
+                      View
+                    </Link>
+                    <Link to={`/properties/update/${property._id}`} className="al-action-link">
+                      Edit
+                    </Link>
+                    {canRequestVerification(property) && (
+                      <button
+                        className="al-action-btn al-action-btn--verify"
+                        onClick={() => setOvModal(property)}
+                      >
+                        {ovStatus === 'rejected' ? 'Resubmit Docs' : 'Verify Ownership'}
+                      </button>
+                    )}
+                    {ovStatus === 'pending' && (
+                      <button
+                        className="al-action-btn al-action-btn--verify"
+                        onClick={() => setOvModal(property)}
+                        title="Add more documents to your pending request"
+                      >
+                        Add Documents
+                      </button>
+                    )}
+                    {['active', 'pending', 'paused'].includes(property.status || 'active') && (
+                      <>
+                        <button
+                          className="al-action-btn al-action-btn--sold"
+                          onClick={() => setStatusTarget({ property, status: 'sold' })}
+                        >
+                          Mark sold
+                        </button>
+                        <button
+                          className="al-action-btn al-action-btn--sold"
+                          onClick={() => setStatusTarget({ property, status: 'rented' })}
+                        >
+                          Mark rented
+                        </button>
+                      </>
+                    )}
+                    <button
+                      className="al-action-btn al-action-btn--delete"
+                      onClick={() => setDeleteTarget(property)}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
-    </div>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={deleteModal.isOpen}
-        onClose={closeDeleteModal}
-        title="Delete Property"
-        size="sm"
-      >
-        <div style={{ padding: 'var(--space-4)' }}>
-          <p style={{ marginBottom: 'var(--space-6)', color: 'var(--gray-700)' }}>
-            Are you sure you want to delete "{deleteModal.property?.title}"? This action cannot be undone.
-          </p>
-          <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
-            <Button variant="outline" onClick={closeDeleteModal}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={handleDelete}>
-              Delete Property
-            </Button>
+      {/* Ownership verification modal */}
+      {ovModal && (
+        <OwnershipVerificationModal
+          property={ovModal}
+          onClose={() => setOvModal(null)}
+          onSubmitted={() => {
+            success('Verification request submitted. We will review it shortly.');
+            fetchProperties();
+          }}
+        />
+      )}
+
+      {/* Mark sold / rented confirmation */}
+      {statusTarget && (
+        <div className="al-confirm-overlay" onClick={() => !markingStatus && setStatusTarget(null)}>
+          <div className="al-confirm-dialog" onClick={e => e.stopPropagation()}>
+            <h3>Mark as {statusTarget.status === 'sold' ? 'Sold' : 'Rented'}</h3>
+            <p>
+              Mark <strong>"{statusTarget.property.title}"</strong> as {statusTarget.status}?
+              It will be removed from search results immediately.
+            </p>
+            <div className="al-confirm-actions">
+              <button className="al-confirm-cancel" onClick={() => setStatusTarget(null)} disabled={markingStatus}>
+                Cancel
+              </button>
+              <button className="al-confirm-delete" onClick={handleMarkStatus} disabled={markingStatus}>
+                {markingStatus ? 'Saving…' : `Yes, mark as ${statusTarget.status}`}
+              </button>
+            </div>
           </div>
         </div>
-      </Modal>
+      )}
+
+      {/* Delete confirmation */}
+      {deleteTarget && (
+        <div className="al-confirm-overlay" onClick={() => !deleting && setDeleteTarget(null)}>
+          <div className="al-confirm-dialog" onClick={e => e.stopPropagation()}>
+            <h3>Delete Listing</h3>
+            <p>
+              Are you sure you want to delete <strong>"{deleteTarget.title}"</strong>?
+              This cannot be undone.
+            </p>
+            <div className="al-confirm-actions">
+              <button className="al-confirm-cancel" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+                Cancel
+              </button>
+              <button className="al-confirm-delete" onClick={handleDelete} disabled={deleting}>
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

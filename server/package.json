@@ -17,16 +17,18 @@
   "author": "Your Name / Team Name",
   "license": "MIT",
   "dependencies": {
+    "@supabase/supabase-js": "^2.104.1",
     "bcryptjs": "^2.4.3",
-    "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.5.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.8.7",
     "multer": "^2.0.2",
-    "multer-storage-cloudinary": "^4.0.0",
-    "sharp": "^0.34.5"
+    "nodemailer": "^8.0.7",
+    "sharp": "^0.34.5",
+    "twilio": "^6.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

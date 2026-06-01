@@ -1,683 +1,550 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useSearchParams, useLocation } from 'react-router-dom';
+import { Search, X, ChevronDown, SlidersHorizontal, Map, AlignJustify } from 'lucide-react';
 import FilterModal from './FilterModal';
+import { parseNLQuery } from '../utils/nlpSearch';
+import { track } from '../services/analytics';
 import './FilterBar.css';
+
+const PROPERTY_TYPES_QUICK = [
+  { value: 'apartment',  label: 'Apartment'  },
+  { value: 'house',      label: 'House'       },
+  { value: 'villa',      label: 'Villa'       },
+  { value: 'townhouse',  label: 'Townhouse'   },
+  { value: 'penthouse',  label: 'Penthouse'   },
+  { value: 'studio',     label: 'Studio'      },
+  { value: 'duplex',     label: 'Duplex'      },
+  { value: 'office',     label: 'Office'      },
+  { value: 'land',       label: 'Land'        },
+];
+
+const BAKU_DISTRICTS = [
+  { value: 'Yasamal',   label: 'Yasamal'   },
+  { value: 'Nərimanov', label: 'Nərimanov' },
+  { value: 'Nəsimi',    label: 'Nəsimi'    },
+  { value: 'Xətai',     label: 'Xətai'     },
+  { value: 'Binəqədi',  label: 'Binəqədi'  },
+  { value: 'Sabunçu',   label: 'Sabunçu'   },
+  { value: 'Suraxanı',  label: 'Suraxanı'  },
+  { value: 'Qaradağ',   label: 'Qaradağ'   },
+  { value: 'Səbail',    label: 'Səbail'    },
+  { value: 'Pirallahı', label: 'Pirallahı' },
+];
+
+const ALL_FILTER_KEYS = [
+  'city', 'district', 'subCategory', 'propertyType', 'priceMin', 'priceMax', 'bedrooms', 'bathrooms', 'keyword',
+  'verified', 'fastResponse', 'newThisWeek', 'goodValue', 'recentlyConfirmed',
+  'nearMetro', 'familyFriendly', 'quietArea', 'furnished', 'parking',
+  'newBuilding', 'elevator', 'renovated', 'seaView',
+];
+
+// Keys that live in the modal (not quick pills) — for the badge count
+const MODAL_FILTER_KEYS = [
+  'city', 'district', 'keyword', 'bathrooms',
+  'verified', 'fastResponse', 'newThisWeek', 'goodValue', 'recentlyConfirmed',
+  'nearMetro', 'familyFriendly', 'quietArea', 'furnished', 'parking',
+  'newBuilding', 'elevator', 'renovated', 'seaView',
+];
 
 const FilterBar = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(window.innerWidth >= 768); // Collapsed on mobile by default
-  const navigate = useNavigate();
+  const [localSearch,     setLocalSearch]     = useState('');
+  const [openQF,          setOpenQF]          = useState(null); // 'price' | 'beds' | 'type'
+
+  const liveChips = useMemo(() => {
+    if (!localSearch.trim()) return [];
+    const { chips } = parseNLQuery(localSearch);
+    return chips || [];
+  }, [localSearch]);
+  const [localPriceMin,   setLocalPriceMin]   = useState('');
+  const [localPriceMax,   setLocalPriceMax]   = useState('');
+
+  const qfRef    = useRef(null);
   const location = useLocation();
-  const isUpdatingFromURL = useRef(false);
-  const isUpdatingURL = useRef(false); // Track when WE are updating the URL
-  const hasInitialized = useRef(false); // Track if we've done initial sync
-  
-  // Initialize states empty - will be populated by useEffect
-  const [propertyType, setPropertyType] = useState('');
-  const [purpose, setPurpose] = useState(''); // residential or commercial
-  const [rentalTerm, setRentalTerm] = useState(''); // long-term or short-term (for rent)
-  const [priceMin, setPriceMin] = useState('');
-  const [priceMax, setPriceMax] = useState('');
-  const [bedrooms, setBedrooms] = useState('');
-  const [bathrooms, setBathrooms] = useState('');
-  const [areaMin, setAreaMin] = useState('');
-  const [areaMax, setAreaMax] = useState('');
-  const [sortBy, setSortBy] = useState('newest');
-  const [showSold, setShowSold] = useState(false);
-  const [viewMode, setViewMode] = useState('map');
-  const [parking, setParking] = useState(false);
-  const [petsAllowed, setPetsAllowed] = useState(false);
-  const [furnished, setFurnished] = useState(false);
-  const [pool, setPool] = useState(false);
-  const [gym, setGym] = useState(false);
-  const [yearBuiltMin, setYearBuiltMin] = useState('');
-  const [yearBuiltMax, setYearBuiltMax] = useState('');
-  const [stories, setStories] = useState('');
-  const [view, setView] = useState('');
-  const [parkingSpots, setParkingSpots] = useState('');
-  const [listedSince, setListedSince] = useState('');
-  const [keywords, setKeywords] = useState('');
-  
-  // Sync FilterBar state with URL changes (when URL is updated externally)
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const listingStatus = searchParams.get('listingStatus') || '';
+  const propertyType  = searchParams.get('propertyType')  || '';
+  const bedrooms      = searchParams.get('bedrooms')      || '';
+  const bathrooms     = searchParams.get('bathrooms')     || '';
+  const priceMin      = searchParams.get('priceMin')      || '';
+  const priceMax      = searchParams.get('priceMax')      || '';
+  const keyword       = searchParams.get('keyword')       || '';
+  const viewMode      = searchParams.get('view')          || 'map';
+  const district      = searchParams.get('district')      || '';
+  const city          = searchParams.get('city')          || '';
+  const subCategory   = searchParams.get('subCategory')   || '';
+
+  // When Navbar AI search sets city=Yasamal (a Baku district), reflect it in the Region pill
+  const effectiveDistrict = district || (BAKU_DISTRICTS.some(d => d.value === city) ? city : '');
+
+  // Sync local state with URL
+  useEffect(() => { setLocalSearch(keyword); },   [keyword]);
+  useEffect(() => { setLocalPriceMin(priceMin); }, [priceMin]);
+  useEffect(() => { setLocalPriceMax(priceMax); }, [priceMax]);
+
+  // Close quick-filter dropdown on outside click
   useEffect(() => {
-    // Skip if WE just updated the URL (unless it's the first initialization)
-    if (isUpdatingURL.current && hasInitialized.current) {
-      isUpdatingURL.current = false;
+    if (!openQF) return;
+    const handler = (e) => {
+      if (qfRef.current && !qfRef.current.contains(e.target)) setOpenQF(null);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openQF]);
+
+  const setParam = useCallback((key, value) => {
+    const existing = searchParams.get(key);
+    if (value && value !== existing) {
+      track('filter_applied', { filter_key: key, filter_value: String(value) });
+    } else if (!value && existing) {
+      track('filter_removed', { filter_key: key });
+    }
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (!value) next.delete(key);
+      else        next.set(key, String(value));
+      return next;
+    }, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const handleClearFilters = useCallback(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams();
+      ['listingStatus', 'view', 'lng', 'lat', 'zoom'].forEach(k => {
+        if (prev.get(k)) next.set(k, prev.get(k));
+      });
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const commitSearch = useCallback(() => {
+    const trimmed = localSearch.trim();
+    if (!trimmed) {
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.delete('keyword');
+        return next;
+      }, { replace: true });
       return;
     }
-    
-    hasInitialized.current = true;
-    isUpdatingFromURL.current = true;
-    const params = new URLSearchParams(location.search);
-    
-    setPropertyType(params.get('propertyType') || '');
-    setPurpose(params.get('purpose') || '');
-    setRentalTerm(params.get('rentalTerm') || '');
-    setPriceMin(params.get('priceMin') || '');
-    setPriceMax(params.get('priceMax') || '');
-    setBedrooms(params.get('bedrooms') || '');
-    setBathrooms(params.get('bathrooms') || '');
-    setAreaMin(params.get('areaMin') || '');
-    setAreaMax(params.get('areaMax') || '');
-    setSortBy(params.get('sortBy') || 'newest');
-    setShowSold(params.get('showSold') === 'true');
-    setViewMode(params.get('view') || 'map');
-    setParking(params.get('parking') === 'true');
-    setPetsAllowed(params.get('petsAllowed') === 'true');
-    setFurnished(params.get('furnished') === 'true');
-    setPool(params.get('pool') === 'true');
-    setGym(params.get('gym') === 'true');
-    setYearBuiltMin(params.get('yearBuiltMin') || '');
-    setYearBuiltMax(params.get('yearBuiltMax') || '');
-    setStories(params.get('stories') || '');
-    setView(params.get('view') || '');
-    setParkingSpots(params.get('parkingSpots') || '');
-    setListedSince(params.get('listedSince') || '');
-    setKeywords(params.get('keywords') || '');
-    
-    // Use requestAnimationFrame to ensure this runs after all state updates complete
-    requestAnimationFrame(() => {
-      isUpdatingFromURL.current = false;
+    const { params: nlParams, remainingKeyword, chips } = parseNLQuery(trimmed);
+    const resolvedChips   = (chips || []).filter(c => c.type === 'resolved').map(c => c.label);
+    const unrecognized    = (chips || []).filter(c => c.type === 'uncertain').map(c => c.label);
+    track('search_submitted', {
+      query:              trimmed,
+      listing_status:     searchParams.get('listingStatus') || '',
+      has_price_range:    !!(searchParams.get('priceMin') || searchParams.get('priceMax')),
+      has_bedrooms:       !!searchParams.get('bedrooms'),
     });
-  }, [location.search]);
-  
-  // Only update URL when filters change AND user is not currently being synced from URL
-  useEffect(() => {
-    if (isUpdatingFromURL.current) return; // Prevent circular updates during URL sync
-    
-    // Only update URL if we're on the search page
-    if (!location.pathname.startsWith('/search')) return;
-    
-    // Add a small delay to batch multiple rapid changes together
-    const timeoutId = setTimeout(() => {
-      const currentParams = new URLSearchParams(location.search);
-      const newParams = new URLSearchParams(location.search);
-      
-      if (propertyType) newParams.set('propertyType', propertyType);
-      else newParams.delete('propertyType');
-      
-      if (purpose) newParams.set('purpose', purpose);
-      else newParams.delete('purpose');
-      
-      if (rentalTerm) newParams.set('rentalTerm', rentalTerm);
-      else newParams.delete('rentalTerm');
-      
-      if (priceMin) newParams.set('priceMin', priceMin);
-      else newParams.delete('priceMin');
-      
-      if (priceMax) newParams.set('priceMax', priceMax);
-      else newParams.delete('priceMax');
-      
-      if (bedrooms) newParams.set('bedrooms', bedrooms);
-      else newParams.delete('bedrooms');
-      
-      if (bathrooms) newParams.set('bathrooms', bathrooms);
-      else newParams.delete('bathrooms');
-      
-      if (areaMin) newParams.set('areaMin', areaMin);
-      else newParams.delete('areaMin');
-      
-      if (areaMax) newParams.set('areaMax', areaMax);
-      else newParams.delete('areaMax');
-      
-      if (yearBuiltMin) newParams.set('yearBuiltMin', yearBuiltMin);
-      else newParams.delete('yearBuiltMin');
-      
-      if (yearBuiltMax) newParams.set('yearBuiltMax', yearBuiltMax);
-      else newParams.delete('yearBuiltMax');
-      
-      if (stories) newParams.set('stories', stories);
-      else newParams.delete('stories');
-      
-      if (view) newParams.set('view', view);
-      else newParams.delete('view');
-      
-      if (parkingSpots) newParams.set('parkingSpots', parkingSpots);
-      else newParams.delete('parkingSpots');
-      
-      if (listedSince) newParams.set('listedSince', listedSince);
-      else newParams.delete('listedSince');
-      
-      if (keywords) newParams.set('keywords', keywords);
-      else newParams.delete('keywords');
-      
-      // Only navigate if the URL would actually change
-      const currentStr = currentParams.toString();
-      const newStr = newParams.toString();
-      
-      if (currentStr !== newStr) {
-        isUpdatingURL.current = true; // Mark that WE are updating the URL
-        navigate(`${location.pathname}?${newStr}`, { replace: true });
-        isUpdatingURL.current = false;
-      }
-    }, 0); // Instant update
-    
-    return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propertyType, purpose, rentalTerm, priceMin, priceMax, bedrooms, bathrooms, areaMin, areaMax, parking, petsAllowed, furnished, pool, gym, yearBuiltMin, yearBuiltMax, stories, view, parkingSpots, listedSince, keywords, location.pathname]);
+    if (resolvedChips.length > 0) {
+      track('search_interpreted', {
+        raw_query:        trimmed,
+        resolved_concepts: resolvedChips.join(', '),
+        unrecognized_fragments: unrecognized.join(', ') || null,
+        failed:           resolvedChips.length === 0,
+      });
+    }
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      Object.entries(nlParams).forEach(([k, v]) => {
+        if (v != null && String(v) !== '') next.set(k, String(v));
+      });
+      if (remainingKeyword) next.set('keyword', remainingKeyword);
+      else next.delete('keyword');
+      return next;
+    }, { replace: true });
+  }, [localSearch, searchParams, setSearchParams]);
 
-  // Clear propertyType when purpose or rentalTerm changes to avoid incompatible selections
-  useEffect(() => {
-    if (isUpdatingFromURL.current) return; // Don't clear during URL sync
-    setPropertyType('');
-  }, [purpose, rentalTerm]);
+  const handleKeyDown = (e) => { if (e.key === 'Enter') commitSearch(); };
 
-  const handleApplyFilters = () => {
-    const params = new URLSearchParams(location.search);
-    
-    if (propertyType) params.set('propertyType', propertyType);
-    else params.delete('propertyType');
-    
-    if (priceMin) params.set('priceMin', priceMin);
-    else params.delete('priceMin');
-    
-    if (priceMax) params.set('priceMax', priceMax);
-    else params.delete('priceMax');
-    
-    if (bedrooms) params.set('bedrooms', bedrooms);
-    else params.delete('bedrooms');
-    
-    if (bathrooms) params.set('bathrooms', bathrooms);
-    else params.delete('bathrooms');
-    
-    if (areaMin) params.set('areaMin', areaMin);
-    else params.delete('areaMin');
-    
-    if (areaMax) params.set('areaMax', areaMax);
-    else params.delete('areaMax');
-    
-    if (sortBy) params.set('sortBy', sortBy);
-    else params.delete('sortBy');
-    
-    if (showSold) params.set('showSold', 'true');
-    else params.delete('showSold');
-    
-    if (viewMode) params.set('view', viewMode);
-    else params.delete('view');
-    
-    if (parking) params.set('parking', 'true');
-    else params.delete('parking');
-    
-    if (petsAllowed) params.set('petsAllowed', 'true');
-    else params.delete('petsAllowed');
-    
-    if (furnished) params.set('furnished', 'true');
-    else params.delete('furnished');
-    
-    if (pool) params.set('pool', 'true');
-    else params.delete('pool');
-    
-    if (gym) params.set('gym', 'true');
-    else params.delete('gym');
-    
-    if (yearBuiltMin) params.set('yearBuiltMin', yearBuiltMin);
-    else params.delete('yearBuiltMin');
-    
-    if (yearBuiltMax) params.set('yearBuiltMax', yearBuiltMax);
-    else params.delete('yearBuiltMax');
-    
-    if (stories) params.set('stories', stories);
-    else params.delete('stories');
-    
-    if (view) params.set('view', view);
-    else params.delete('view');
-    
-    if (parkingSpots) params.set('parkingSpots', parkingSpots);
-    else params.delete('parkingSpots');
-    
-    if (listedSince) params.set('listedSince', listedSince);
-    else params.delete('listedSince');
-    
-    if (keywords) params.set('keywords', keywords);
-    else params.delete('keywords');
-    
-    navigate(`${location.pathname}?${params.toString()}`);
+  const applyPrice = useCallback(() => {
+    setParam('priceMin', localPriceMin);
+    setParam('priceMax', localPriceMax);
+    setOpenQF(null);
+  }, [localPriceMin, localPriceMax, setParam]);
+
+  // ── Pill labels ──────────────────────────────────────────────────────────────
+  const priceLabel = useMemo(() => {
+    const fmt = (n) => {
+      const num = parseInt(n, 10);
+      if (!num) return '0';
+      return num >= 1000 ? `${Math.round(num / 1000)}k` : String(num);
+    };
+    if (priceMin && priceMax) return `${fmt(priceMin)} – ${fmt(priceMax)}`;
+    if (priceMax) return `Up to ${fmt(priceMax)}`;
+    if (priceMin) return `${fmt(priceMin)}+`;
+    return 'Price';
+  }, [priceMin, priceMax]);
+
+  const bedsLabel = bedrooms
+    ? `${bedrooms}+ bed${bedrooms === '1' ? '' : 's'}`
+    : 'Beds';
+
+  const typeLabel = propertyType
+    ? propertyType.charAt(0).toUpperCase() + propertyType.slice(1).replace(/-/g, ' ')
+    : 'Type';
+
+  const regionLabel   = effectiveDistrict ? effectiveDistrict : 'Region';
+  const durationLabel = subCategory === 'short-term' ? 'Short-term'
+                      : subCategory === 'long-term'  ? 'Long-term'
+                      : 'Duration';
+
+  const hasActiveFilters = ALL_FILTER_KEYS.some(k => searchParams.get(k));
+  const modalActiveCount = MODAL_FILTER_KEYS.filter(k => searchParams.get(k)).length;
+
+  // ── Modal filters object ─────────────────────────────────────────────────────
+  const modalFilters = {
+    listingStatus,
+    city:              searchParams.get('city')              || '',
+    propertyType,
+    bedrooms,
+    bathrooms,
+    minPrice:          priceMin,
+    maxPrice:          priceMax,
+    keyword,
+    nearMetro:         searchParams.get('nearMetro')         || '',
+    familyFriendly:    searchParams.get('familyFriendly')    || '',
+    quietArea:         searchParams.get('quietArea')         || '',
+    furnished:         searchParams.get('furnished')         || '',
+    parking:           searchParams.get('parking')           || '',
+    verified:          searchParams.get('verified')          || '',
+    recentlyConfirmed: searchParams.get('recentlyConfirmed') || '',
+    newThisWeek:       searchParams.get('newThisWeek')       || '',
+    fastResponse:      searchParams.get('fastResponse')      || '',
+    goodValue:         searchParams.get('goodValue')         || '',
+    newBuilding:       searchParams.get('newBuilding')       || '',
+    elevator:          searchParams.get('elevator')          || '',
+    renovated:         searchParams.get('renovated')         || '',
+    seaView:           searchParams.get('seaView')           || '',
   };
-  
-  const handleClearFilters = () => {
-    setPropertyType('');
-    setPriceMin('');
-    setPriceMax('');
-    setBedrooms('');
-    setBathrooms('');
-    setAreaMin('');
-    setAreaMax('');
-    setSortBy('newest');
-    setParking(false);
-    setPetsAllowed(false);
-    setFurnished(false);
-    setPool(false);
-    setGym(false);
-    setShowSold(false);
-    setViewMode('map');
-    setYearBuiltMin('');
-    setYearBuiltMax('');
-    setStories('');
-    setView('');
-    setParkingSpots('');
-    setListedSince('');
-    setKeywords('');
-    
-    // Preserve listingStatus and purpose when clearing
-    const params = new URLSearchParams();
-    const urlParams = new URLSearchParams(location.search);
-    const listingStatus = urlParams.get('listingStatus');
-    const purpose = urlParams.get('purpose');
-    if (listingStatus) params.set('listingStatus', listingStatus);
-    if (purpose) params.set('purpose', purpose);
-    
-    navigate(`${location.pathname}?${params.toString()}`);
-  };
-  
-  // Only show filter bar on search page
-  if (!location.pathname.includes('/search')) {
-    return null;
-  }
-  
+
+  const handleModalFilterChange = useCallback((key, value) => {
+    const urlKey = { minPrice: 'priceMin', maxPrice: 'priceMax' }[key] || key;
+    setParam(urlKey, value);
+  }, [setParam]);
+
+  if (!location.pathname.includes('/search')) return null;
+
   return (
-    <>
-      {/* Mobile Toggle Button */}
-      <button 
-        className="filter-bar-mobile-toggle"
-        onClick={() => setIsExpanded(!isExpanded)}
-        aria-label="Toggle filters"
-      >
-        <span className={`toggle-chevron ${isExpanded ? 'expanded' : ''}`}>
-          <svg width="20" height="12" viewBox="0 0 20 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M1 1L10 10L19 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </span>
-      </button>
-      
-      <div className={`filter-bar ${isExpanded ? 'expanded' : ''}`}>
-        <div className="filter-bar-container">
-          <div className="filter-bar-content">
-          {/* Sort By */}
-          <select
-            className="filter-bar-select filter-bar-sort"
-            value={sortBy}
-            onChange={(e) => {
-              setSortBy(e.target.value);
-              const params = new URLSearchParams(location.search);
-              params.set('sortBy', e.target.value);
-              navigate(`${location.pathname}?${params.toString()}`);
-            }}
-            title="Sort By"
-          >
-            <option value="newest">🕐 Newest</option>
-            <option value="price-low">💵 Price: Low-High</option>
-            <option value="price-high">💰 Price: High-Low</option>
-            <option value="beds">🛏️ Most Bedrooms</option>
-            <option value="area">📏 Largest Area</option>
-          </select>
-          
-          {/* Purpose/Rental Term - Conditional based on listingStatus */}
-          {(() => {
-            const params = new URLSearchParams(location.search);
-            const listingStatus = params.get('listingStatus');
-            
-            // For rent mode
-            if (listingStatus === 'for-rent') {
-              return (
-                <>
-                  {/* Residential/Commercial for Rent */}
-                  <select
-                    className="filter-bar-select filter-bar-hide-mobile"
-                    value={purpose}
-                    onChange={(e) => {
-                      setPurpose(e.target.value);
-                      // Reset rental term when purpose changes
-                      if (e.target.value !== 'residential') {
-                        setRentalTerm('');
-                      }
-                    }}
-                    title="Purpose"
-                  >
-                    <option value="">🏢 Purpose</option>
-                    <option value="residential">Residential</option>
-                    <option value="commercial">Commercial</option>
-                  </select>
-                  
-                  {/* Show rental term only for residential rent */}
-                  {purpose === 'residential' && (
-                    <select
-                      className="filter-bar-select filter-bar-hide-mobile"
-                      value={rentalTerm}
-                      onChange={(e) => setRentalTerm(e.target.value)}
-                      title="Rental Term"
-                    >
-                      <option value="">📅 Term</option>
-                      <option value="long-term">Long Term</option>
-                      <option value="short-term">Short Term</option>
-                    </select>
-                  )}
-                </>
-              );
-            }
-            
-            // For buy mode
-            if (listingStatus === 'for-sale') {
-              return (
-                <select
-                  className="filter-bar-select filter-bar-hide-mobile"
-                  value={purpose}
-                  onChange={(e) => setPurpose(e.target.value)}
-                  title="Purpose"
-                >
-                  <option value="">🏢 Purpose</option>
-                  <option value="residential">Residential</option>
-                  <option value="commercial">Commercial</option>
-                </select>
-              );
-            }
-            
-            return null;
-          })()}
-          
-          {/* Property Type */}
-          <select
-            className="filter-bar-select filter-bar-hide-mobile"
-            value={propertyType}
-            onChange={(e) => setPropertyType(e.target.value)}
-            title="Property Type"
-          >
-            <option value="">🏠 Property Type</option>
-            {/* Residential Buy */}
-            {purpose === 'residential' && !rentalTerm && (
-              <>
-                <option value="apartment">Apartment</option>
-                <option value="house">House</option>
-                <option value="townhouse">Townhouse</option>
-                <option value="villa">Villa</option>
-                <option value="penthouse">Penthouse</option>
-                <option value="studio">Studio</option>
-                <option value="duplex">Duplex</option>
-              </>
-            )}
-            {/* Commercial Buy */}
-            {purpose === 'commercial' && !rentalTerm && (
-              <>
-                <option value="commercial-retail">Commercial Retail</option>
-                <option value="commercial-unit">Commercial Unit</option>
-                <option value="office">Office</option>
-                <option value="industrial">Industrial</option>
-                <option value="warehouse">Warehouse</option>
-                <option value="shop">Shop</option>
-                <option value="restaurant">Restaurant</option>
-                <option value="land">Land</option>
-                <option value="farm">Farm</option>
-              </>
-            )}
-            {/* Residential Long-term Rent */}
-            {purpose === 'residential' && rentalTerm === 'long-term' && (
-              <>
-                <option value="apartment">Apartment</option>
-                <option value="house">House</option>
-                <option value="townhouse">Townhouse</option>
-                <option value="villa">Villa</option>
-                <option value="studio">Studio</option>
-                <option value="duplex">Duplex</option>
-                <option value="penthouse">Penthouse</option>
-              </>
-            )}
-            {/* Residential Short-term Rent */}
-            {purpose === 'residential' && rentalTerm === 'short-term' && (
-              <>
-                <option value="apartment">Apartment</option>
-                <option value="house">House</option>
-                <option value="villa">Villa</option>
-                <option value="townhouse">Townhouse</option>
-                <option value="studio">Studio</option>
-                <option value="cabin">🏕️ Cabin</option>
-                <option value="cottage">🏠 Cottage</option>
-                <option value="bungalow">🏘️ Bungalow</option>
-                <option value="chalet">🏔️ Chalet</option>
-                <option value="loft">🏙️ Loft</option>
-                <option value="tiny-house">🏠 Tiny House</option>
-                <option value="mobile-home">🚐 Mobile Home</option>
-                <option value="rv">🚐 RV</option>
-                <option value="camper-van">🚐 Camper Van</option>
-                <option value="boat">⛵ Boat</option>
-                <option value="treehouse">🌳 Treehouse</option>
-                <option value="dome">🏔️ Dome</option>
-                <option value="a-frame">🏔️ A-Frame</option>
-                <option value="barn">🏭 Barn</option>
-                <option value="castle">🏰 Castle</option>
-                <option value="cave">🕳️ Cave</option>
-                <option value="windmill">🌬️ Windmill</option>
-                <option value="lighthouse">🏮 Lighthouse</option>
-                <option value="room">🛏️ Room</option>
-                <option value="shared-room">👥 Shared Room</option>
-                <option value="entire-place">🏠 Entire Place</option>
-              </>
-            )}
-          </select>
-          
-          {/* Bedrooms */}
-          <select
-            className="filter-bar-select filter-bar-hide-mobile"
-            value={bedrooms}
-            onChange={(e) => setBedrooms(e.target.value)}
-            title="Bedrooms"
-          >
-            <option value="">🛏️ Beds</option>
-            <option value="1">1+</option>
-            <option value="2">2+</option>
-            <option value="3">3+</option>
-            <option value="4">4+</option>
-            <option value="5">5+</option>
-          </select>
-          
-          {/* Bathrooms */}
-          <select
-            className="filter-bar-select filter-bar-hide-mobile"
-            value={bathrooms}
-            onChange={(e) => setBathrooms(e.target.value)}
-            title="Bathrooms"
-          >
-            <option value="">🚿 Baths</option>
-            <option value="1">1+</option>
-            <option value="2">2+</option>
-            <option value="3">3+</option>
-            <option value="4">4+</option>
-          </select>
-          
-          {/* Min Price */}
-          <select
-            className="filter-bar-select filter-bar-hide-mobile"
-            value={priceMin}
-            onChange={(e) => setPriceMin(e.target.value)}
-            title="Min Price"
-          >
-            <option value="">💰 Min Price</option>
-            <option value="50000">$50k</option>
-            <option value="100000">$100k</option>
-            <option value="200000">$200k</option>
-            <option value="300000">$300k</option>
-            <option value="400000">$400k</option>
-            <option value="500000">$500k</option>
-            <option value="750000">$750k</option>
-            <option value="1000000">$1M</option>
-            <option value="1500000">$1.5M</option>
-            <option value="2000000">$2M</option>
-          </select>
-          
-          {/* Max Price */}
-          <select
-            className="filter-bar-select filter-bar-hide-mobile"
-            value={priceMax}
-            onChange={(e) => setPriceMax(e.target.value)}
-            title="Max Price"
-          >
-            <option value="">💰 Max Price</option>
-            <option value="100000">$100k</option>
-            <option value="200000">$200k</option>
-            <option value="300000">$300k</option>
-            <option value="400000">$400k</option>
-            <option value="500000">$500k</option>
-            <option value="750000">$750k</option>
-            <option value="1000000">$1M</option>
-            <option value="1500000">$1.5M</option>
-            <option value="2000000">$2M</option>
-            <option value="5000000">$5M+</option>
-          </select>
-          
-          {/* Spacer */}
-          <div style={{flex: 1}}></div>
-          
-          {/* Filters Button - Opens Modal */}
-          <button 
-            onClick={() => setShowFilterModal(true)} 
-            className="filter-bar-btn"
-            title="Open Filters"
-          >
-            <span className="filter-icon">⚙️</span> Filters
-          </button>
-          
-          {/* Clear Button */}
-          <button onClick={handleClearFilters} className="filter-bar-btn filter-bar-btn-secondary">
-            Clear
-          </button>
-          
-          {/* View Mode Toggle */}
-          <div className="view-toggle">
+    <div className="filter-bar" role="search" aria-label="Property search filters">
+      <div className="fb-inner" ref={qfRef}>
+
+        {/* ── Mode tabs ── */}
+        <div className="fb-modes">
+          {[
+            { value: 'for-sale',    label: 'Buy'  },
+            { value: 'for-rent',    label: 'Rent' },
+            { value: 'new-project', label: 'New'  },
+          ].map(m => (
             <button
-              className={`view-toggle-btn ${viewMode === 'map' ? 'active' : ''}`}
-              onClick={() => {
-                setViewMode('map');
-                const params = new URLSearchParams(location.search);
-                params.set('view', 'map');
-                navigate(`${location.pathname}?${params.toString()}`);
-              }}
-              title="Map View"
+              key={m.value}
+              className={`fb-tab${listingStatus === m.value ? ' fb-tab--active' : ''}`}
+              onClick={() => setParam('listingStatus', m.value)}
             >
-              Map
+              {m.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── AI search ── */}
+        <div className="fb-search">
+          <Search className="fb-search-ico" size={15} strokeWidth={2} aria-hidden="true" />
+          <input
+            className="fb-search-input"
+            type="text"
+            placeholder="2 bed near metro, under 200k…"
+            value={localSearch}
+            onChange={e => setLocalSearch(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={commitSearch}
+            aria-label="Search properties"
+          />
+          {localSearch && (
+            <button
+              className="fb-search-clear"
+              onClick={() => {
+                setLocalSearch('');
+                setSearchParams(prev => {
+                  const next = new URLSearchParams(prev);
+                  next.delete('keyword');
+                  return next;
+                }, { replace: true });
+              }}
+              aria-label="Clear search"
+            >
+              <X size={13} strokeWidth={2.5} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+
+        {/* ── Quick filter pills ── */}
+        <div className="fb-quick-pills">
+
+          {/* Price */}
+          <div className="fb-qp-wrap">
+            <button
+              className={`fb-quick-pill${priceMin || priceMax ? ' fb-quick-pill--active' : ''}${openQF === 'price' ? ' fb-quick-pill--open' : ''}`}
+              onClick={() => setOpenQF(openQF === 'price' ? null : 'price')}
+              aria-expanded={openQF === 'price'}
+            >
+              {priceLabel}
+              <ChevronDown className="fb-qp-chevron" size={10} strokeWidth={2.5} aria-hidden="true" />
+            </button>
+            {openQF === 'price' && (
+              <div className="fb-qd" role="dialog" aria-label="Price range">
+                <div className="fb-qd-title">Price range (AZN)</div>
+                <div className="fb-qd-price-row">
+                  <input
+                    className="fb-qd-input"
+                    type="number"
+                    placeholder="Min"
+                    value={localPriceMin}
+                    onChange={e => setLocalPriceMin(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && applyPrice()}
+                    min="0"
+                  />
+                  <span className="fb-qd-sep">—</span>
+                  <input
+                    className="fb-qd-input"
+                    type="number"
+                    placeholder="Max"
+                    value={localPriceMax}
+                    onChange={e => setLocalPriceMax(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && applyPrice()}
+                    min="0"
+                  />
+                </div>
+                <div className="fb-qd-presets">
+                  {[
+                    { min: '',       max: '100000', label: 'Under 100k'   },
+                    { min: '',       max: '200000', label: 'Under 200k'   },
+                    { min: '200000', max: '500000', label: '200k – 500k'  },
+                    { min: '500000', max: '',       label: '500k+'         },
+                  ].map(p => (
+                    <button
+                      key={p.label}
+                      className={`fb-qd-preset${localPriceMin === p.min && localPriceMax === p.max ? ' fb-qd-preset--on' : ''}`}
+                      onClick={() => { setLocalPriceMin(p.min); setLocalPriceMax(p.max); }}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="fb-qd-footer">
+                  {(priceMin || priceMax) && (
+                    <button
+                      className="fb-qd-clear"
+                      onClick={() => {
+                        setLocalPriceMin(''); setLocalPriceMax('');
+                        setParam('priceMin', ''); setParam('priceMax', '');
+                        setOpenQF(null);
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                  <button className="fb-qd-apply" onClick={applyPrice}>Apply</button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Beds */}
+          <div className="fb-qp-wrap">
+            <button
+              className={`fb-quick-pill${bedrooms ? ' fb-quick-pill--active' : ''}${openQF === 'beds' ? ' fb-quick-pill--open' : ''}`}
+              onClick={() => setOpenQF(openQF === 'beds' ? null : 'beds')}
+              aria-expanded={openQF === 'beds'}
+            >
+              {bedsLabel}
+              <ChevronDown className="fb-qp-chevron" size={10} strokeWidth={2.5} aria-hidden="true" />
+            </button>
+            {openQF === 'beds' && (
+              <div className="fb-qd fb-qd--narrow" role="dialog" aria-label="Bedrooms">
+                <div className="fb-qd-title">Bedrooms</div>
+                <div className="fb-qd-num-row">
+                  {[
+                    { value: '',  label: 'Any' },
+                    { value: '1', label: '1+'  },
+                    { value: '2', label: '2+'  },
+                    { value: '3', label: '3+'  },
+                    { value: '4', label: '4+'  },
+                    { value: '5', label: '5+'  },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      className={`fb-qd-num-btn${bedrooms === opt.value ? ' fb-qd-num-btn--on' : ''}`}
+                      onClick={() => { setParam('bedrooms', opt.value); setOpenQF(null); }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Type */}
+          <div className="fb-qp-wrap">
+            <button
+              className={`fb-quick-pill${propertyType ? ' fb-quick-pill--active' : ''}${openQF === 'type' ? ' fb-quick-pill--open' : ''}`}
+              onClick={() => setOpenQF(openQF === 'type' ? null : 'type')}
+              aria-expanded={openQF === 'type'}
+            >
+              {typeLabel}
+              <ChevronDown className="fb-qp-chevron" size={10} strokeWidth={2.5} aria-hidden="true" />
+            </button>
+            {openQF === 'type' && (
+              <div className="fb-qd" role="dialog" aria-label="Property type">
+                <div className="fb-qd-title">Property type</div>
+                <div className="fb-qd-type-grid">
+                  <button
+                    className={`fb-qd-type-chip${!propertyType ? ' fb-qd-type-chip--on' : ''}`}
+                    onClick={() => { setParam('propertyType', ''); setOpenQF(null); }}
+                  >
+                    All types
+                  </button>
+                  {PROPERTY_TYPES_QUICK.map(t => (
+                    <button
+                      key={t.value}
+                      className={`fb-qd-type-chip${propertyType === t.value ? ' fb-qd-type-chip--on' : ''}`}
+                      onClick={() => { setParam('propertyType', t.value); setOpenQF(null); }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Region (buy/new-project) ↔ Duration (rent) */}
+          {listingStatus === 'for-rent' ? (
+            <div className="fb-qp-wrap">
+              <button
+                className={`fb-quick-pill${subCategory ? ' fb-quick-pill--active' : ''}${openQF === 'duration' ? ' fb-quick-pill--open' : ''}`}
+                onClick={() => setOpenQF(openQF === 'duration' ? null : 'duration')}
+                aria-expanded={openQF === 'duration'}
+              >
+                {durationLabel}
+                <ChevronDown className="fb-qp-chevron" size={10} strokeWidth={2.5} aria-hidden="true" />
+              </button>
+              {openQF === 'duration' && (
+                <div className="fb-qd fb-qd--narrow" role="dialog" aria-label="Rental duration">
+                  <div className="fb-qd-title">Rental duration</div>
+                  <div className="fb-qd-num-row">
+                    {[
+                      { value: '',           label: 'Any'        },
+                      { value: 'short-term', label: 'Short-term' },
+                      { value: 'long-term',  label: 'Long-term'  },
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        className={`fb-qd-num-btn${subCategory === opt.value ? ' fb-qd-num-btn--on' : ''}`}
+                        onClick={() => { setParam('subCategory', opt.value); setOpenQF(null); }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="fb-qp-wrap">
+              <button
+                className={`fb-quick-pill${effectiveDistrict ? ' fb-quick-pill--active' : ''}${openQF === 'region' ? ' fb-quick-pill--open' : ''}`}
+                onClick={() => setOpenQF(openQF === 'region' ? null : 'region')}
+                aria-expanded={openQF === 'region'}
+              >
+                {regionLabel}
+                <ChevronDown className="fb-qp-chevron" size={10} strokeWidth={2.5} aria-hidden="true" />
+              </button>
+              {openQF === 'region' && (
+                <div className="fb-qd fb-qd--region" role="dialog" aria-label="Baku districts">
+                  <div className="fb-qd-title">Area / District</div>
+                  <div className="fb-qd-type-grid">
+                    <button
+                      className={`fb-qd-type-chip${!effectiveDistrict ? ' fb-qd-type-chip--on' : ''}`}
+                      onClick={() => { setParam('district', ''); setParam('city', ''); setOpenQF(null); }}
+                    >
+                      All areas
+                    </button>
+                    {BAKU_DISTRICTS.map(d => (
+                      <button
+                        key={d.value}
+                        className={`fb-qd-type-chip${effectiveDistrict === d.value ? ' fb-qd-type-chip--on' : ''}`}
+                        onClick={() => { setParam('district', d.value); setOpenQF(null); }}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+
+        {/* ── Actions ── */}
+        <div className="fb-actions">
+          <button
+            className={`fb-filters-btn${hasActiveFilters ? ' fb-filters-btn--active' : ''}`}
+            onClick={() => setShowFilterModal(true)}
+            aria-label="All filters"
+          >
+            <SlidersHorizontal size={13} strokeWidth={2} aria-hidden="true" />
+            Filters
+            {modalActiveCount > 0 && (
+              <span className="fb-active-count" aria-label={`${modalActiveCount} active filters`}>
+                {modalActiveCount}
+              </span>
+            )}
+          </button>
+
+          <div className="fb-view-toggle" role="group" aria-label="View mode">
+            <button
+              className={`fb-view-btn${viewMode === 'map' ? ' active' : ''}`}
+              onClick={() => setParam('view', 'map')}
+              title="Map view"
+              aria-pressed={viewMode === 'map'}
+            >
+              <Map size={15} strokeWidth={2} aria-hidden="true" />
             </button>
             <button
-              className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => {
-                setViewMode('list');
-                const params = new URLSearchParams(location.search);
-                params.set('view', 'list');
-                navigate(`${location.pathname}?${params.toString()}`);
-              }}
-              title="List View"
+              className={`fb-view-btn${viewMode === 'list' ? ' active' : ''}`}
+              onClick={() => setParam('view', 'list')}
+              title="List view"
+              aria-pressed={viewMode === 'list'}
             >
-              List
+              <AlignJustify size={15} strokeWidth={2} aria-hidden="true" />
             </button>
           </div>
         </div>
+
       </div>
-      
-      {/* Filter Modal */}
+
+      {liveChips.length > 0 && (
+        <div className="fb-nl-chips" aria-live="polite">
+          {liveChips.map((chip, i) => (
+            <span key={i} className={`fb-nl-chip fb-nl-chip--${chip.type}`}>
+              {chip.label}
+            </span>
+          ))}
+        </div>
+      )}
+
       <FilterModal
         isOpen={showFilterModal}
         onClose={() => setShowFilterModal(false)}
-        filters={{
-          listingStatus: new URLSearchParams(location.search).get('listingStatus') || '',
-          propertyType,
-          minPrice: priceMin,
-          maxPrice: priceMax,
-          minArea: areaMin,
-          maxArea: areaMax,
-          bedrooms,
-          bathrooms,
-          amenities: [
-            parking && 'parking',
-            petsAllowed && 'pets',
-            furnished && 'furnished',
-            pool && 'pool',
-            gym && 'gym'
-          ].filter(Boolean),
-          sortBy,
-          showSold,
-          yearBuiltMin,
-          yearBuiltMax,
-          stories,
-          view,
-          parkingSpots,
-          listedSince,
-          keywords
-        }}
-        onFilterChange={(key, value) => {
-          switch (key) {
-            case 'listingStatus':
-              const params = new URLSearchParams(location.search);
-              if (value) params.set('listingStatus', value);
-              else params.delete('listingStatus');
-              navigate(`${location.pathname}?${params.toString()}`);
-              break;
-            case 'propertyType':
-              setPropertyType(value);
-              break;
-            case 'minPrice':
-              setPriceMin(value);
-              break;
-            case 'maxPrice':
-              setPriceMax(value);
-              break;
-            case 'minArea':
-              setAreaMin(value);
-              break;
-            case 'maxArea':
-              setAreaMax(value);
-              break;
-            case 'bedrooms':
-              setBedrooms(value);
-              break;
-            case 'bathrooms':
-              setBathrooms(value);
-              break;
-            case 'amenities':
-              // Update amenities checkboxes
-              setParking(value.includes('parking'));
-              setPetsAllowed(value.includes('pets'));
-              setFurnished(value.includes('furnished'));
-              setPool(value.includes('pool'));
-              setGym(value.includes('gym'));
-              break;
-            case 'sortBy':
-              setSortBy(value);
-              const sortParams = new URLSearchParams(location.search);
-              sortParams.set('sortBy', value);
-              navigate(`${location.pathname}?${sortParams.toString()}`);
-              break;
-            case 'showSold':
-              setShowSold(value);
-              break;
-            case 'yearBuiltMin':
-              setYearBuiltMin(value);
-              break;
-            case 'yearBuiltMax':
-              setYearBuiltMax(value);
-              break;
-            case 'stories':
-              setStories(value);
-              break;
-            case 'view':
-              setView(value);
-              break;
-            case 'parkingSpots':
-              setParkingSpots(value);
-              break;
-            case 'listedSince':
-              setListedSince(value);
-              break;
-            case 'keywords':
-              setKeywords(value);
-              break;
-            default:
-              break;
-          }
-        }}
-        onApply={() => {
-          // Apply button is clicked, filters are already applied via onFilterChange
-          setShowFilterModal(false);
-        }}
+        filters={modalFilters}
+        onFilterChange={handleModalFilterChange}
+        onApply={() => setShowFilterModal(false)}
         onReset={handleClearFilters}
       />
-      </div>
-    </>
+    </div>
   );
 };
 

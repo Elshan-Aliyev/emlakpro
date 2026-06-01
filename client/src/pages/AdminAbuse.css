@@ -1,0 +1,404 @@
+/* ── Admin Abuse Center ───────────────────────────────────────────────────── */
+
+/* Stats row */
+.aab-stats-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.aab-stat {
+  flex: 1;
+  min-width: 110px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.aab-stat-value {
+  font-size: 1.625rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 4px;
+  color: #111827;
+}
+
+.aab-stat-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+/* Tabs */
+.aab-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0;
+}
+
+.aab-tab {
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.aab-tab:hover { color: #374151; }
+
+.aab-tab--active {
+  color: #dc2626;
+  border-bottom-color: #dc2626;
+  font-weight: 600;
+}
+
+.aab-tab-content {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+/* Table */
+.aab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.aab-table th {
+  text-align: left;
+  padding: 8px 10px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.aab-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: top;
+}
+
+.aab-table tr:last-child td { border-bottom: none; }
+
+.aab-table--compact td,
+.aab-table--compact th { padding: 7px 10px; }
+
+.aab-row--selected td { background: #fef2f2; }
+
+/* Listing cells */
+.aab-listing-title {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.aab-listing-meta {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+/* Signal chips */
+.aab-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.aab-signal {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.aab-signal--dup   { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+.aab-signal--agent { background: #f3e8ff; color: #6b21a8; border-color: #e9d5ff; }
+
+/* Badges */
+.aab-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.aab-badge--flag    { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.aab-badge--blocked { background: #fee2e2; color: #991b1b; }
+.aab-badge--ok      { background: #f0fdf4; color: #166534; }
+.aab-badge--dup     { background: #fef3c7; color: #92400e; }
+.aab-badge--agent   { background: #f3e8ff; color: #6b21a8; }
+
+/* Flags column */
+.aab-flags { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.aab-reports { font-size: 0.75rem; color: #6b7280; }
+
+/* Priority */
+.aab-priority {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.aab-priority--high { background: #fef2f2; color: #dc2626; }
+.aab-priority--med  { background: #fffbeb; color: #d97706; }
+.aab-priority--low  { background: #f9fafb; color: #6b7280; }
+
+/* Escalation */
+.aab-escalation {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Date */
+.aab-date { font-size: 0.75rem; color: #9ca3af; white-space: nowrap; }
+
+/* User link button */
+.aab-user-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.875rem;
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.aab-user-email {
+  display: block;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-decoration: none;
+}
+
+/* Pagination */
+.aab-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.aab-pagination button {
+  padding: 5px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.aab-pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Bulk toolbar */
+.aab-bulk-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+}
+
+.aab-bulk-count {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #dc2626;
+  margin-right: 4px;
+}
+
+.aab-bulk-reason {
+  flex: 1;
+  min-width: 160px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+}
+
+.aab-bulk-btn {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.aab-bulk-btn:hover { opacity: 0.82; }
+
+.aab-bulk-btn--archive { border-color: #d97706; color: #d97706; background: #fffbeb; }
+.aab-bulk-btn--approve { border-color: #16a34a; color: #16a34a; background: #f0fdf4; }
+.aab-bulk-btn--flag    { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
+.aab-bulk-btn--block   { border-color: #dc2626; color: #fff;    background: #dc2626; }
+.aab-bulk-btn--unblock { border-color: #16a34a; color: #fff;    background: #16a34a; }
+.aab-bulk-btn--clear   { border-color: #e5e7eb; color: #6b7280; background: #fff;    }
+
+/* Linked account groups */
+.aab-groups { display: flex; flex-direction: column; gap: 16px; }
+
+.aab-group-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.aab-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.aab-group-phone { font-weight: 600; font-size: 0.9375rem; color: #111827; }
+
+.aab-group-actions {
+  padding: 10px 14px;
+  background: #f9fafb;
+  border-top: 1px solid #f3f4f6;
+}
+
+/* Section titles */
+.aab-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 12px;
+}
+
+/* Feedback banner */
+.aab-feedback {
+  padding: 10px 16px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #166534;
+  margin-bottom: 16px;
+}
+
+/* Back link */
+.aab-back-link {
+  font-size: 0.875rem;
+  color: #1d4ed8;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* Modal */
+.aab-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.aab-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px;
+  max-width: 700px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.aab-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+.aab-modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 4px;
+}
+
+.aab-modal-email {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 16px;
+}
+
+.aab-modal-stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.aab-modal-stats .aab-stat {
+  min-width: 90px;
+  padding: 10px 12px;
+}
+
+.aab-modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+/* Loading / empty states */
+.aab-loading { padding: 32px; text-align: center; color: #9ca3af; font-size: 0.9rem; }
+.aab-empty   { padding: 32px; text-align: center; color: #9ca3af; font-size: 0.9rem; }
+
+@media (max-width: 768px) {
+  .aab-table th:nth-child(n+5),
+  .aab-table td:nth-child(n+5) { display: none; }
+
+  .aab-stats-row .aab-stat:nth-child(n+5) { display: none; }
+}

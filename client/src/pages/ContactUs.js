@@ -1,12 +1,9 @@
 import React from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../layouts/Footer';
 import './StaticPages.css';
 
 const ContactUs = () => {
   return (
     <div className="static-page-container">
-      <Navbar />
       <div className="static-page-content">
         <h1>Contact Us</h1>
         <p className="subtitle">Get in touch with our team</p>
@@ -58,7 +55,6 @@ const ContactUs = () => {
           </div>
         </section>
       </div>
-      <Footer />
     </div>
   );
 };

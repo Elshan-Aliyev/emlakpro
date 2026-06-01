@@ -1,19 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { BarChart2, Clock, Shield, Globe } from 'lucide-react';
 import './ServicePages.css';
 
 const ShortTermRental = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedPackage, setSelectedPackage] = useState(null);
-  const [showAdminBypass, setShowAdminBypass] = useState(false);
-
-  React.useEffect(() => {
-    if (user && (user.role === 'admin' || user.role === 'superadmin')) {
-      setShowAdminBypass(true);
-    }
-  }, [user]);
 
   const packages = [
     {
@@ -79,26 +73,14 @@ const ShortTermRental = () => {
     setSelectedPackage(pkgId);
     if (!user) {
       navigate('/login', { state: { from: '/services/short-term-rental', package: pkgId } });
-      return;
     }
-    // Proceed to payment or setup
-    alert(`Selected ${packages.find(p => p.id === pkgId).name} package`);
-  };
-
-  const handleAdminBypass = () => {
-    if (!selectedPackage) {
-      alert('Please select a package first');
-      return;
-    }
-    alert(`Admin bypass - ${packages.find(p => p.id === selectedPackage).name} package activated without payment`);
-    // Activate the service for testing
   };
 
   return (
     <div className="service-page">
       <div className="service-hero str-hero">
         <div className="service-hero-content">
-          <h1>🏖️ Short-Term Rental Management</h1>
+          <h1>Short-Term Rental Management</h1>
           <p>Professional vacation rental services for property owners</p>
         </div>
       </div>
@@ -146,16 +128,6 @@ const ShortTermRental = () => {
             </div>
           ))}
         </div>
-
-        {showAdminBypass && selectedPackage && (
-          <div className="admin-section">
-            <div className="admin-badge">Admin Tools</div>
-            <button onClick={handleAdminBypass} className="btn-admin-bypass">
-              🔓 Bypass Payment & Activate (Testing)
-            </button>
-            <p className="admin-note">This allows testing STR features without payment processing</p>
-          </div>
-        )}
 
         <div className="str-comparison">
           <h2>Package Comparison</h2>
@@ -221,22 +193,30 @@ const ShortTermRental = () => {
           <h2>Why Choose Our STR Management?</h2>
           <div className="benefits-grid">
             <div className="benefit-card">
-              <span className="benefit-icon">📊</span>
+              <span className="benefit-icon">
+                <BarChart2 size={22} strokeWidth={1.75} aria-hidden="true" />
+              </span>
               <h4>Maximize Revenue</h4>
               <p>Dynamic pricing and occupancy optimization</p>
             </div>
             <div className="benefit-card">
-              <span className="benefit-icon">⏱️</span>
+              <span className="benefit-icon">
+                <Clock size={22} strokeWidth={1.75} aria-hidden="true" />
+              </span>
               <h4>Save Time</h4>
               <p>Automated processes handle everything</p>
             </div>
             <div className="benefit-card">
-              <span className="benefit-icon">🛡️</span>
+              <span className="benefit-icon">
+                <Shield size={22} strokeWidth={1.75} aria-hidden="true" />
+              </span>
               <h4>Protected</h4>
               <p>Guest screening and damage protection</p>
             </div>
             <div className="benefit-card">
-              <span className="benefit-icon">🌍</span>
+              <span className="benefit-icon">
+                <Globe size={22} strokeWidth={1.75} aria-hidden="true" />
+              </span>
               <h4>Global Reach</h4>
               <p>List on multiple platforms simultaneously</p>
             </div>

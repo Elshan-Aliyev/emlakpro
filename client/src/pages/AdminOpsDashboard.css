@@ -1,0 +1,275 @@
+/* ─── Section layout ─────────────────────────────────────────────────────── */
+
+.ops-section {
+  margin-bottom: 40px;
+}
+
+.ops-section-head {
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.ops-section-title {
+  margin: 0 0 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.ops-section-desc {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #9ca3af;
+}
+
+/* ─── Stat card grid ─────────────────────────────────────────────────────── */
+
+.ops-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.ops-grid--3 { grid-template-columns: repeat(3, 1fr); }
+.ops-grid--4 { grid-template-columns: repeat(4, 1fr); }
+.ops-grid--5 { grid-template-columns: repeat(5, 1fr); }
+
+/* ─── Stat card ──────────────────────────────────────────────────────────── */
+
+.ops-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 18px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ops-card--amber {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.ops-card--red {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.ops-card-value {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.ops-card--amber .ops-card-value { color: #92400e; }
+.ops-card--red   .ops-card-value { color: #991b1b; }
+
+.ops-card-label {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  line-height: 1.3;
+}
+
+.ops-card-sub {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+/* ─── Trust metric bars ──────────────────────────────────────────────────── */
+
+.ops-trust-panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 20px 20px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ops-trust-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ops-trust-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.ops-trust-label {
+  font-size: 0.8125rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.ops-trust-pct {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.ops-trust-track {
+  height: 5px;
+  background: #f3f4f6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ops-trust-fill {
+  height: 100%;
+  background: #6b7280;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.ops-trust-count {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+/* ─── Utilities ──────────────────────────────────────────────────────────── */
+
+.ops-loading,
+.ops-error {
+  padding: 40px 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+.ops-error {
+  color: #dc2626;
+}
+
+.ops-refresh-btn {
+  height: 34px;
+  padding: 0 14px;
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.ops-refresh-btn:hover:not(:disabled) {
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+.ops-refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ─── Seller responsiveness tables ──────────────────────────────────────── */
+
+.ops-resp-lists {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ops-resp-table-wrap {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ops-resp-table-title {
+  margin: 0;
+  padding: 12px 16px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6b7280;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.ops-resp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.ops-resp-table th {
+  padding: 8px 16px;
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  background: #fafafa;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.ops-resp-table td {
+  padding: 10px 16px;
+  color: #374151;
+  border-bottom: 1px solid #f9fafb;
+}
+
+.ops-resp-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ops-resp-table tr:hover td {
+  background: #fafafa;
+}
+
+.ops-resp-empty {
+  padding: 14px 16px;
+  margin-top: 12px;
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  background: #fafafa;
+  border: 1px solid #f3f4f6;
+  border-radius: 8px;
+  text-align: center;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .ops-grid--5 { grid-template-columns: repeat(3, 1fr); }
+  .ops-grid--4 { grid-template-columns: repeat(2, 1fr); }
+  .ops-grid--3 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .ops-grid--5,
+  .ops-grid--4,
+  .ops-grid--3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ops-card-value {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .ops-grid--5,
+  .ops-grid--4,
+  .ops-grid--3 {
+    grid-template-columns: 1fr;
+  }
+}

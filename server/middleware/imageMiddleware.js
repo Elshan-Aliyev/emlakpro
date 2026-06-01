@@ -1,5 +1,5 @@
 const sharp = require('sharp');
-const { cloudinary } = require('../config/cloudinary');
+const { uploadToStorage } = require('../config/supabase');
 
 /**
  * Middleware to compress and optimize images before uploading to Cloudinary
@@ -80,35 +80,16 @@ const createThumbnail = async (req, res, next) => {
 
   try {
     const thumbnailBuffer = await sharp(req.file.buffer)
-      .resize(400, 300, {
-        fit: 'cover',
-        position: 'center'
-      })
+      .resize(400, 300, { fit: 'cover', position: 'center' })
       .jpeg({ quality: 70, progressive: true })
       .toBuffer();
 
-    // Upload thumbnail to Cloudinary
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder: 'properties/thumbnails',
-        transformation: [
-          { width: 400, height: 300, crop: 'fill', quality: 'auto:low' }
-        ]
-      },
-      (error, result) => {
-        if (error) {
-          console.error('Thumbnail upload error:', error);
-          return next();
-        }
-        req.thumbnail = result;
-        next();
-      }
-    );
-
-    uploadStream.end(thumbnailBuffer);
+    const storagePath = `properties/thumbnails/thumb_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+    const { publicUrl, path } = await uploadToStorage(thumbnailBuffer, storagePath, 'image/jpeg');
+    req.thumbnail = { secure_url: publicUrl, public_id: path };
+    next();
   } catch (error) {
     console.error('Thumbnail creation error:', error);
-    // Don't fail the request if thumbnail creation fails
     next();
   }
 };

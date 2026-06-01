@@ -62,6 +62,27 @@ exports.sendMessage = async (req, res) => {
       { path: 'property', select: 'title address price images' }
     ]);
 
+    // Track seller's first response for responsiveness stats (fire-and-forget)
+    (async () => {
+      try {
+        const Conversation = require('../models/Conversation');
+        const convo = await Conversation.findOne({ conversationId });
+        if (convo && !convo.firstResponseAt && senderId.toString() === convo.seller.toString()) {
+          const now    = new Date();
+          const diffMs = now - convo.inquiryCreatedAt;
+          await Conversation.findByIdAndUpdate(convo._id, {
+            firstResponseAt:    now,
+            respondedWithin48h: diffMs <= 48 * 3_600_000,
+          });
+          const { recalculateSellerResponseStats } = require('../lib/responseStats');
+          recalculateSellerResponseStats(convo.seller)
+            .catch(err => console.error('[response-stats] recalc error:', err));
+        }
+      } catch (err) {
+        console.error('[response-stats] tracking error:', err);
+      }
+    })();
+
     res.status(201).json(message);
   } catch (error) {
     console.error('Error sending message:', error);

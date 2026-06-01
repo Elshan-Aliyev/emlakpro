@@ -1,0 +1,416 @@
+/* ── Overlay ─────────────────────────────────────────────────────────────── */
+.mcm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+/* ── Modal shell ─────────────────────────────────────────────────────────── */
+.mcm-modal {
+  position: relative;
+  background: #fff;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16);
+  display: flex;
+  flex-direction: column;
+}
+
+.mcm-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.15s;
+  z-index: 1;
+}
+
+.mcm-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.mcm-header {
+  padding: 20px 20px 16px;
+}
+
+.mcm-header-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin: 0 0 10px;
+}
+
+.mcm-property-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.mcm-thumb {
+  width: 64px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: #f3f4f6;
+}
+
+.mcm-property-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mcm-property-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mcm-property-meta {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 0 0 2px;
+}
+
+.mcm-owner {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* ── Divider ─────────────────────────────────────────────────────────────── */
+.mcm-divider {
+  height: 1px;
+  background: #f3f4f6;
+  margin: 0;
+}
+
+/* ── Section ─────────────────────────────────────────────────────────────── */
+.mcm-section {
+  padding: 16px 20px;
+}
+
+.mcm-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 12px;
+}
+
+.mcm-progress {
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #9ca3af;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.mcm-optional {
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: #9ca3af;
+  margin-left: 4px;
+}
+
+/* ── Checklist ───────────────────────────────────────────────────────────── */
+.mcm-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mcm-check-row {
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+
+.mcm-check-row:hover {
+  background: #f9fafb;
+}
+
+.mcm-check-row--checked {
+  background: #f0fdf4;
+}
+
+.mcm-check-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Hide native checkbox */
+.mcm-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Custom checkbox box */
+.mcm-check-box {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.mcm-check-row--checked .mcm-check-box {
+  border-color: #4b7c54;
+  background: #4b7c54;
+}
+
+.mcm-check-row--checked .mcm-check-box::after {
+  content: '✓';
+  font-size: 10px;
+  color: #fff;
+  line-height: 1;
+}
+
+.mcm-check-text {
+  font-size: 0.8438rem;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.mcm-check-row--checked .mcm-check-text {
+  color: #4b7c54;
+}
+
+/* ── Textarea ────────────────────────────────────────────────────────────── */
+.mcm-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  color: #111827;
+  background: #fafafa;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+  transition: border-color 0.15s;
+}
+
+.mcm-textarea:focus {
+  outline: none;
+  border-color: #9ca3af;
+  background: #fff;
+}
+
+.mcm-textarea::placeholder {
+  color: #c4c9d4;
+}
+
+/* ── Error ───────────────────────────────────────────────────────────────── */
+.mcm-error {
+  margin: 0 20px;
+  padding: 10px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: #dc2626;
+}
+
+/* ── Actions ─────────────────────────────────────────────────────────────── */
+.mcm-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+}
+
+.mcm-btn-reject {
+  padding: 9px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.mcm-btn-reject:hover:not(:disabled) {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.mcm-btn-reject:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mcm-btn-approve {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 6px;
+  background: #111827;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.mcm-btn-approve:hover:not(:disabled) {
+  background: #1f2937;
+}
+
+.mcm-btn-approve:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.mcm-btn-cancel {
+  padding: 9px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.mcm-btn-cancel:hover:not(:disabled) {
+  border-color: #9ca3af;
+}
+
+.mcm-btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mcm-btn-confirm-reject {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 6px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.mcm-btn-confirm-reject:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.mcm-btn-confirm-reject:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/* ── Rejection reason list ───────────────────────────────────────────────── */
+.mcm-reason-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mcm-reason-row {
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+
+.mcm-reason-row:hover {
+  background: #f9fafb;
+}
+
+.mcm-reason-row--selected {
+  background: #fef2f2;
+}
+
+.mcm-reason-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mcm-reason-label input[type="radio"] {
+  accent-color: #dc2626;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.mcm-reason-text {
+  font-size: 0.8438rem;
+  color: #374151;
+}
+
+.mcm-reason-row--selected .mcm-reason-text {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .mcm-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .mcm-modal {
+    border-radius: 12px 12px 0 0;
+    max-height: 92vh;
+    max-width: 100%;
+  }
+}

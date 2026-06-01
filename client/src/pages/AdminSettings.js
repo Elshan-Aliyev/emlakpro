@@ -89,6 +89,33 @@ const AdminSettings = () => {
         </div>
 
         {/* Site Information */}
+                {/* Hero Section Management */}
+                <div className="admin-section" style={{ marginBottom: 'var(--space-6)' }}>
+                  <h2 style={{ marginBottom: 'var(--space-4)' }}>Hero Section Management</h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                    <label style={{ fontWeight: 600 }}>Hero Background Image (Residential)</label>
+                    <input type="file" accept="image/*" onChange={e => {/* TODO: handle upload */}} />
+                    <div style={{ minHeight: 120 }}>
+                      {/* TODO: Show preview if uploaded */}
+                      <img src="/assets/hero-residential.jpg" alt="Hero Residential" style={{ maxWidth: 320, borderRadius: 12, boxShadow: '0 2px 8px #0002' }} />
+                    </div>
+                    <label style={{ fontWeight: 600 }}>Hero Background Image (Commercial)</label>
+                    <input type="file" accept="image/*" onChange={e => {/* TODO: handle upload */}} />
+                    <div style={{ minHeight: 120 }}>
+                      <img src="/assets/hero-commercial.jpg" alt="Hero Commercial" style={{ maxWidth: 320, borderRadius: 12, boxShadow: '0 2px 8px #0002' }} />
+                    </div>
+                    <label style={{ fontWeight: 600 }}>Hero Section Icons</label>
+                    <input type="file" accept="image/svg+xml,image/png" multiple onChange={e => {/* TODO: handle upload */}} />
+                    <div style={{ display: 'flex', gap: 16, minHeight: 60 }}>
+                      {/* TODO: Show icon previews if uploaded */}
+                      <img src="/assets/icons/house.svg" alt="Icon House" style={{ width: 48, height: 48 }} />
+                      <img src="/assets/icons/building.svg" alt="Icon Building" style={{ width: 48, height: 48 }} />
+                    </div>
+                    <div style={{ color: '#888', fontSize: 13 }}>
+                      (This section is for site-wide hero images and icons. Uploading will update the homepage hero section.)
+                    </div>
+                  </div>
+                </div>
         <div className="admin-section" style={{ marginBottom: 'var(--space-6)' }}>
           <h2 style={{ marginBottom: 'var(--space-4)' }}>Site Information</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>

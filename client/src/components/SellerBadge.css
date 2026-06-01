@@ -1,69 +1,65 @@
 .seller-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
+  font-family: var(--font-sans);
+  letter-spacing: 0.01em;
 }
 
 .seller-badge-icon {
-  font-size: 1rem;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .seller-badge-label {
   line-height: 1;
 }
 
-/* Sizes */
+/* ── Sizes ───────────────────────────────────────────────────────────────── */
 .seller-badge-small {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-}
-
-.seller-badge-small .seller-badge-icon {
-  font-size: 0.875rem;
+  padding: 3px 8px;
+  font-size: 0.6875rem;
 }
 
 .seller-badge-large {
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
+  padding: 5px 12px;
+  font-size: 0.875rem;
 }
 
-.seller-badge-large .seller-badge-icon {
-  font-size: 1.25rem;
-}
+/* ── Variants ────────────────────────────────────────────────────────────── */
 
-/* Types */
 .seller-badge.unverified {
-  background: #f0f0f0;
-  color: #666;
-  border: 1px solid #ddd;
+  background: var(--gray-100, #f1f5f9);
+  color: var(--gray-500, #64748b);
+  border: 1px solid var(--gray-200, #e2e8f0);
 }
 
 .seller-badge.verified-user {
-  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
+  background: rgba(15, 118, 110, 0.07);
+  color: var(--color-primary, #0f766e);
+  border: 1px solid rgba(15, 118, 110, 0.18);
 }
 
 .seller-badge.verified-seller {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  background: rgba(15, 118, 110, 0.10);
+  color: var(--color-primary-dark, #0a4a45);
+  border: 1px solid rgba(15, 118, 110, 0.24);
 }
 
 .seller-badge.realtor {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(245, 87, 108, 0.3);
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--color-graphite-600, #334155);
+  border: 1px solid rgba(15, 23, 42, 0.10);
 }
 
 .seller-badge.corporate {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--color-graphite-700, #1e293b);
+  border: 1px solid rgba(15, 23, 42, 0.14);
 }

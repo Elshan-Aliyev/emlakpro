@@ -1,3 +1,19 @@
+# EmlakPro — robots.txt
 # https://www.robotstxt.org/robotstxt.html
+
 User-agent: *
-Disallow:
+# Private / authenticated surfaces — no indexing value
+Disallow: /admin
+Disallow: /admin/
+Disallow: /account
+Disallow: /account/
+Disallow: /messages
+Disallow: /verification-application
+Disallow: /properties/create
+Disallow: /properties/create-simple
+Disallow: /reset-password/
+
+# Allow all public content
+Allow: /
+
+Sitemap: https://emlakpro.az/sitemap.xml

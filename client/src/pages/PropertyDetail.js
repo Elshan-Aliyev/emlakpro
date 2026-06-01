@@ -1,784 +1,910 @@
-import React, { useEffect, useState, memo } from 'react';
-import { getProperty, sendMessage, getSavedProperties } from '../services/api';
-import { useParams, useNavigate } from 'react-router-dom';
-import SellerInfo from '../components/SellerInfo';
-import Badge from '../components/Badge';
+import React, { useEffect, useState, useCallback, memo } from 'react';
+import { getProperty, getProperties, getSavedProperties, toggleSaveProperty, revealPhone } from '../services/api';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import {
+  Camera, Check, Sparkles, X, ChevronLeft, ChevronRight, Phone, Mail, Heart,
+} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import TrustBadge from '../components/TrustBadge';
 import PropertyMap from '../components/PropertyMap';
 import FavoriteButton from '../components/FavoriteButton';
+import ReportModal from '../components/ReportModal';
+import ListingConfidencePanel from '../components/ListingConfidencePanel';
+import InquiryModal from '../components/InquiryModal';
+import { generatePropertySummary, generateMarketInsights } from '../utils/propertyAI';
+import { track, priceBucket, captureError } from '../services/analytics';
 import './PropertyDetail.css';
 
-// Memoize heavy components
 const MemoizedPropertyMap = memo(PropertyMap);
-const MemoizedSellerInfo = memo(SellerInfo);
 
-// Helper function to get verification badge info
-const getVerificationBadge = (accountType) => {
-  switch (accountType) {
-    case 'unverified-user':
-      return { text: 'Unverified User', className: 'badge-unverified' };
-    case 'verified-user':
-      return { text: 'Verified User', className: 'badge-verified-user' };
-    case 'verified-seller':
-      return { text: 'Verified Seller', className: 'badge-verified-seller' };
-    case 'realtor':
-      return { text: 'Realtor', className: 'badge-realtor' };
-    case 'corporate':
-      return { text: 'Corporate', className: 'badge-corporate' };
-    default:
-      return { text: 'Unverified User', className: 'badge-unverified' };
-  }
+// ─── Icon aliases (preserve call-sites without touching the rest of the file) ──
+const IconCamera       = () => <Camera        size={14} strokeWidth={2}   aria-hidden="true" />;
+const IconCheck        = ({ size = 13 }) => <Check size={size} strokeWidth={2.5} aria-hidden="true" />;
+const IconSparkle      = () => <Sparkles      size={13} strokeWidth={2}   aria-hidden="true" />;
+const IconClose        = () => <X             size={18} strokeWidth={2.5} aria-hidden="true" />;
+const IconChevronLeft  = () => <ChevronLeft   size={20} strokeWidth={2.5} aria-hidden="true" />;
+const IconChevronRight = () => <ChevronRight  size={20} strokeWidth={2.5} aria-hidden="true" />;
+const IconPhone        = () => <Phone         size={18} strokeWidth={2}   aria-hidden="true" />;
+const IconMessage      = () => <Mail          size={18} strokeWidth={2}   aria-hidden="true" />;
+const IconHeart        = ({ filled }) => (
+  <Heart size={20} strokeWidth={2} style={filled ? { fill: 'currentColor' } : undefined} aria-hidden="true" />
+);
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+const PropertyDetailSkeleton = () => (
+  <div className="pd-container">
+    <div className="pd-sk pd-sk--gallery" />
+    <div className="pd-body">
+      <div className="pd-main">
+        <div className="pd-identity">
+          <div className="pd-sk pd-sk--price" />
+          <div className="pd-sk pd-sk--address" />
+          <div className="pd-sk pd-sk--meta" />
+        </div>
+        <div className="pd-section" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[90, 70, 55, 80, 65].map((w, i) => (
+            <div key={i} className="pd-sk pd-sk--line" style={{ width: `${w}%` }} />
+          ))}
+        </div>
+      </div>
+      <div className="pd-sidebar">
+        <div className="pd-sk pd-sk--card" />
+      </div>
+    </div>
+  </div>
+);
+
+// ─── Static lookup tables ─────────────────────────────────────────────────────
+const PROPERTY_TYPE_LABELS = {
+  apartment: 'Apartment', 'old-building': 'Older Building', 'new-building': 'New Building',
+  house: 'House', villa: 'Villa', townhouse: 'Townhouse', penthouse: 'Penthouse',
+  studio: 'Studio', duplex: 'Duplex', 'commercial-retail': 'Commercial Retail',
+  'commercial-unit': 'Commercial Unit', office: 'Office', shop: 'Shop',
+  restaurant: 'Restaurant', warehouse: 'Warehouse', industrial: 'Industrial',
+  land: 'Land / Plot', farm: 'Farm', cabin: 'Cabin', cottage: 'Cottage',
+  bungalow: 'Bungalow', chalet: 'Chalet', loft: 'Loft', 'tiny-house': 'Tiny House',
+  'mobile-home': 'Mobile Home', room: 'Private Room', 'shared-room': 'Shared Room',
 };
 
-const PropertyDetail = ({ property: propProperty, isModal = false, onClose }) => {
+const LISTING_STATUS_LABELS = {
+  'for-sale': 'For Sale',
+  'for-rent': 'For Rent',
+  'new-project': 'New Project',
+};
+
+const DESC_THRESHOLD = 500;
+
+// ─── Component ────────────────────────────────────────────────────────────────
+const PropertyDetail = ({ property: propProperty, isModal = false }) => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [property, setProperty] = useState(propProperty || null);
-  const [error, setError] = useState('');
-  const [showContactModal, setShowContactModal] = useState(false);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [showLightbox, setShowLightbox] = useState(false);
-  const [messageContent, setMessageContent] = useState('');
-  const [messageSending, setMessageSending] = useState(false);
-  const [messageError, setMessageError] = useState('');
-  const [isFavorite, setIsFavorite] = useState(false);
+  const location = useLocation();
+  const { user: currentUser } = useAuth();
 
-  // Helper function to safely get location string
-  const getLocation = (property) => {
-    if (typeof property.location === 'string') return property.location;
-    if (typeof property.city === 'string') return property.city;
-    if (typeof property.address === 'string') return property.address;
-    if (property.location?.city && typeof property.location.city === 'string') return property.location.city;
-    if (property.address?.city && typeof property.address.city === 'string') return property.address.city;
-    return 'N/A';
+  const [property, setProperty]             = useState(propProperty || null);
+  const [error, setError]                   = useState('');
+  const [showInquiryModal, setShowInquiry]  = useState(false);
+  const [phoneRevealed, setPhoneRevealed]   = useState(false);
+  const [revealedPhone, setRevealedPhone]   = useState(null);
+  const [selectedImageIndex, setImgIdx]     = useState(0);
+  const [showLightbox, setShowLightbox]     = useState(false);
+  const [isFavorite, setIsFavorite]         = useState(false);
+  const [showReportModal, setShowReport]    = useState(false);
+  const [descExpanded, setDescExpanded]     = useState(false);
+  const [copied, setCopied]                 = useState(false);
+  const [relatedProperties, setRelated]     = useState([]);
+
+  const getLocation = (p) => {
+    if (typeof p.location === 'string') return p.location;
+    if (typeof p.city === 'string') return p.city;
+    if (p.location?.city) return p.location.city;
+    if (p.address?.city) return p.address.city;
+    return '—';
   };
 
   useEffect(() => {
+    const checkFavorites = (propId, token) => {
+      getSavedProperties(token)
+        .then((res) => {
+          if (Array.isArray(res.data)) setIsFavorite(res.data.some((p) => p._id === propId));
+        })
+        .catch(() => {});
+    };
+
     if (propProperty) {
       setProperty(propProperty);
-      // Check if property is in favorites
       const token = localStorage.getItem('token');
-      if (token) {
-        (async () => {
-          try {
-            const savedRes = await getSavedProperties(token);
-            const isSaved = savedRes.data && Array.isArray(savedRes.data) ? savedRes.data.some(p => p._id === propProperty._id) : false;
-            setIsFavorite(isSaved);
-          } catch (err) {
-            console.error('Error checking favorites:', err);
-          }
-        })();
-      }
+      if (token) checkFavorites(propProperty._id, token);
       return;
     }
-
     if (!id) return;
 
-    const fetch = async () => {
-      try {
-        const res = await getProperty(id);
+    getProperty(id)
+      .then((res) => {
         setProperty(res.data);
-        
-        // Check if property is in favorites
         const token = localStorage.getItem('token');
-        if (token) {
-          try {
-            const savedRes = await getSavedProperties(token);
-            const isSaved = savedRes.data && Array.isArray(savedRes.data) ? savedRes.data.some(p => p._id === id) : false;
-            setIsFavorite(isSaved);
-          } catch (err) {
-            console.error('Error fetching saved properties:', err);
-          }
-        }
-      } catch (err) {
-        console.error(err);
-        setError(err.response?.data?.message || 'Error fetching property');
-      }
-    };
-    fetch();
+        if (token) checkFavorites(id, token);
+        const p = res.data;
+        track('property_viewed', {
+          property_id:    p._id,
+          listing_status: p.listingStatus,
+          property_type:  p.propertyType,
+          district:       p.district || '',
+          price_bucket:   priceBucket(p.price),
+          seller_type:    p.ownerId?.accountType || 'unknown',
+          traffic_source: document.referrer ? new URL(document.referrer).hostname : 'direct',
+        });
+      })
+      .catch((err) => {
+        captureError(err, { context: 'property_detail_fetch', id });
+        setError(err.response?.data?.message || 'This listing is temporarily unavailable.');
+      });
   }, [id]);
 
-  const handleContact = () => {
+  useEffect(() => {
+    if (!property?._id || isModal) return;
+    const params = { limit: 4, propertyType: property.propertyType };
+    const loc = typeof property.location === 'string'
+      ? property.location
+      : property.city || property.location?.city || '';
+    if (loc) params.city = loc;
+    if (property.price) {
+      params.priceMin = Math.floor(property.price * 0.65);
+      params.priceMax = Math.ceil(property.price * 1.38);
+    }
+    getProperties(params)
+      .then(res => {
+        const props = (res.data?.properties || []).filter(p => p._id !== property._id).slice(0, 4);
+        setRelated(props);
+      })
+      .catch(() => {});
+  }, [property?._id, isModal]);
+
+  const openInquiry = useCallback(() => {
+    if (!localStorage.getItem('token')) {
+      navigate('/login', { state: { from: location.pathname, intent: 'inquiry' } });
+      return;
+    }
+    track('inquiry_started', {
+      property_id:    property?._id,
+      listing_status: property?.listingStatus,
+      district:       property?.district || '',
+      price_bucket:   priceBucket(property?.price),
+    });
+    setShowInquiry(true);
+  }, [navigate, location.pathname, property?._id, property?.listingStatus, property?.district, property?.price]);
+
+  const handleRevealPhone = useCallback(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      if (isModal) {
-        alert('Please login to contact the property owner. The property details will remain open.');
-      } else {
-        alert('Please login or register to contact the property owner');
-        navigate('/login');
-      }
+      navigate('/login', { state: { from: location.pathname, intent: 'phone' } });
       return;
     }
-    setShowContactModal(true);
-    setMessageContent('');
-    setMessageError('');
-  };
+    track('phone_revealed', {
+      property_id:    property?._id,
+      listing_status: property?.listingStatus,
+      district:       property?.district || '',
+      price_bucket:   priceBucket(property?.price),
+    });
+    setPhoneRevealed(true);
+    revealPhone(property._id, token)
+      .then((res) => setRevealedPhone(res.data.phone))
+      .catch(() => setRevealedPhone(null));
+  }, [navigate, location.pathname, property?._id, property?.listingStatus, property?.district, property?.price]);
 
-  const handleSendMessage = async () => {
-    if (!messageContent.trim()) {
-      setMessageError('Please enter a message');
-      return;
-    }
-
-    setMessageSending(true);
-    setMessageError('');
-
-    try {
-      const token = localStorage.getItem('token');
-      await sendMessage({
-        recipientId: property.ownerId._id,
-        propertyId: property._id,
-        content: messageContent
-      }, token);
-      
-      alert('Message sent successfully!');
-      setShowContactModal(false);
-      setMessageContent('');
-    } catch (err) {
-      console.error('Error sending message:', err);
-      setMessageError(err.response?.data?.message || 'Failed to send message');
-    } finally {
-      setMessageSending(false);
-    }
-  };
-  
-  const openContactModal = () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      if (isModal) {
-        alert('Please login or register to contact the property owner. The property details will remain open.');
-      } else {
-        alert('Please login or register to contact the property owner');
-        navigate('/login');
-      }
-      return;
-    }
-    
-    // Pre-fill message
-    const defaultMessage = `I am interested in ${property.title} at ${getLocation(property)}. 
-    
-Listed for: ${property.currency || 'AZN'} ${property.price?.toLocaleString()}
-    
-Please contact me with more details.`;
-    
-    setMessageContent(defaultMessage);
-    setShowContactModal(true);
-    setMessageError('');
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const getImageUrl = (image, size = 'large') => {
     if (!image) return null;
-    // Handle both old format (string) and new format (object)
-    if (typeof image === 'string') {
-      if (image.startsWith('http')) return image;
-      return `http://localhost:5000/uploads/${size}/${image}`;
-    }
-    if (typeof image === 'object' && image !== null) {
-      return image[size] || image.large || image.medium || image.thumbnail;
-    }
+    if (typeof image === 'string') return image.startsWith('http') ? image : null;
+    if (typeof image === 'object') return image[size] || image.large || image.medium || image.thumbnail;
     return null;
   };
 
-  const openLightbox = (index) => {
-    setSelectedImageIndex(index);
+  const openLightbox = (i) => {
+    if (i === 0) track('gallery_opened', { property_id: property?._id });
+    setImgIdx(i);
     setShowLightbox(true);
-  };
+  };;
+  const nextImage    = () => setImgIdx((p) => (p + 1) % property.images.length);
+  const prevImage    = () => setImgIdx((p) => (p - 1 + property.images.length) % property.images.length);
 
-  const closeLightbox = () => {
-    setShowLightbox(false);
-  };
+  if (error) return <p style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>{error}</p>;
+  if (!property) return <PropertyDetailSkeleton />;
 
-  const nextImage = () => {
-    setSelectedImageIndex((prev) => (prev + 1) % property.images.length);
-  };
+  // Decode role from token
+  let role = null, currentUserId = null;
+  try {
+    const t = localStorage.getItem('token');
+    if (t) { const p = JSON.parse(atob(t.split('.')[1])); role = p.role; currentUserId = p.id; }
+  } catch (_) {}
 
-  const prevImage = () => {
-    setSelectedImageIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
-  };
-
-  if (error) return <p style={{padding: '2rem', textAlign: 'center'}}>{error}</p>;
-  if (!property) return <p style={{padding: '2rem', textAlign: 'center'}}>Loading...</p>;
-
-  const token = localStorage.getItem('token');
-  let role = null;
-  let currentUserId = null;
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      role = payload.role;
-      currentUserId = payload.id;
-    } catch (e) {
-      // ignore
-    }
-  }
-
-  const isOwner = property.ownerId && (property.ownerId._id ? property.ownerId._id === currentUserId : property.ownerId === currentUserId);
+  const isOwner = property.ownerId && (
+    property.ownerId._id ? property.ownerId._id === currentUserId : property.ownerId === currentUserId
+  );
   const isAdmin = role === 'admin' || role === 'superadmin';
+  const hasImages = Array.isArray(property.images) && property.images.length > 0;
 
-  const propertyTypeMap = {
-    // Residential
-    'apartment': 'Apartment / Condo',
-    'house': 'House',
-    'villa': 'Villa',
-    'townhouse': 'Townhouse',
-    'penthouse': 'Penthouse',
-    'studio': 'Studio',
-    'duplex': 'Duplex',
-    // Commercial
-    'commercial-retail': 'Commercial Retail',
-    'commercial-unit': 'Commercial Unit',
-    'office': 'Office',
-    'shop': 'Shop',
-    'restaurant': 'Restaurant',
-    'warehouse': 'Warehouse',
-    'industrial': 'Industrial / Warehouse',
-    // Land
-    'land': 'Land / Plot',
-    'farm': 'Farm',
-    // Short-term / Unique
-    'cabin': 'Cabin',
-    'cottage': 'Cottage',
-    'bungalow': 'Bungalow',
-    'chalet': 'Chalet',
-    'loft': 'Loft',
-    'tiny-house': 'Tiny House',
-    'mobile-home': 'Mobile Home',
-    'rv': 'RV',
-    'camper-van': 'Camper/Van',
-    'boat': 'Boat',
-    'treehouse': 'Treehouse',
-    'dome': 'Dome',
-    'a-frame': 'A-Frame',
-    'barn': 'Barn',
-    'castle': 'Castle',
-    'cave': 'Cave',
-    'windmill': 'Windmill',
-    'lighthouse': 'Lighthouse',
-    'room': 'Private Room',
-    'shared-room': 'Shared Room'
-  };
+  // AI insight — calm, data-driven, single signal
+  const aiInsight = (() => {
+    const now       = Date.now();
+    const created   = property.createdAt ? new Date(property.createdAt).getTime() : null;
+    const confirmed = property.lastConfirmedAvailableAt ? new Date(property.lastConfirmedAvailableAt).getTime() : null;
+    const responseH = property.ownerId?.averageResponseTimeHours;
+    const respRate  = property.ownerId?.responseRate;
+    const quality   = property.qualityScore || 0;
+    const agent     = property.agentScore   || 0;
 
-  const statusMap = {
-    'for-sale': 'For Sale',
-    'for-rent': 'For Rent',
-    'new-project': 'New Project'
-  };
+    if (confirmed && (now - confirmed) < 7  * 86_400_000) return 'Availability confirmed this week';
+    if (created   && (now - created)   < 3  * 86_400_000) return 'New to the market';
+    if (responseH != null && responseH < 4 && respRate != null && respRate >= 70) return 'Owner typically responds within a few hours';
+    if (quality >= 85 || agent >= 85) return 'Strong value relative to nearby listings';
+    if (quality >= 70)                return 'Popular among buyers this week';
+    if (respRate != null && respRate >= 80) return 'High owner engagement rate';
+    return null;
+  })();
 
-  const hasImages = property.images && Array.isArray(property.images) && property.images.length > 0;
+  // AI-generated descriptions — deterministic, no hallucination
+  const propertySummary  = generatePropertySummary(property);
+  const marketInsights   = generateMarketInsights(property, []);
+
+  // Description collapse
+  const desc = property.description || '';
+  const isLongDesc = desc.length > DESC_THRESHOLD;
+  const displayedDesc = isLongDesc && !descExpanded ? desc.slice(0, DESC_THRESHOLD).trimEnd() + '…' : desc;
+
+  // Trust strip — only confirmed signals, contextually ordered and capped at 3
+  const freshnessDaysAgo = (() => {
+    const ref = property.lastConfirmedAvailableAt || property.lastOwnerActivityAt || property.updatedAt;
+    if (!ref) return null;
+    return Math.floor((Date.now() - new Date(ref)) / 86400000);
+  })();
+
+  const isRental = property.listingStatus === 'for-rent';
+
+  const trustSignals = [
+    property.isApproved                                  && { w: 2,                    text: 'Listing reviewed' },
+    property.ownershipVerificationStatus === 'approved'  && { w: isRental ? 3 : 1,    text: 'Ownership verified' },
+    property.ownerId?.phoneVerified                      && { w: isRental ? 4 : 3,    text: 'Phone verified' },
+    freshnessDaysAgo !== null && freshnessDaysAgo <= 7   && { w: isRental ? 1 : 4,    text: 'Updated this week' },
+    freshnessDaysAgo !== null && freshnessDaysAgo > 7 && freshnessDaysAgo <= 30 && { w: isRental ? 1 : 5, text: 'Recently active' },
+  ].filter(Boolean).sort((a, b) => a.w - b.w).slice(0, 3).map(s => s.text);
+
+  // Feature lists
+  const interiorFeats = [
+    property.flooringType && `Flooring: ${property.flooringType}`,
+    property.heating && 'Heating', property.cooling && 'Air conditioning',
+    property.kitchenAppliances && 'Kitchen appliances', property.waterHeater && 'Water heater',
+    property.smartHome && 'Smart home', property.internetAvailable && 'Internet',
+    property.builtInWardrobes && 'Built-in wardrobes', property.walkInCloset && 'Walk-in closet',
+    property.maidsRoom && "Maid's room", property.storageRoom && 'Storage room',
+    property.laundryRoom && 'Laundry room', property.openLayoutKitchen && 'Open layout kitchen',
+  ].filter(Boolean);
+
+  const exteriorFeats = [
+    property.garage && 'Garage', property.garden && 'Garden',
+    property.swimmingPool && 'Swimming pool',
+    property.viewType && `${property.viewType.charAt(0).toUpperCase() + property.viewType.slice(1)} view`,
+    property.roofAccess && 'Roof access', property.fenced && 'Fenced',
+  ].filter(Boolean);
+
+  const buildingFeats = [
+    property.elevator && 'Elevator', property.security && 'Security / concierge',
+    property.cctv && 'CCTV', property.gym && 'Gym', property.sharedPool && 'Shared pool',
+    property.visitorParking && 'Visitor parking', property.wheelchairAccessible && 'Wheelchair accessible',
+    property.petsAllowed && 'Pets allowed', property.gasAvailable && 'Gas available',
+    property.totalFloorsInBuilding && `${property.totalFloorsInBuilding} floors total`,
+  ].filter(Boolean);
+
+  const nearbyFeats = property.nearby ? [
+    property.nearby.schools && 'Schools', property.nearby.hospital && 'Hospital',
+    property.nearby.metro && 'Metro', property.nearby.shoppingMall && 'Shopping centre',
+    property.nearby.park && 'Park', property.nearby.airport && 'Airport',
+  ].filter(Boolean) : [];
+
+  const hasFeatures = interiorFeats.length || exteriorFeats.length || buildingFeats.length || nearbyFeats.length;
+  const hasLegal = property.ownershipType || property.titleDeedAvailable || property.mortgageAllowed != null || property.developerName || property.hoaFees;
+
+  const h = property.ownerId?.averageResponseTimeHours;
+  const rr = property.ownerId?.responseRate;
+  const responseNote =
+    h != null && h < 4    ? 'Usually responds within a few hours' :
+    h != null && h < 24 && rr != null && rr >= 60 ? 'Usually responds within a day' : null;
+
+  // ── JSON-LD structured data for rich search results ─────────────────────────
+  const jsonLd = !isModal ? {
+    '@context': 'https://schema.org',
+    '@type': 'RealEstateListing',
+    name: property.title,
+    description: property.description || `${property.title} in ${getLocation(property)}`,
+    url: `https://emlakpro.az/listing/${property._id}`,
+    image: property.images?.map(img => {
+      if (typeof img === 'string') return img;
+      return img.large || img.medium || img.thumbnail;
+    }).filter(Boolean) || [],
+    offers: {
+      '@type': 'Offer',
+      price: property.price,
+      priceCurrency: property.currency || 'AZN',
+      availability: 'https://schema.org/InStock',
+    },
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: getLocation(property),
+      addressCountry: 'AZ',
+    },
+    numberOfRooms: property.bedrooms || undefined,
+    floorSize: (property.builtUpArea || property.area)
+      ? { '@type': 'QuantitativeValue', value: property.builtUpArea || property.area, unitCode: 'MTK' }
+      : undefined,
+  } : null;
 
   return (
-    <div className={`property-detail-container ${isModal ? 'modal-mode' : ''}`}>
-      {/* Image Grid Gallery - Zillow Style */}
+    <div className={`pd-container${isModal ? ' modal-mode' : ''}`}>
+
+      {/* ── Structured data for rich Google results ─────────────────── */}
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd)
+            .replace(/</g, '\\u003c')
+            .replace(/>/g, '\\u003e')
+            .replace(/&/g, '\\u0026') }}
+        />
+      )}
+
+      {/* ── Cinematic Gallery ───────────────────────────────────────── */}
       {hasImages && (
-        <div className="image-grid-gallery">
-          <div className="main-grid-image" onClick={() => openLightbox(0)}>
-            <img 
-              src={getImageUrl(property.images[0], 'large')} 
+        <div className={`pd-gallery${isModal ? ' pd-gallery--modal' : ''}`}>
+          <div className="pd-gallery-main" onClick={() => openLightbox(0)}>
+            <img
+              src={getImageUrl(property.images[0], 'large')}
               alt={property.title}
+              style={{ opacity: 0, transition: 'opacity 480ms cubic-bezier(0.22,1,0.36,1)' }}
+              onLoad={(e) => { e.currentTarget.style.opacity = '1'; }}
+              onError={(e) => { e.currentTarget.style.opacity = '0.3'; }}
             />
+            <div className="pd-gallery-count">
+              <IconCamera />
+              <span>{property.images.length}</span>
+            </div>
           </div>
-          <div className="grid-thumbnails">
-            {property.images.slice(1, 5).map((image, index) => (
-              <div 
-                key={index + 1} 
-                className="grid-thumb"
-                onClick={() => openLightbox(index + 1)}
-              >
-                <img 
-                  src={getImageUrl(image, 'medium')} 
-                  alt={`${property.title} ${index + 2}`}
-                />
-                {index === 3 && property.images.length > 5 && (
-                  <div className="see-all-overlay">
-                    <span>See all {property.images.length} photos</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+          {property.images.length > 1 && (
+            <div className="pd-gallery-thumbs">
+              {property.images.slice(1, 5).map((img, i) => (
+                <div key={i} className="pd-gallery-thumb" onClick={() => openLightbox(i + 1)}>
+                  <img
+                    src={getImageUrl(img, 'medium')}
+                    alt={`View ${i + 2}`}
+                    style={{ opacity: 0, transition: `opacity ${280 + i * 60}ms cubic-bezier(0.22,1,0.36,1)` }}
+                    onLoad={(e) => { e.currentTarget.style.opacity = '1'; }}
+                    onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+                  />
+                  {i === 3 && property.images.length > 5 && (
+                    <div className="pd-gallery-more">+{property.images.length - 5}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Two Column Layout */}
-      <div className="property-two-column">
-        {/* Left Column - Property Details */}
-        <div className="property-left-column">
-          {/* Price and Address */}
-          <div className="property-header-new">
-            <div className="price-badge">
-              <span className="price">{property.currency || 'AZN'} {property.price?.toLocaleString() ?? 'N/A'}</span>
-              {property.pricePerSqm && <span className="price-per-sqm">{property.currency || 'AZN'} {property.pricePerSqm}/m²</span>}
+      {/* ── Body: two-column ────────────────────────────────────────── */}
+      <div className="pd-body">
+
+        {/* Left column */}
+        <div className="pd-main">
+
+          {/* Identity: price / address / facts / trust / AI */}
+          <div className="pd-identity">
+            <div className="pd-price-row">
+              <span className="pd-price">
+                {property.currency || 'AZN'} {property.price?.toLocaleString() ?? '—'}
+              </span>
+              {property.pricePerSqm && (
+                <span className="pd-price-sqm">{property.pricePerSqm} / m²</span>
+              )}
             </div>
-            <h1 className="property-address">{getLocation(property)}</h1>
-            <div className="property-meta-badges">
-              <span className="meta-badge">{property.bedrooms || 0} beds</span>
-              <span className="meta-badge">{property.bathrooms || 0} baths</span>
-              <span className="meta-badge">{property.builtUpArea || 0} m²</span>
-              <span className="meta-badge">{propertyTypeMap[property.propertyType] || property.propertyType}</span>
+            <h1 className="pd-address">{getLocation(property)}</h1>
+            <div className="pd-fact-row">
+              {property.bedrooms  > 0 && <span className="pd-fact">{property.bedrooms} bed</span>}
+              {property.bathrooms > 0 && <span className="pd-fact">{property.bathrooms} bath</span>}
+              {property.builtUpArea > 0 && <span className="pd-fact">{property.builtUpArea} m²</span>}
+              {property.floorNumber && <span className="pd-fact">Floor {property.floorNumber}</span>}
+              <span className="pd-fact pd-fact--type">
+                {PROPERTY_TYPE_LABELS[property.propertyType] || property.propertyType}
+              </span>
+              <span className="pd-fact pd-fact--status">
+                {LISTING_STATUS_LABELS[property.listingStatus] || property.listingStatus}
+              </span>
+              {property.negotiable && <span className="pd-fact pd-fact--green">Negotiable</span>}
             </div>
-            <div className="status-badges">
-              <Badge type="primary" text={statusMap[property.listingStatus] || property.listingStatus} />
-              {property.negotiable && <Badge type="success" text="Negotiable" />}
-              {property.status && <Badge type="default" text={property.status} />}
-            </div>
+
+            {/* Institutional trust strip */}
+            {trustSignals.length > 0 && (
+              <div className="pd-trust-strip">
+                {trustSignals.map((s, i) => (
+                  <span key={i} className="pd-ts">
+                    <IconCheck />
+                    {s}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* AI insight bar */}
+            {aiInsight && (
+              <div className="pd-ai-insight">
+                <IconSparkle />
+                <span>{aiInsight}</span>
+              </div>
+            )}
+
+            {/* AI-generated property summary */}
+            {propertySummary && (
+              <p className="pd-ai-summary">{propertySummary}</p>
+            )}
           </div>
+
+          {/* Overview numbers */}
+          {(property.bedrooms || property.bathrooms || property.builtUpArea || property.landArea ||
+            property.parkingSpaces || property.yearBuilt || property.balconies) ? (
+            <section className="pd-section">
+              <h2 className="pd-section-label">Property overview</h2>
+              <div className="pd-overview-grid">
+                {property.bedrooms   > 0 && <div className="pd-ov-item"><span className="pd-ov-val">{property.bedrooms}</span><span className="pd-ov-key">Bedrooms</span></div>}
+                {property.bathrooms  > 0 && <div className="pd-ov-item"><span className="pd-ov-val">{property.bathrooms}</span><span className="pd-ov-key">Bathrooms</span></div>}
+                {property.balconies  > 0 && <div className="pd-ov-item"><span className="pd-ov-val">{property.balconies}</span><span className="pd-ov-key">Balconies</span></div>}
+                {property.parkingSpaces > 0 && <div className="pd-ov-item"><span className="pd-ov-val">{property.parkingSpaces}</span><span className="pd-ov-key">Parking</span></div>}
+                {property.builtUpArea > 0 && <div className="pd-ov-item"><span className="pd-ov-val">{property.builtUpArea} m²</span><span className="pd-ov-key">Built-up</span></div>}
+                {property.landArea   > 0 && <div className="pd-ov-item"><span className="pd-ov-val">{property.landArea} m²</span><span className="pd-ov-key">Land area</span></div>}
+                {property.yearBuilt      && <div className="pd-ov-item"><span className="pd-ov-val">{property.yearBuilt}</span><span className="pd-ov-key">Year built</span></div>}
+              </div>
+            </section>
+          ) : null}
 
           {/* Description */}
-          {property.description && (
-            <section className="detail-section">
-              <h2>About this property</h2>
-              <p className="property-description">{property.description}</p>
-            </section>
-          )}
-          
-        {/* Key Features */}
-        <section className="detail-section">
-          <h2>Overview</h2>
-          <div className="features-grid">
-            {property.bedrooms > 0 && <div className="feature-item"><strong>{property.bedrooms}</strong> Bedrooms</div>}
-            {property.bathrooms > 0 && <div className="feature-item"><strong>{property.bathrooms}</strong> Bathrooms</div>}
-            {property.balconies > 0 && <div className="feature-item"><strong>{property.balconies}</strong> Balconies</div>}
-            {property.parkingSpaces > 0 && <div className="feature-item"><strong>{property.parkingSpaces}</strong> Parking</div>}
-            {property.builtUpArea && <div className="feature-item"><strong>{property.builtUpArea} m²</strong> Built-up</div>}
-            {property.landArea && <div className="feature-item"><strong>{property.landArea} m²</strong> Land Area</div>}
-            {property.yearBuilt && <div className="feature-item"><strong>Built in {property.yearBuilt}</strong></div>}
-          </div>
-        </section>
-
-        {/* Basic Information */}
-        <section className="detail-section">
-          <h2>Basic Information</h2>
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="info-label">Property Type:</span>
-              <span>{propertyTypeMap[property.propertyType] || property.propertyType || 'N/A'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Purpose:</span>
-              <span>{property.purpose || 'N/A'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Occupancy:</span>
-              <span>{property.occupancy || 'N/A'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Furnishing:</span>
-              <span>{property.furnishing || 'N/A'}</span>
-            </div>
-            {property.yearBuilt && (
-              <div className="info-item">
-                <span className="info-label">Year Built:</span>
-                <span>{property.yearBuilt} {property.ageOfProperty && `(${property.ageOfProperty} years old)`}</span>
-              </div>
-            )}
-            {property.constructionStatus && (
-              <div className="info-item">
-                <span className="info-label">Construction Status:</span>
-                <span>{property.constructionStatus}</span>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Description */}
-        {property.description && (
-          <section className="detail-section">
-            <h2>Description</h2>
-            <p>{property.description}</p>
-          </section>
-        )}
-
-        {/* Location */}
-        <section className="detail-section">
-          <h2>Location</h2>
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="info-label">Address:</span>
-              <span>{getLocation(property)}</span>
-            </div>
-            {property.city && (
-              <div className="info-item">
-                <span className="info-label">City:</span>
-                <span>{property.city}</span>
-              </div>
-            )}
-            {property.district && (
-              <div className="info-item">
-                <span className="info-label">District:</span>
-                <span>{property.district}</span>
-              </div>
-            )}
-            {property.street && (
-              <div className="info-item">
-                <span className="info-label">Street:</span>
-                <span>{property.street}</span>
-              </div>
-            )}
-            {property.buildingName && (
-              <div className="info-item">
-                <span className="info-label">Building:</span>
-                <span>{property.buildingName}</span>
-              </div>
-            )}
-            {property.floorNumber && (
-              <div className="info-item">
-                <span className="info-label">Floor:</span>
-                <span>{property.floorNumber}</span>
-              </div>
-            )}
-            {property.unitNumber && (
-              <div className="info-item">
-                <span className="info-label">Unit:</span>
-                <span>{property.unitNumber}</span>
-              </div>
-            )}
-          </div>
-          
-          {/* Map */}
-          {property.coordinates && (property.coordinates.lat || property.coordinates.latitude) && (
-            <div style={{ marginTop: 'var(--space-6)' }}>
-              <MemoizedPropertyMap
-                singleProperty={{
-                  ...property,
-                  coordinates: {
-                    lat: property.coordinates.lat || property.coordinates.latitude,
-                    lng: property.coordinates.lng || property.coordinates.longitude
-                  }
-                }}
-                height="400px"
-                showPopups={false}
-              />
-            </div>
-          )}
-        </section>
-
-        {/* Rental Details */}
-        {property.listingStatus === 'for-rent' && (
-          <section className="detail-section">
-            <h2>Rental Details</h2>
-            <div className="info-grid">
-              {property.monthlyRent && (
-                <div className="info-item">
-                  <span className="info-label">Monthly Rent:</span>
-                  <span>{property.currency} {property.monthlyRent.toLocaleString()}</span>
-                </div>
-              )}
-              {property.annualRent && (
-                <div className="info-item">
-                  <span className="info-label">Annual Rent:</span>
-                  <span>{property.currency} {property.annualRent.toLocaleString()}</span>
-                </div>
-              )}
-              {property.depositAmount && (
-                <div className="info-item">
-                  <span className="info-label">Deposit:</span>
-                  <span>{property.currency} {property.depositAmount.toLocaleString()}</span>
-                </div>
-              )}
-              {property.paymentFrequency && (
-                <div className="info-item">
-                  <span className="info-label">Payment Frequency:</span>
-                  <span>{property.paymentFrequency}</span>
-                </div>
-              )}
-              {property.minContractPeriod && (
-                <div className="info-item">
-                  <span className="info-label">Min Contract:</span>
-                  <span>{property.minContractPeriod} months</span>
-                </div>
-              )}
-              <div className="info-item">
-                <span className="info-label">Utilities Included:</span>
-                <span>{property.utilitiesIncluded ? 'Yes' : 'No'}</span>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Interior Features */}
-        <section className="detail-section">
-          <h2>Interior Features</h2>
-          <div className="features-list">
-            {property.flooringType && <span className="feature-tag">Flooring: {property.flooringType}</span>}
-            {property.heating && <span className="feature-tag">Heating</span>}
-            {property.cooling && <span className="feature-tag">AC: {property.cooling}</span>}
-            {property.kitchenAppliances && <span className="feature-tag">Kitchen Appliances</span>}
-            {property.waterHeater && <span className="feature-tag">Water Heater</span>}
-            {property.smartHome && <span className="feature-tag">Smart Home</span>}
-            {property.internetAvailable && <span className="feature-tag">Internet</span>}
-            {property.builtInWardrobes && <span className="feature-tag">Built-in Wardrobes</span>}
-            {property.walkInCloset && <span className="feature-tag">Walk-in Closet</span>}
-            {property.maidsRoom && <span className="feature-tag">Maid's Room</span>}
-            {property.storageRoom && <span className="feature-tag">Storage Room</span>}
-            {property.laundryRoom && <span className="feature-tag">Laundry Room</span>}
-            {property.openLayoutKitchen && <span className="feature-tag">Open Layout Kitchen</span>}
-          </div>
-        </section>
-
-        {/* Exterior Features */}
-        <section className="detail-section">
-          <h2>Exterior Features</h2>
-          <div className="features-list">
-            {property.garage && <span className="feature-tag">Garage</span>}
-            {property.garden && <span className="feature-tag">Garden</span>}
-            {property.swimmingPool && <span className="feature-tag">Swimming Pool</span>}
-            {property.viewType && <span className="feature-tag">View: {property.viewType}</span>}
-            {property.roofAccess && <span className="feature-tag">Roof Access</span>}
-            {property.fenced && <span className="feature-tag">Fenced</span>}
-          </div>
-        </section>
-
-        {/* Building Features */}
-        <section className="detail-section">
-          <h2>Building Features</h2>
-          <div className="features-list">
-            {property.elevator && <span className="feature-tag">Elevator</span>}
-            {property.security && <span className="feature-tag">Security/Concierge</span>}
-            {property.cctv && <span className="feature-tag">CCTV</span>}
-            {property.gym && <span className="feature-tag">Gym</span>}
-            {property.sharedPool && <span className="feature-tag">Shared Pool</span>}
-            {property.visitorParking && <span className="feature-tag">Visitor Parking</span>}
-            {property.wheelchairAccessible && <span className="feature-tag">Wheelchair Accessible</span>}
-            {property.petsAllowed && <span className="feature-tag">Pets Allowed</span>}
-            {property.totalFloorsInBuilding && <span className="feature-tag">Total Floors: {property.totalFloorsInBuilding}</span>}
-          </div>
-        </section>
-
-        {/* Nearby Amenities */}
-        {property.nearby && (
-          <section className="detail-section">
-            <h2>Nearby Amenities</h2>
-            <div className="features-list">
-              {property.nearby.schools && <span className="feature-tag">Schools</span>}
-              {property.nearby.hospital && <span className="feature-tag">Hospital</span>}
-              {property.nearby.metro && <span className="feature-tag">Metro</span>}
-              {property.nearby.shoppingMall && <span className="feature-tag">Shopping Mall</span>}
-              {property.nearby.park && <span className="feature-tag">Park</span>}
-              {property.nearby.airport && <span className="feature-tag">Airport</span>}
-            </div>
-          </section>
-        )}
-
-        {/* Utilities */}
-        <section className="detail-section">
-          <h2>Utilities & Maintenance</h2>
-          <div className="info-grid">
-            {property.gasAvailable && (
-              <div className="info-item">
-                <span className="info-label">Gas:</span>
-                <span>Available</span>
-              </div>
-            )}
-            {property.hoaFees && (
-              <div className="info-item">
-                <span className="info-label">HOA/Condo Fees:</span>
-                <span>{property.currency} {property.hoaFees.toLocaleString()}</span>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Legal & Financial */}
-        <section className="detail-section">
-          <h2>Legal & Financial</h2>
-          <div className="info-grid">
-            {property.ownershipType && (
-              <div className="info-item">
-                <span className="info-label">Ownership:</span>
-                <span>{property.ownershipType}</span>
-              </div>
-            )}
-            <div className="info-item">
-              <span className="info-label">Title Deed:</span>
-              <span>{property.titleDeedAvailable ? 'Available' : 'N/A'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Mortgage:</span>
-              <span>{property.mortgageAllowed ? 'Allowed' : 'Not allowed'}</span>
-            </div>
-            {property.developerName && (
-              <div className="info-item">
-                <span className="info-label">Developer:</span>
-                <span>{property.developerName}</span>
-              </div>
-            )}
-            {property.projectName && (
-              <div className="info-item">
-                <span className="info-label">Project:</span>
-                <span>{property.projectName}</span>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Listing Info */}
-        <section className="detail-section">
-          <h2>Listing Information</h2>
-          <div className="info-grid">
-            {property.listingId && (
-              <div className="info-item">
-                <span className="info-label">Listing ID:</span>
-                <span>{property.listingId}</span>
-              </div>
-            )}
-            {property.viewsCount > 0 && (
-              <div className="info-item">
-                <span className="info-label">Views:</span>
-                <span>{property.viewsCount}</span>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Seller Information */}
-        {property.ownerId && (
-          <MemoizedSellerInfo
-            owner={property.ownerId}
-            listingBadge={property.listingBadge}
-            showContactButton={false}
-            onContact={openContactModal}
-          />
-        )}
-        </div>
-
-        {/* Right Column - Contact Card */}
-        <div className="property-right-column">
-          <div className="contact-card-sticky">
-            <div className="contact-card">
-              {/* Agent/Owner Info */}
-              {property.ownerId && (
-                <div className="agent-info">
-                  {property.ownerId.profileImage && (
-                    <img 
-                      src={property.ownerId.profileImage} 
-                      alt={property.ownerId.name}
-                      className="agent-avatar"
-                    />
-                  )}
-                  <div>
-                    <h3>{property.ownerId.name}</h3>
-                    {property.ownerId.accountType && (
-                      <div className={`verification-badge ${getVerificationBadge(property.ownerId.accountType).className}`}>
-                        {getVerificationBadge(property.ownerId.accountType).text}
-                      </div>
-                    )}
-                    {property.ownerId.companyName && (
-                      <p className="agent-company">{property.ownerId.companyName}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              {/* Contact Button */}
-              {!isOwner && (
-                <button 
-                  className="contact-agent-btn"
-                  onClick={openContactModal}
-                >
-                  Contact Agent
-                </button>
-              )}
-              
-              {/* Quick Actions */}
-              <div className="quick-actions">
-                <FavoriteButton
-                  propertyId={property._id}
-                  initialFavorite={isFavorite}
-                  onToggle={(newState) => setIsFavorite(newState)}
-                  size="medium"
-                />
-                <button className="action-btn" onClick={() => window.print()}>
-                  🖨️ Print
-                </button>
-                <button className="action-btn" onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  alert('Link copied to clipboard!');
-                }}>
-                  🔗 Share
-                </button>
-              </div>
-              
-              {/* Property Stats */}
-              <div className="property-stats-card">
-                <div className="stat-item">
-                  <span className="stat-label">Listed</span>
-                  <span className="stat-value">
-                    {property.dateAdded ? new Date(property.dateAdded).toLocaleDateString() : 'N/A'}
-                  </span>
-                </div>
-                {property.viewsCount > 0 && (
-                  <div className="stat-item">
-                    <span className="stat-label">Views</span>
-                    <span className="stat-value">{property.viewsCount}</span>
-                  </div>
+          {desc && (
+            <section className="pd-section">
+              <h2 className="pd-section-label">About this property</h2>
+              <div className="pd-desc-wrap">
+                <p className="pd-desc">{displayedDesc}</p>
+                {isLongDesc && (
+                  <button className="pd-desc-toggle" onClick={() => setDescExpanded(!descExpanded)}>
+                    {descExpanded ? 'Show less' : 'Read more'}
+                  </button>
                 )}
               </div>
+            </section>
+          )}
+
+          {/* Listing details */}
+          <section className="pd-section">
+            <h2 className="pd-section-label">Listing details</h2>
+            <div className="pd-info-rows">
+              <div className="pd-info-row">
+                <span className="pd-info-key">Property type</span>
+                <span className="pd-info-val">{PROPERTY_TYPE_LABELS[property.propertyType] || property.propertyType || '—'}</span>
+              </div>
+              {property.occupancy && (
+                <div className="pd-info-row"><span className="pd-info-key">Occupancy</span><span className="pd-info-val">{property.occupancy}</span></div>
+              )}
+              {property.furnishing && (
+                <div className="pd-info-row"><span className="pd-info-key">Furnishing</span><span className="pd-info-val">{property.furnishing}</span></div>
+              )}
+              {property.constructionStatus && (
+                <div className="pd-info-row"><span className="pd-info-key">Construction</span><span className="pd-info-val">{property.constructionStatus}</span></div>
+              )}
+              {property.yearBuilt && (
+                <div className="pd-info-row">
+                  <span className="pd-info-key">Year built</span>
+                  <span className="pd-info-val">{property.yearBuilt}{property.ageOfProperty ? ` · ${property.ageOfProperty} years` : ''}</span>
+                </div>
+              )}
+              {property.floorNumber && (
+                <div className="pd-info-row">
+                  <span className="pd-info-key">Floor</span>
+                  <span className="pd-info-val">{property.floorNumber}{property.totalFloorsInBuilding ? ` of ${property.totalFloorsInBuilding}` : ''}</span>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Location + map */}
+          <section className="pd-section">
+            <h2 className="pd-section-label">Location</h2>
+            <div className="pd-info-rows">
+              <div className="pd-info-row"><span className="pd-info-key">Address</span><span className="pd-info-val">{getLocation(property)}</span></div>
+              {property.city && (
+                <div className="pd-info-row"><span className="pd-info-key">City</span><span className="pd-info-val" style={{ textTransform: 'capitalize' }}>{property.city}</span></div>
+              )}
+              {property.district && (
+                <div className="pd-info-row"><span className="pd-info-key">District</span><span className="pd-info-val">{property.district}</span></div>
+              )}
+              {property.nearestMetro && (
+                <div className="pd-info-row"><span className="pd-info-key">Nearest metro</span><span className="pd-info-val">{property.nearestMetro}</span></div>
+              )}
+              {property.buildingName && (
+                <div className="pd-info-row"><span className="pd-info-key">Building</span><span className="pd-info-val">{property.buildingName}</span></div>
+              )}
+            </div>
+            {property.coordinates && (property.coordinates.lat || property.coordinates.latitude) && (
+              <div className="pd-map-wrap">
+                <MemoizedPropertyMap
+                  singleProperty={{
+                    ...property,
+                    coordinates: {
+                      lat: property.coordinates.lat || property.coordinates.latitude,
+                      lng: property.coordinates.lng || property.coordinates.longitude,
+                    },
+                  }}
+                  height="320px"
+                  showPopups={false}
+                />
+              </div>
+            )}
+          </section>
+
+          {/* Rental terms */}
+          {property.listingStatus === 'for-rent' && (
+            <section className="pd-section">
+              <h2 className="pd-section-label">Rental terms</h2>
+              <div className="pd-info-rows">
+                {property.monthlyRent && (
+                  <div className="pd-info-row"><span className="pd-info-key">Monthly rent</span><span className="pd-info-val">{property.currency} {property.monthlyRent.toLocaleString()}</span></div>
+                )}
+                {property.depositAmount && (
+                  <div className="pd-info-row"><span className="pd-info-key">Deposit</span><span className="pd-info-val">{property.currency} {property.depositAmount.toLocaleString()}</span></div>
+                )}
+                {property.paymentFrequency && (
+                  <div className="pd-info-row"><span className="pd-info-key">Payment</span><span className="pd-info-val">{property.paymentFrequency}</span></div>
+                )}
+                {property.minContractPeriod && (
+                  <div className="pd-info-row"><span className="pd-info-key">Min contract</span><span className="pd-info-val">{property.minContractPeriod} months</span></div>
+                )}
+                {property.utilitiesIncluded != null && (
+                  <div className="pd-info-row"><span className="pd-info-key">Utilities</span><span className="pd-info-val">{property.utilitiesIncluded ? 'Included' : 'Not included'}</span></div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Features & amenities */}
+          {hasFeatures ? (
+            <section className="pd-section">
+              <h2 className="pd-section-label">Features & amenities</h2>
+              {interiorFeats.length > 0 && (
+                <div className="pd-feat-group">
+                  <h3 className="pd-feat-group-label">Interior</h3>
+                  <div className="pd-feat-tags">
+                    {interiorFeats.map((f, i) => <span key={i} className="pd-feat-tag">{f}</span>)}
+                  </div>
+                </div>
+              )}
+              {exteriorFeats.length > 0 && (
+                <div className="pd-feat-group">
+                  <h3 className="pd-feat-group-label">Exterior</h3>
+                  <div className="pd-feat-tags">
+                    {exteriorFeats.map((f, i) => <span key={i} className="pd-feat-tag">{f}</span>)}
+                  </div>
+                </div>
+              )}
+              {buildingFeats.length > 0 && (
+                <div className="pd-feat-group">
+                  <h3 className="pd-feat-group-label">Building</h3>
+                  <div className="pd-feat-tags">
+                    {buildingFeats.map((f, i) => <span key={i} className="pd-feat-tag">{f}</span>)}
+                  </div>
+                </div>
+              )}
+              {nearbyFeats.length > 0 && (
+                <div className="pd-feat-group">
+                  <h3 className="pd-feat-group-label">Nearby</h3>
+                  <div className="pd-feat-tags">
+                    {nearbyFeats.map((f, i) => <span key={i} className="pd-feat-tag">{f}</span>)}
+                  </div>
+                </div>
+              )}
+            </section>
+          ) : null}
+
+          {/* Legal & financial */}
+          {hasLegal ? (
+            <section className="pd-section">
+              <h2 className="pd-section-label">Legal & financial</h2>
+              <div className="pd-info-rows">
+                {property.ownershipType && (
+                  <div className="pd-info-row"><span className="pd-info-key">Ownership</span><span className="pd-info-val">{property.ownershipType}</span></div>
+                )}
+                {property.titleDeedAvailable && (
+                  <div className="pd-info-row"><span className="pd-info-key">Title deed</span><span className="pd-info-val">Available</span></div>
+                )}
+                {property.mortgageAllowed != null && (
+                  <div className="pd-info-row"><span className="pd-info-key">Mortgage</span><span className="pd-info-val">{property.mortgageAllowed ? 'Allowed' : 'Not allowed'}</span></div>
+                )}
+                {property.developerName && (
+                  <div className="pd-info-row"><span className="pd-info-key">Developer</span><span className="pd-info-val">{property.developerName}</span></div>
+                )}
+                {property.projectName && (
+                  <div className="pd-info-row"><span className="pd-info-key">Project</span><span className="pd-info-val">{property.projectName}</span></div>
+                )}
+                {property.hoaFees && (
+                  <div className="pd-info-row"><span className="pd-info-key">HOA / service fees</span><span className="pd-info-val">{property.currency || 'AZN'} {property.hoaFees.toLocaleString()}</span></div>
+                )}
+              </div>
+            </section>
+          ) : null}
+
+          {/* Listing meta footer */}
+          <div className="pd-listing-meta">
+            {property.listingId && <span>Ref: {property.listingId}</span>}
+            {property.createdAt && (
+              <span>Listed {new Date(property.createdAt).toLocaleDateString('en', { month: 'short', year: 'numeric' })}</span>
+            )}
+            {property.viewsCount > 0 && <span>{property.viewsCount} total views</span>}
+          </div>
+        </div>
+
+        {/* Right column: confidence center */}
+        <div className="pd-sidebar">
+          <div className="pd-contact-sticky">
+            <div className="pd-contact-card">
+
+              {/* Seller identity */}
+              {property.ownerId && (
+                <div className="pd-seller-row">
+                  {property.ownerId.profileImage || property.ownerId.avatar ? (
+                    <img
+                      src={property.ownerId.profileImage || property.ownerId.avatar}
+                      alt={property.ownerId.name}
+                      className="pd-seller-avatar"
+                    />
+                  ) : (
+                    <div className="pd-seller-avatar-ph">
+                      {(property.ownerId.name || 'U')[0].toUpperCase()}
+                    </div>
+                  )}
+                  <div className="pd-seller-info">
+                    <span className="pd-seller-name">{property.ownerId.name}</span>
+                    {property.ownerId.companyName && (
+                      <span className="pd-seller-company">{property.ownerId.companyName}</span>
+                    )}
+                    {property.ownerId.accountType && (
+                      <div style={{ marginTop: 6 }}>
+                        <TrustBadge accountType={property.ownerId.accountType} variant="chip" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Ownership reviewed notice — institutional */}
+              {property.ownershipVerificationStatus === 'approved' && (
+                <div className="pd-ov-notice">
+                  <IconCheck size={13} />
+                  Ownership documents reviewed
+                </div>
+              )}
+
+              {/* Confidence panel */}
+              <ListingConfidencePanel property={property} />
+
+              {/* Market intelligence */}
+              {marketInsights.length > 0 && (
+                <div className="pd-market-insights">
+                  {marketInsights.map((ins, i) => (
+                    <div key={i} className={`pd-mi-item pd-mi-item--${ins.type}`}>
+                      <Sparkles size={12} strokeWidth={2} aria-hidden="true" />
+                      <span>{ins.text}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Contact actions */}
+              {!isOwner && (
+                <div className="pd-contact-actions">
+                  <button className="pd-inquiry-btn" onClick={openInquiry}>
+                    Send a message
+                  </button>
+
+                  <div className="pd-phone-wrap">
+                    {!phoneRevealed ? (
+                      <button className="pd-phone-reveal-btn" onClick={handleRevealPhone}>
+                        Show phone number
+                      </button>
+                    ) : revealedPhone ? (
+                      <div className="pd-phone-revealed">
+                        <a href={`tel:${revealedPhone}`} className="pd-phone-link">
+                          {revealedPhone}
+                        </a>
+                        <p className="pd-phone-safety">
+                          Never transfer a deposit before visiting in person.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="pd-phone-safety">Phone number not available.</p>
+                    )}
+                  </div>
+
+                  {responseNote && <p className="pd-response-note">{responseNote}</p>}
+                </div>
+              )}
+
+              {/* Secondary actions */}
+              <div className="pd-secondary-actions">
+                <FavoriteButton
+                  propertyId={property._id}
+                  initialIsFavorite={isFavorite}
+                  onToggle={(pid, confirmed) => setIsFavorite(confirmed)}
+                />
+                <div className="pd-text-actions">
+                  <button className="pd-text-btn" onClick={() => window.print()}>Print</button>
+                  <span className="pd-text-sep">·</span>
+                  <button className="pd-text-btn" onClick={handleShare}>
+                    {copied ? 'Copied!' : 'Share'}
+                  </button>
+                  {!isOwner && !isAdmin && (
+                    <>
+                      <span className="pd-text-sep">·</span>
+                      <button className="pd-text-btn pd-text-btn--report" onClick={() => setShowReport(true)}>
+                        Report
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {property.createdAt && (
+                <div className="pd-listed-date">
+                  Listed {new Date(property.createdAt).toLocaleDateString('en', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
+      {/* Similar listings nearby */}
+      {relatedProperties.length > 0 && !isModal && (
+        <section className="pd-related">
+          <p className="pd-related-label">
+            Similar {PROPERTY_TYPE_LABELS[property.propertyType]?.toLowerCase() || 'listings'} nearby
+          </p>
+          <div className="pd-related-grid">
+            {relatedProperties.map(p => {
+              const img = Array.isArray(p.images) && p.images[0]
+                ? (typeof p.images[0] === 'string' ? p.images[0] : p.images[0].medium || p.images[0].thumbnail)
+                : null;
+              const loc = typeof p.location === 'string'
+                ? p.location
+                : p.city || p.location?.city || '';
+              return (
+                <Link
+                  key={p._id}
+                  to={`/properties/${p._id}`}
+                  className="pd-related-card"
+                  onClick={() => track('related_listing_clicked', {
+                    source_property_id: property?._id,
+                    target_property_id: p._id,
+                    property_type:      p.propertyType,
+                  })}
+                >
+                  <div className="pd-related-img">
+                    {img
+                      ? <img src={img} alt={p.title} loading="lazy" />
+                      : <div className="pd-related-img-ph" />}
+                  </div>
+                  <div className="pd-related-body">
+                    <span className="pd-related-price">
+                      {p.currency || 'AZN'} {p.price?.toLocaleString() ?? '—'}
+                    </span>
+                    <span className="pd-related-title">{p.title || PROPERTY_TYPE_LABELS[p.propertyType] || 'Property'}</span>
+                    {loc && <span className="pd-related-loc">{loc}</span>}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+          <button
+            className="pd-related-explore"
+            onClick={() => navigate(`/search?propertyType=${property.propertyType}&listingStatus=${property.listingStatus || ''}`)}
+          >
+            More {PROPERTY_TYPE_LABELS[property.propertyType]?.toLowerCase() || 'listings'} →
+          </button>
+        </section>
+      )}
+
+      {/* Owner/admin edit link */}
       {(isAdmin || isOwner) && !isModal && (
-        <div className="property-actions">
-          <button onClick={() => navigate(`/properties/update/${property._id}`)} className="edit-btn">Edit Property</button>
+        <div className="pd-edit-bar">
+          <button className="pd-edit-btn" onClick={() => navigate(`/properties/update/${property._id}`)}>
+            Edit listing
+          </button>
         </div>
       )}
 
-      {showContactModal && property && (
-        <div className="modal-overlay" onClick={() => setShowContactModal(false)}>
-          <div className="modal-content contact-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowContactModal(false)}>✕</button>
-            <h3>Send Message to Property Owner</h3>
-            <div className="modal-property-info">
-              <p className="property-title">{property.title}</p>
-              <p className="property-price">{property.currency || 'AZN'} {property.price?.toLocaleString()}</p>
-            </div>
-            <div className="message-form">
-              <label>Your Message:</label>
-              <textarea
-                value={messageContent}
-                onChange={(e) => setMessageContent(e.target.value)}
-                placeholder="Hi, I'm interested in this property. Please provide more information."
-                rows="6"
-                disabled={messageSending}
-              />
-              {messageError && <p className="error-message">{messageError}</p>}
-              <div className="modal-actions">
-                <button 
-                  onClick={() => setShowContactModal(false)} 
-                  className="btn-secondary"
-                  disabled={messageSending}
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleSendMessage} 
-                  className="btn-primary"
-                  disabled={messageSending || !messageContent.trim()}
-                >
-                  {messageSending ? 'Sending...' : 'Send Message'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Modals */}
+      {showReportModal && (
+        <ReportModal
+          targetType="property"
+          targetId={property._id}
+          targetLabel={property.title}
+          onClose={() => setShowReport(false)}
+        />
       )}
 
-      {/* Lightbox for full-size images */}
+      {showInquiryModal && (
+        <InquiryModal
+          property={property}
+          currentUser={currentUser}
+          onClose={() => setShowInquiry(false)}
+          onSuccess={() => setShowInquiry(false)}
+        />
+      )}
+
+      {/* Lightbox */}
       {showLightbox && hasImages && (
-        <div className="lightbox-overlay" onClick={closeLightbox}>
-          <button className="lightbox-close" onClick={closeLightbox}>✕</button>
-          <button className="lightbox-prev" onClick={(e) => { e.stopPropagation(); prevImage(); }}>‹</button>
-          <button className="lightbox-next" onClick={(e) => { e.stopPropagation(); nextImage(); }}>›</button>
-          
+        <div className="lightbox-overlay" onClick={() => setShowLightbox(false)}>
+          <button className="lightbox-close" onClick={() => setShowLightbox(false)}>
+            <IconClose />
+          </button>
+          <button className="lightbox-prev" onClick={(e) => { e.stopPropagation(); prevImage(); }}>
+            <IconChevronLeft />
+          </button>
+          <button className="lightbox-next" onClick={(e) => { e.stopPropagation(); nextImage(); }}>
+            <IconChevronRight />
+          </button>
           <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
-            <img 
-              src={getImageUrl(property.images[selectedImageIndex], 'full')} 
+            <img
+              key={selectedImageIndex}
+              src={getImageUrl(property.images[selectedImageIndex], 'full')}
               alt={property.title}
+              style={{ opacity: 0, transition: 'opacity 240ms cubic-bezier(0.22,1,0.36,1)' }}
+              onLoad={(e) => { e.currentTarget.style.opacity = '1'; }}
             />
-            <div className="lightbox-counter">
-              {selectedImageIndex + 1} / {property.images.length}
-            </div>
+            <div className="lightbox-counter">{selectedImageIndex + 1} / {property.images.length}</div>
           </div>
+        </div>
+      )}
+
+      {/* Mobile sticky bar */}
+      {!isOwner && !isModal && (
+        <div className="mobile-contact-bar">
+          {property.ownerId?.phone ? (
+            <a href={`tel:${property.ownerId.phone}`} className="mobile-contact-btn mobile-contact-btn-secondary">
+              <IconPhone />
+              <span className="btn-text">Call</span>
+            </a>
+          ) : (
+            <button className="mobile-contact-btn mobile-contact-btn-secondary" disabled>
+              <IconPhone />
+              <span className="btn-text">Call</span>
+            </button>
+          )}
+          <button onClick={openInquiry} className="mobile-contact-btn mobile-contact-btn-primary">
+            <IconMessage />
+            <span className="btn-text">Message</span>
+          </button>
+          <button
+            onClick={async () => {
+              const token = localStorage.getItem('token');
+              if (!token) { navigate('/login'); return; }
+              try {
+                const res = await toggleSaveProperty(property._id, token);
+                setIsFavorite(res.data.saved);
+              } catch (_) {}
+            }}
+            className={`mobile-contact-btn mobile-contact-btn-icon${isFavorite ? ' is-favorite' : ''}`}
+            aria-label={isFavorite ? 'Remove from saved' : 'Save'}
+          >
+            <IconHeart filled={isFavorite} />
+          </button>
         </div>
       )}
     </div>

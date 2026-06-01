@@ -1,409 +1,590 @@
-import React from 'react';
-import Modal from './Modal';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronDown, X, Sparkles, Check } from 'lucide-react';
 import './FilterBar.css';
 
+// ── Data ──────────────────────────────────────────────────────────────────────
+
+const PROPERTY_TYPES = [
+  { value: 'apartment',         label: 'Apartment'  },
+  { value: 'house',             label: 'House'       },
+  { value: 'villa',             label: 'Villa'       },
+  { value: 'townhouse',         label: 'Townhouse'   },
+  { value: 'penthouse',         label: 'Penthouse'   },
+  { value: 'studio',            label: 'Studio'      },
+  { value: 'duplex',            label: 'Duplex'      },
+  { value: 'office',            label: 'Office'      },
+  { value: 'commercial-retail', label: 'Commercial'  },
+  { value: 'land',              label: 'Land'        },
+];
+
+const LISTING_TYPES = [
+  { value: '',      label: 'All'   },
+  { value: 'buy',   label: 'Buy'   },
+  { value: 'rent',  label: 'Rent'  },
+  { value: 'daily', label: 'Daily' },
+];
+
+const BUILDING_TOGGLES = [
+  { key: 'newBuilding', label: 'New building' },
+  { key: 'elevator',    label: 'Elevator'      },
+  { key: 'furnished',   label: 'Furnished'     },
+  { key: 'renovated',   label: 'Renovated'     },
+  { key: 'seaView',     label: 'Sea view'      },
+  { key: 'parking',     label: 'Parking'       },
+  { key: 'balcony',     label: 'Balcony'       },
+];
+
+const LIFESTYLE_FILTERS = [
+  { key: 'nearMetro',      label: 'Near metro'      },
+  { key: 'quietArea',      label: 'Quiet area'      },
+  { key: 'familyFriendly', label: 'Family-friendly' },
+  { key: 'shortTerm',      label: 'Short-term'      },
+  { key: 'longTerm',       label: 'Long-term'       },
+];
+
+const TRUST_FILTERS = [
+  { key: 'verified',          label: 'Ownership verified' },
+  { key: 'recentlyConfirmed', label: 'Recently confirmed' },
+  { key: 'fastResponse',      label: 'Quick to respond'   },
+  { key: 'goodValue',         label: 'Well-regarded'      },
+];
+
+const HEATING_OPTIONS = [
+  { value: '',           label: 'Any'        },
+  { value: 'gas',        label: 'Gas'        },
+  { value: 'electric',   label: 'Electric'   },
+  { value: 'central',    label: 'Central'    },
+  { value: 'autonomous', label: 'Individual' },
+];
+
+const BUILDING_AGE_OPTIONS = [
+  { value: '',     label: 'Any'    },
+  { value: 'new',  label: 'New'    },
+  { value: 'u5',   label: '< 5yr'  },
+  { value: '5_15', label: '5–15yr' },
+  { value: 'o15',  label: '15yr+'  },
+];
+
+const DOC_STATUS_OPTIONS = [
+  { value: '',          label: 'Any'          },
+  { value: 'ownership', label: 'Full ownership' },
+  { value: 'coop',      label: 'Cooperative'  },
+  { value: 'lease',     label: 'Lease'        },
+];
+
+// ── Subcomponents ─────────────────────────────────────────────────────────────
+
+const Group = ({ id, title, expanded, onToggle, activeCount, children }) => (
+  <div className={`fms-group${expanded ? ' fms-group--open' : ''}`}>
+    <button
+      className="fms-group-hd"
+      onClick={() => onToggle(id)}
+      aria-expanded={expanded}
+    >
+      <span className="fms-group-label">{title}</span>
+      <div className="fms-group-hd-right">
+        {activeCount > 0 && (
+          <span className="fms-group-badge">{activeCount}</span>
+        )}
+        <ChevronDown
+          className="fms-group-chevron"
+          size={14}
+          strokeWidth={2.5}
+          aria-hidden="true"
+        />
+      </div>
+    </button>
+    {expanded && (
+      <div className="fms-group-body">
+        {children}
+      </div>
+    )}
+  </div>
+);
+
+const ToggleChip = ({ label, active, onToggle }) => (
+  <button
+    className={`fms-chip${active ? ' fms-chip--on' : ''}`}
+    onClick={onToggle}
+    aria-pressed={active}
+  >
+    {active && <Check size={9} strokeWidth={3.5} aria-hidden="true" />}
+    {label}
+  </button>
+);
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 const FilterModal = ({ isOpen, onClose, filters, onFilterChange, onApply, onReset }) => {
-  const handleApply = () => {
-    onApply();
-    onClose();
+  const [expanded, setExpanded] = useState({
+    location:  false,
+    property:  true,
+    building:  false,
+    lifestyle: false,
+    trust:     false,
+    advanced:  false,
+  });
+
+  const bodyRef    = useRef(null);
+  const historyRef = useRef(false);
+
+  const toggleGroup = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const h = (e) => { if (e.key === 'Escape') handleClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Android back-button support
+  useEffect(() => {
+    if (!isOpen) return;
+    window.history.pushState({ filterModal: true }, '');
+    historyRef.current = true;
+    const handlePopstate = () => { historyRef.current = false; onClose(); };
+    window.addEventListener('popstate', handlePopstate);
+    return () => window.removeEventListener('popstate', handlePopstate);
+  }, [isOpen, onClose]);
+
+  const handleClose = () => {
+    if (historyRef.current) {
+      historyRef.current = false;
+      window.history.back();
+    } else {
+      onClose();
+    }
   };
 
+  const handleApply = () => { onApply(); handleClose(); };
+
+  const tog = (key) => onFilterChange(key, filters[key] === 'true' ? '' : 'true');
+
+  // ── Active counts per group ────────────────────────────────────────────────
+  const locationCount  = [filters.city, filters.keyword].filter(Boolean).length;
+  const propertyCount  = [
+    filters.listingType, filters.minPrice, filters.maxPrice,
+    filters.propertyType, filters.bedrooms, filters.bathrooms,
+  ].filter(Boolean).length;
+  const buildingCount  =
+    BUILDING_TOGGLES.reduce((n, f) => n + (filters[f.key] === 'true' ? 1 : 0), 0) +
+    (filters.minArea ? 1 : 0) + (filters.maxArea ? 1 : 0);
+  const lifestyleCount = LIFESTYLE_FILTERS.filter(f => filters[f.key] === 'true').length;
+  const trustCount     = TRUST_FILTERS.filter(f => filters[f.key] === 'true').length;
+  const advancedCount  = [
+    filters.floor, filters.totalFloors, filters.heating,
+    filters.buildingAge, filters.documentStatus,
+    filters.mortgageEligible === 'true' ? 'x' : '',
+  ].filter(Boolean).length;
+
+  const totalActive =
+    locationCount + propertyCount + buildingCount +
+    lifestyleCount + trustCount + advancedCount;
+
+  if (!isOpen) return null;
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="All Filters" size="xl">
-      <div className="filter-modal-content">
-        {/* Listing Status */}
-        <div className="filter-modal-section">
-          <label className="filter-modal-label">Listing Status</label>
-          <div className="filter-modal-radio-group">
-            <label className="filter-modal-radio">
-              <input
-                type="radio"
-                name="listingStatus"
-                value=""
-                checked={!filters.listingStatus}
-                onChange={(e) => onFilterChange('listingStatus', '')}
-              />
-              <span>All</span>
-            </label>
-            <label className="filter-modal-radio">
-              <input
-                type="radio"
-                name="listingStatus"
-                value="for-sale"
-                checked={filters.listingStatus === 'for-sale'}
-                onChange={(e) => onFilterChange('listingStatus', 'for-sale')}
-              />
-              <span>For Sale</span>
-            </label>
-            <label className="filter-modal-radio">
-              <input
-                type="radio"
-                name="listingStatus"
-                value="for-rent"
-                checked={filters.listingStatus === 'for-rent'}
-                onChange={(e) => onFilterChange('listingStatus', 'for-rent')}
-              />
-              <span>For Rent</span>
-            </label>
-          </div>
-        </div>
+    <>
+      {/* Backdrop */}
+      <div className="fms-overlay" onClick={handleClose} aria-hidden="true" />
 
-        {/* Purpose */}
-        <div className="filter-modal-section">
-          <label className="filter-modal-label">Purpose</label>
-          <select
-            className="filter-modal-select"
-            value={filters.purpose || ''}
-            onChange={(e) => {
-              onFilterChange('purpose', e.target.value);
-              // Reset rental term if not residential
-              if (e.target.value !== 'residential') {
-                onFilterChange('rentalTerm', '');
-              }
-            }}
-          >
-            <option value="">All</option>
-            <option value="residential">Residential</option>
-            <option value="commercial">Commercial</option>
-          </select>
-        </div>
-
-        {/* Rental Term - Show only for rent + residential */}
-        {filters.listingStatus === 'for-rent' && filters.purpose === 'residential' && (
-          <div className="filter-modal-section">
-            <label className="filter-modal-label">Rental Term</label>
-            <select
-              className="filter-modal-select"
-              value={filters.rentalTerm || ''}
-              onChange={(e) => onFilterChange('rentalTerm', e.target.value)}
+      {/* Sheet */}
+      <div
+        className="fms-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Refine your search"
+      >
+        {/* ── Header ── */}
+        <div className="fms-header">
+          <div className="fms-drag-handle" aria-hidden="true" />
+          <div className="fms-header-row">
+            <div>
+              <h2 className="fms-title">Filters</h2>
+              {totalActive > 0 && (
+                <p className="fms-subtitle">{totalActive} active</p>
+              )}
+            </div>
+            <button
+              className="fms-close"
+              onClick={handleClose}
+              aria-label="Close filters"
             >
-              <option value="">All Terms</option>
-              <option value="long-term">Long Term</option>
-              <option value="short-term">Short Term</option>
-            </select>
+              <X size={14} strokeWidth={2.5} aria-hidden="true" />
+            </button>
           </div>
-        )}
+        </div>
 
-        {/* Property Type */}
-        <div className="filter-modal-section">
-          <label className="filter-modal-label">Property Type</label>
-          <select
-            className="filter-modal-select"
-            value={filters.propertyType || ''}
-            onChange={(e) => onFilterChange('propertyType', e.target.value)}
+        {/* ── Scrollable body ── */}
+        <div className="fms-body" ref={bodyRef}>
+
+          {/* ① Location */}
+          <Group
+            id="location"
+            title="Location"
+            expanded={expanded.location}
+            onToggle={toggleGroup}
+            activeCount={locationCount}
           >
-            <option value="">All Types</option>
-            {/* Residential */}
-            <option value="apartment">Apartment</option>
-            <option value="house">House</option>
-            <option value="townhouse">Townhouse</option>
-            <option value="villa">Villa</option>
-            <option value="penthouse">Penthouse</option>
-            <option value="studio">Studio</option>
-            <option value="duplex">Duplex</option>
-            {/* Commercial */}
-            <option value="commercial-retail">Commercial Retail</option>
-            <option value="commercial-unit">Commercial Unit</option>
-            <option value="office">Office</option>
-            <option value="industrial">Industrial</option>
-            <option value="warehouse">Warehouse</option>
-            <option value="shop">Shop</option>
-            <option value="restaurant">Restaurant</option>
-            {/* Land */}
-            <option value="land">Land</option>
-            <option value="farm">Farm</option>
-            {/* Short-term / Unique */}
-            <option value="cabin">Cabin</option>
-            <option value="cottage">Cottage</option>
-            <option value="bungalow">Bungalow</option>
-            <option value="chalet">Chalet</option>
-            <option value="loft">Loft</option>
-            <option value="tiny-house">Tiny House</option>
-            <option value="mobile-home">Mobile Home</option>
-            <option value="rv">RV</option>
-            <option value="camper-van">Camper Van</option>
-            <option value="boat">Boat</option>
-            <option value="treehouse">Treehouse</option>
-            <option value="dome">Dome</option>
-            <option value="a-frame">A-Frame</option>
-            <option value="barn">Barn</option>
-            <option value="castle">Castle</option>
-            <option value="cave">Cave</option>
-            <option value="windmill">Windmill</option>
-            <option value="lighthouse">Lighthouse</option>
-            <option value="room">Room</option>
-            <option value="shared-room">Shared Room</option>
-            <option value="entire-place">Entire Place</option>
-          </select>
-        </div>
-
-        {/* Price Range */}
-        <div className="filter-modal-section">
-          <label className="filter-modal-label">Price Range (₼)</label>
-          <div className="filter-modal-row">
-            <div className="filter-modal-row-item">
+            <div className="fms-field">
+              <label className="fms-field-label">City or district</label>
               <input
-                type="number"
-                className="filter-modal-input"
-                placeholder="Min Price"
-                value={filters.minPrice || ''}
-                onChange={(e) => onFilterChange('minPrice', e.target.value)}
+                className="fms-input"
+                type="text"
+                placeholder="e.g. Baku, Yasamal, Sabunchu…"
+                value={filters.city || ''}
+                onChange={e => onFilterChange('city', e.target.value)}
               />
             </div>
-            <div className="filter-modal-row-item">
+            <div className="fms-field">
+              <label className="fms-field-label">Keyword</label>
               <input
-                type="number"
-                className="filter-modal-input"
-                placeholder="Max Price"
-                value={filters.maxPrice || ''}
-                onChange={(e) => onFilterChange('maxPrice', e.target.value)}
+                className="fms-input"
+                type="text"
+                placeholder="e.g. sea view, corner unit…"
+                value={filters.keyword || ''}
+                onChange={e => onFilterChange('keyword', e.target.value)}
               />
             </div>
-          </div>
-        </div>
+          </Group>
 
-        {/* Area Range */}
-        <div className="filter-modal-section">
-          <label className="filter-modal-label">Area (m²)</label>
-          <div className="filter-modal-row">
-            <div className="filter-modal-row-item">
-              <input
-                type="number"
-                className="filter-modal-input"
-                placeholder="Min Area"
-                value={filters.minArea || ''}
-                onChange={(e) => onFilterChange('minArea', e.target.value)}
-              />
+          {/* ② Price & Property */}
+          <Group
+            id="property"
+            title="Price & Property"
+            expanded={expanded.property}
+            onToggle={toggleGroup}
+            activeCount={propertyCount}
+          >
+            {/* Listing type */}
+            <div className="fms-field">
+              <label className="fms-field-label">Listing type</label>
+              <div className="fms-num-row">
+                {LISTING_TYPES.map(t => (
+                  <button
+                    key={t.value}
+                    className={`fms-num-btn${(filters.listingType || '') === t.value ? ' fms-num-btn--on' : ''}`}
+                    onClick={() => onFilterChange('listingType', t.value)}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="filter-modal-row-item">
-              <input
-                type="number"
-                className="filter-modal-input"
-                placeholder="Max Area"
-                value={filters.maxArea || ''}
-                onChange={(e) => onFilterChange('maxArea', e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
 
-        {/* Bedrooms */}
-        <div className="filter-modal-section">
-          <label className="filter-modal-label">Bedrooms</label>
-          <div className="filter-modal-btn-group">
-            {['Any', '1', '2', '3', '4', '5+'].map((beds) => (
-              <button
-                key={beds}
-                className={`filter-modal-btn-option ${
-                  filters.bedrooms === (beds === 'Any' ? '' : beds === '5+' ? '5' : beds)
-                    ? 'active'
-                    : ''
-                }`}
-                onClick={() =>
-                  onFilterChange('bedrooms', beds === 'Any' ? '' : beds === '5+' ? '5' : beds)
-                }
-              >
-                {beds}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Bathrooms */}
-        <div className="filter-modal-section">
-          <label className="filter-modal-label">Bathrooms</label>
-          <div className="filter-modal-btn-group">
-            {['Any', '1', '2', '3', '4+'].map((baths) => (
-              <button
-                key={baths}
-                className={`filter-modal-btn-option ${
-                  filters.bathrooms === (baths === 'Any' ? '' : baths === '4+' ? '4' : baths)
-                    ? 'active'
-                    : ''
-                }`}
-                onClick={() =>
-                  onFilterChange('bathrooms', baths === 'Any' ? '' : baths === '4+' ? '4' : baths)
-                }
-              >
-                {baths}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Amenities */}
-        <div className="filter-modal-section">
-          <label className="filter-modal-label">Amenities</label>
-          <div className="filter-modal-checkbox-grid">
-            {[
-              { value: 'parking', label: 'Parking' },
-              { value: 'balcony', label: 'Balcony' },
-              { value: 'elevator', label: 'Elevator' },
-              { value: 'gym', label: 'Gym' },
-              { value: 'pool', label: 'Swimming Pool' },
-              { value: 'security', label: '24/7 Security' },
-            ].map((amenity) => (
-              <label key={amenity.value} className="filter-modal-checkbox">
+            {/* Price */}
+            <div className="fms-field">
+              <label className="fms-field-label">Price (AZN)</label>
+              <div className="fms-price-presets fms-price-presets--mb">
+                {[
+                  { min: '',       max: '100000', label: 'Under 100k'  },
+                  { min: '',       max: '200000', label: 'Under 200k'  },
+                  { min: '200000', max: '500000', label: '200k – 500k' },
+                  { min: '500000', max: '',       label: '500k+'       },
+                ].map(p => (
+                  <button
+                    key={p.label}
+                    className={`fms-price-preset${
+                      filters.minPrice === p.min && filters.maxPrice === p.max
+                        ? ' fms-price-preset--on'
+                        : ''
+                    }`}
+                    onClick={() => {
+                      onFilterChange('minPrice', p.min);
+                      onFilterChange('maxPrice', p.max);
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              <div className="fms-price-row">
                 <input
-                  type="checkbox"
-                  checked={filters.amenities?.includes(amenity.value)}
-                  onChange={(e) => {
-                    const current = filters.amenities || [];
-                    const updated = e.target.checked
-                      ? [...current, amenity.value]
-                      : current.filter((a) => a !== amenity.value);
-                    onFilterChange('amenities', updated);
-                  }}
+                  className="fms-input"
+                  type="number"
+                  placeholder="Min"
+                  value={filters.minPrice || ''}
+                  onChange={e => onFilterChange('minPrice', e.target.value)}
+                  min="0"
                 />
-                <span>{amenity.label}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Year Built */}
-        <div className="filter-modal-section">
-          <label className="filter-modal-label">Year Built</label>
-          <div className="filter-modal-row">
-            <div className="filter-modal-row-item">
-              <input
-                type="number"
-                className="filter-modal-input"
-                placeholder="From Year"
-                value={filters.yearBuiltMin || ''}
-                onChange={(e) => onFilterChange('yearBuiltMin', e.target.value)}
-              />
+                <span className="fms-price-sep">—</span>
+                <input
+                  className="fms-input"
+                  type="number"
+                  placeholder="Max"
+                  value={filters.maxPrice || ''}
+                  onChange={e => onFilterChange('maxPrice', e.target.value)}
+                  min="0"
+                />
+              </div>
             </div>
-            <div className="filter-modal-row-item">
-              <input
-                type="number"
-                className="filter-modal-input"
-                placeholder="To Year"
-                value={filters.yearBuiltMax || ''}
-                onChange={(e) => onFilterChange('yearBuiltMax', e.target.value)}
-              />
+
+            {/* Property type */}
+            <div className="fms-field">
+              <label className="fms-field-label">Property type</label>
+              <div className="fms-chip-row">
+                <button
+                  className={`fms-chip fms-chip--type${!filters.propertyType ? ' fms-chip--on' : ''}`}
+                  onClick={() => onFilterChange('propertyType', '')}
+                >
+                  All
+                </button>
+                {PROPERTY_TYPES.map(t => (
+                  <button
+                    key={t.value}
+                    className={`fms-chip fms-chip--type${filters.propertyType === t.value ? ' fms-chip--on' : ''}`}
+                    onClick={() => onFilterChange('propertyType', t.value)}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Bedrooms */}
+            <div className="fms-field">
+              <label className="fms-field-label">Bedrooms</label>
+              <div className="fms-num-row">
+                {['', '1', '2', '3', '4', '5'].map(v => (
+                  <button
+                    key={v}
+                    className={`fms-num-btn${filters.bedrooms === v ? ' fms-num-btn--on' : ''}`}
+                    onClick={() => onFilterChange('bedrooms', v)}
+                  >
+                    {v === '' ? 'Any' : `${v}+`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Bathrooms */}
+            <div className="fms-field">
+              <label className="fms-field-label">Bathrooms</label>
+              <div className="fms-num-row">
+                {['', '1', '2', '3', '4'].map(v => (
+                  <button
+                    key={v}
+                    className={`fms-num-btn${filters.bathrooms === v ? ' fms-num-btn--on' : ''}`}
+                    onClick={() => onFilterChange('bathrooms', v)}
+                  >
+                    {v === '' ? 'Any' : `${v}+`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </Group>
+
+          {/* ③ Building & Space */}
+          <Group
+            id="building"
+            title="Building & Space"
+            expanded={expanded.building}
+            onToggle={toggleGroup}
+            activeCount={buildingCount}
+          >
+            <div className="fms-field">
+              <label className="fms-field-label">Area (m²)</label>
+              <div className="fms-price-row">
+                <input
+                  className="fms-input"
+                  type="number"
+                  placeholder="Min m²"
+                  value={filters.minArea || ''}
+                  onChange={e => onFilterChange('minArea', e.target.value)}
+                  min="0"
+                />
+                <span className="fms-price-sep">—</span>
+                <input
+                  className="fms-input"
+                  type="number"
+                  placeholder="Max m²"
+                  value={filters.maxArea || ''}
+                  onChange={e => onFilterChange('maxArea', e.target.value)}
+                  min="0"
+                />
+              </div>
+            </div>
+            <div className="fms-field">
+              <div className="fms-chip-row">
+                {BUILDING_TOGGLES.map(f => (
+                  <ToggleChip
+                    key={f.key}
+                    label={f.label}
+                    active={filters[f.key] === 'true'}
+                    onToggle={() => tog(f.key)}
+                  />
+                ))}
+              </div>
+            </div>
+          </Group>
+
+          {/* ④ Lifestyle */}
+          <Group
+            id="lifestyle"
+            title="Lifestyle"
+            expanded={expanded.lifestyle}
+            onToggle={toggleGroup}
+            activeCount={lifestyleCount}
+          >
+            <div className="fms-chip-row">
+              {LIFESTYLE_FILTERS.map(f => (
+                <ToggleChip
+                  key={f.key}
+                  label={f.label}
+                  active={filters[f.key] === 'true'}
+                  onToggle={() => tog(f.key)}
+                />
+              ))}
+            </div>
+          </Group>
+
+          {/* ⑤ Trust & Quality */}
+          <Group
+            id="trust"
+            title="Trust & Quality"
+            expanded={expanded.trust}
+            onToggle={toggleGroup}
+            activeCount={trustCount}
+          >
+            <div className="fms-ai-intro">
+              <Sparkles size={11} strokeWidth={2} aria-hidden="true" />
+              Signals from listing activity and owner behaviour
+            </div>
+            <div className="fms-chip-row">
+              {TRUST_FILTERS.map(f => (
+                <ToggleChip
+                  key={f.key}
+                  label={f.label}
+                  active={filters[f.key] === 'true'}
+                  onToggle={() => tog(f.key)}
+                />
+              ))}
+            </div>
+          </Group>
+
+          {/* ⑥ Advanced — progressive depth */}
+          <div className={`fms-advanced${expanded.advanced ? ' fms-advanced--open' : ''}`}>
+            <button
+              className="fms-advanced-trigger"
+              onClick={() => toggleGroup('advanced')}
+              aria-expanded={expanded.advanced}
+            >
+              <ChevronDown
+                className="fms-advanced-chevron"
+                size={14}
+                strokeWidth={2.5}
+                aria-hidden="true"
+              />
+              <span>{expanded.advanced ? 'Fewer options' : 'More options'}</span>
+              {advancedCount > 0 && (
+                <span className="fms-group-badge">{advancedCount}</span>
+              )}
+            </button>
+
+            {expanded.advanced && (
+              <div className="fms-advanced-body">
+                {/* Floor range */}
+                <div className="fms-field">
+                  <label className="fms-field-label">Floor</label>
+                  <div className="fms-price-row">
+                    <input
+                      className="fms-input"
+                      type="number"
+                      placeholder="Min floor"
+                      value={filters.floor || ''}
+                      onChange={e => onFilterChange('floor', e.target.value)}
+                      min="0"
+                    />
+                    <span className="fms-price-sep">of</span>
+                    <input
+                      className="fms-input"
+                      type="number"
+                      placeholder="Total floors"
+                      value={filters.totalFloors || ''}
+                      onChange={e => onFilterChange('totalFloors', e.target.value)}
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                {/* Heating */}
+                <div className="fms-field">
+                  <label className="fms-field-label">Heating</label>
+                  <div className="fms-chip-row">
+                    {HEATING_OPTIONS.map(o => (
+                      <button
+                        key={o.value}
+                        className={`fms-chip${(filters.heating || '') === o.value ? ' fms-chip--on' : ''}`}
+                        onClick={() => onFilterChange('heating', o.value)}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Building age */}
+                <div className="fms-field">
+                  <label className="fms-field-label">Building age</label>
+                  <div className="fms-chip-row">
+                    {BUILDING_AGE_OPTIONS.map(o => (
+                      <button
+                        key={o.value}
+                        className={`fms-chip${(filters.buildingAge || '') === o.value ? ' fms-chip--on' : ''}`}
+                        onClick={() => onFilterChange('buildingAge', o.value)}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Document status */}
+                <div className="fms-field">
+                  <label className="fms-field-label">Document status</label>
+                  <div className="fms-chip-row">
+                    {DOC_STATUS_OPTIONS.map(o => (
+                      <button
+                        key={o.value}
+                        className={`fms-chip${(filters.documentStatus || '') === o.value ? ' fms-chip--on' : ''}`}
+                        onClick={() => onFilterChange('documentStatus', o.value)}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mortgage */}
+                <div className="fms-field fms-field--last">
+                  <label className="fms-field-label">Financing</label>
+                  <div className="fms-chip-row">
+                    <ToggleChip
+                      label="Mortgage eligible"
+                      active={filters.mortgageEligible === 'true'}
+                      onToggle={() => tog('mortgageEligible')}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
+
         </div>
 
-        {/* Number of Stories */}
-        <div className="filter-modal-section">
-          <label className="filter-modal-label">Number of Stories</label>
-          <select
-            className="filter-modal-select"
-            value={filters.stories || ''}
-            onChange={(e) => onFilterChange('stories', e.target.value)}
-          >
-            <option value="">Any</option>
-            <option value="1">1 Story</option>
-            <option value="2">2 Stories</option>
-            <option value="3">3 Stories</option>
-            <option value="4">4 Stories</option>
-            <option value="5">5+ Stories</option>
-          </select>
-        </div>
-
-        {/* View */}
-        <div className="filter-modal-section">
-          <label className="filter-modal-label">View</label>
-          <select
-            className="filter-modal-select"
-            value={filters.view || ''}
-            onChange={(e) => onFilterChange('view', e.target.value)}
-          >
-            <option value="">Any View</option>
-            <option value="city">City View</option>
-            <option value="sea">Sea View</option>
-            <option value="mountain">Mountain View</option>
-            <option value="park">Park View</option>
-            <option value="street">Street View</option>
-            <option value="other">Other View</option>
-          </select>
-        </div>
-
-        {/* Parking Spots */}
-        <div className="filter-modal-section">
-          <label className="filter-modal-label">Parking Spots</label>
-          <select
-            className="filter-modal-select"
-            value={filters.parkingSpots || ''}
-            onChange={(e) => onFilterChange('parkingSpots', e.target.value)}
-          >
-            <option value="">Any</option>
-            <option value="0">No Parking</option>
-            <option value="1">1 Spot</option>
-            <option value="2">2 Spots</option>
-            <option value="3">3 Spots</option>
-            <option value="4">4+ Spots</option>
-          </select>
-        </div>
-
-        {/* Listed Since */}
-        <div className="filter-modal-section">
-          <label className="filter-modal-label">Listed Since</label>
-          <select
-            className="filter-modal-select"
-            value={filters.listedSince || ''}
-            onChange={(e) => onFilterChange('listedSince', e.target.value)}
-          >
-            <option value="">Any Time</option>
-            <option value="1">Last 24 Hours</option>
-            <option value="7">Last 7 Days</option>
-            <option value="30">Last 30 Days</option>
-            <option value="90">Last 3 Months</option>
-            <option value="180">Last 6 Months</option>
-          </select>
-        </div>
-
-        {/* Keywords */}
-        <div className="filter-modal-section">
-          <label className="filter-modal-label">Keywords</label>
-          <input
-            type="text"
-            className="filter-modal-input"
-            placeholder="Enter keywords (e.g., renovated, furnished, luxury)"
-            value={filters.keywords || ''}
-            onChange={(e) => onFilterChange('keywords', e.target.value)}
-          />
-        </div>
-        <div className="filter-modal-section">
-          <label className="filter-modal-label">Sort By</label>
-          <select
-            className="filter-modal-select"
-            value={filters.sortBy || 'newest'}
-            onChange={(e) => onFilterChange('sortBy', e.target.value)}
-          >
-            <option value="newest">Newest First</option>
-            <option value="price-asc">Price: Low to High</option>
-            <option value="price-desc">Price: High to Low</option>
-            <option value="area-asc">Area: Small to Large</option>
-            <option value="area-desc">Area: Large to Small</option>
-          </select>
-        </div>
-
-        {/* Show Sold */}
-        <div className="filter-modal-section">
-          <label className="filter-modal-checkbox">
-            <input
-              type="checkbox"
-              checked={filters.showSold || false}
-              onChange={(e) => onFilterChange('showSold', e.target.checked)}
-            />
-            <span>Show Sold Properties</span>
-          </label>
+        {/* ── Sticky footer ── */}
+        <div className="fms-footer">
+          <button className="fms-reset" onClick={onReset}>Reset all</button>
+          <button className="fms-apply" onClick={handleApply}>Show results</button>
         </div>
       </div>
-
-      {/* Modal Footer with Reset and Apply Buttons */}
-      <div className="filter-modal-actions">
-        <button className="filter-modal-btn-reset" onClick={onReset}>
-          Reset Filters
-        </button>
-        <button className="filter-modal-btn-search" onClick={handleApply}>
-          Apply Filters
-        </button>
-      </div>
-    </Modal>
+    </>
   );
 };
 

@@ -1,0 +1,236 @@
+.rm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.rm-dialog {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 480px;
+  padding: 28px 28px 24px;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.rm-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: var(--gray-500);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.rm-close:hover {
+  color: var(--gray-900);
+  background: var(--gray-100);
+}
+
+.rm-title {
+  margin: 0 0 4px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.rm-target {
+  margin: 0 0 20px;
+  font-size: 0.875rem;
+  color: var(--gray-500);
+}
+
+.rm-fieldset {
+  border: none;
+  margin: 0 0 16px;
+  padding: 0;
+}
+
+.rm-legend {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: 10px;
+  display: block;
+}
+
+.rm-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rm-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--gray-800);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.rm-option input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary, #e02020);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.rm-option:hover {
+  border-color: var(--primary, #e02020);
+  background: #fef2f2;
+}
+
+.rm-option--selected {
+  border-color: var(--primary, #e02020);
+  background: #fef2f2;
+  font-weight: 500;
+}
+
+.rm-field {
+  margin-bottom: 16px;
+}
+
+.rm-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gray-700);
+  margin-bottom: 6px;
+}
+
+.rm-optional {
+  color: var(--gray-400);
+  font-weight: 400;
+}
+
+.rm-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--gray-900);
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.rm-textarea:focus {
+  border-color: var(--primary, #e02020);
+}
+
+.rm-error {
+  margin: 0 0 12px;
+  font-size: 0.8125rem;
+  color: #dc2626;
+}
+
+.rm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.rm-btn-primary {
+  height: 40px;
+  padding: 0 20px;
+  background: var(--primary, #e02020);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.rm-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rm-btn-primary:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.rm-btn-secondary {
+  height: 40px;
+  padding: 0 20px;
+  background: none;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.rm-btn-secondary:hover:not(:disabled) {
+  border-color: var(--gray-400);
+}
+
+/* Success state */
+.rm-done {
+  text-align: center;
+  padding: 16px 0 8px;
+}
+
+.rm-done-icon {
+  width: 52px;
+  height: 52px;
+  background: #F0FDF4;
+  border: 2px solid #BBF7D0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #166534;
+  margin: 0 auto 16px;
+}
+
+.rm-done h3 {
+  margin: 0 0 8px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.rm-done p {
+  margin: 0 0 24px;
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  line-height: 1.5;
+}
+
+/* Process note shown before the form */
+.rm-process-note {
+  margin: 0 0 16px;
+  padding: 9px 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  line-height: 1.5;
+}

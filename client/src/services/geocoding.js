@@ -39,33 +39,28 @@ export const geocodeAddress = async (address) => {
     });
     
     const url = `https://nominatim.openstreetmap.org/search?${params}`;
-    
-    console.log('🔍 Geocoding:', cleanAddress);
-    
+
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'RealEstateApp/1.0' // Nominatim requires User-Agent
+        'User-Agent': 'EmlakPro/1.0 (https://emlakpro.az)' // Nominatim requires User-Agent
       }
     });
     
     const data = await response.json();
     
     if (data && data.length > 0) {
-      const result = {
+      return {
         lat: parseFloat(data[0].lat),
         lng: parseFloat(data[0].lon),
         latitude: parseFloat(data[0].lat),
         longitude: parseFloat(data[0].lon),
-        formattedAddress: data[0].display_name
+        formattedAddress: data[0].display_name,
       };
-      console.log('✅ Found:', result);
-      return result;
     }
-    
-    console.warn('⚠️ No results for:', cleanAddress);
+
     return null;
   } catch (error) {
-    console.error('❌ Geocoding error:', error);
+    console.error('[geocoding] error:', error);
     return null;
   }
 };
@@ -85,7 +80,7 @@ export const reverseGeocode = async (lat, lng) => {
     
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'RealEstateApp/1.0'
+        'User-Agent': 'EmlakPro/1.0 (https://emlakpro.az)'
       }
     });
     
@@ -133,7 +128,7 @@ export const searchAddresses = async (query) => {
     
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'RealEstateApp/1.0'
+        'User-Agent': 'EmlakPro/1.0 (https://emlakpro.az)'
       }
     });
     
@@ -142,7 +137,8 @@ export const searchAddresses = async (query) => {
     return data.map(item => ({
       display_name: item.display_name,
       lat: parseFloat(item.lat),
-      lng: parseFloat(item.lon)
+      lng: parseFloat(item.lon),
+      address: item.address || {}
     }));
   } catch (error) {
     console.error('Address search error:', error);

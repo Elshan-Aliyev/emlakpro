@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { Check, X, AlertTriangle, Info } from 'lucide-react';
 import './Toast.css';
 
 const ToastContext = createContext(null);
@@ -61,23 +62,21 @@ export const ToastProvider = ({ children }) => {
   );
 };
 
-const Toast = ({ id, message, type, onClose }) => {
-  const icons = {
-    success: '✓',
-    error: '✕',
-    warning: '⚠',
-    info: 'ℹ',
-  };
-
-  return (
-    <div className={`toast toast-${type}`}>
-      <div className="toast-icon">{icons[type]}</div>
-      <div className="toast-message">{message}</div>
-      <button className="toast-close" onClick={onClose} aria-label="Close">
-        ×
-      </button>
-    </div>
-  );
+const TOAST_ICONS = {
+  success: <Check     size={14} strokeWidth={2.5} aria-hidden="true" />,
+  error:   <X         size={14} strokeWidth={2.5} aria-hidden="true" />,
+  warning: <AlertTriangle size={14} strokeWidth={2} aria-hidden="true" />,
+  info:    <Info      size={14} strokeWidth={2}   aria-hidden="true" />,
 };
+
+const Toast = ({ id, message, type, onClose }) => (
+  <div className={`toast toast-${type}`}>
+    <div className="toast-icon">{TOAST_ICONS[type]}</div>
+    <div className="toast-message">{message}</div>
+    <button className="toast-close" onClick={onClose} aria-label="Close">
+      <X size={12} strokeWidth={2.5} aria-hidden="true" />
+    </button>
+  </div>
+);
 
 export default ToastProvider;

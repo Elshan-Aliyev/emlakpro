@@ -291,3 +291,30 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ message: 'Error deleting user' });
   }
 };
+
+// Upload user avatar
+exports.uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const { uploadToStorage } = require('../config/supabase');
+    const ext = (req.file.originalname.split('.').pop() || 'jpg').toLowerCase();
+    const storagePath = `users/avatars/avatar_${req.user.id}_${Date.now()}.${ext}`;
+    const { publicUrl } = await uploadToStorage(req.file.buffer, storagePath, req.file.mimetype);
+
+    user.avatar = publicUrl;
+    await user.save();
+
+    res.json({ message: 'Avatar uploaded successfully', avatar: user.avatar });
+  } catch (err) {
+    console.error('Upload avatar error:', err);
+    res.status(500).json({ message: 'Error uploading avatar', error: err.message });
+  }
+};

@@ -1,0 +1,302 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   GLOBAL HARDENING — Mobile QA, Accessibility, Performance, Edge Cases
+   Imported once in index.js / root component.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Base resets for cross-browser consistency ───────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Prevent horizontal scroll bleed on small viewports.
+   clip (not hidden) — avoids creating a scroll container that absorbs wheel events. */
+html {
+  overflow-x: clip;
+  /* Smooth inertia scroll on iOS Safari */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: clip;
+  /* Improve font rendering on macOS/iOS */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent layout shifts when scrollbar appears/disappears */
+  scrollbar-gutter: stable;
+}
+
+/* ── Reduced motion — honour the OS preference ───────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Keep opacity transitions so loading states don't vanish instantly */
+  .skeleton,
+  [class*="skeleton"],
+  [class*="-skeleton"],
+  [class*="shimmer"] {
+    animation: none !important;
+    background: #f0f0ef !important;
+  }
+}
+
+/* ── Focus-visible — keyboard users get clear rings, pointer users don't ─────── */
+
+:focus { outline: none; }
+
+:focus-visible {
+  outline: 2.5px solid #0F766E;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Tighten focus ring on circular elements */
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline-offset: 2px;
+}
+
+/* Interactive link focus */
+a:focus-visible {
+  outline: 2.5px solid #0F766E;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* ── Touch target sizing — 44 × 44 pt minimum (Apple HIG / WCAG) ─────────────── */
+
+button,
+[role="button"],
+input[type="checkbox"],
+input[type="radio"],
+select,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Ensure icon-only buttons have at least 44px touch area */
+button:not([class]),
+.icon-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* ── iOS Safari viewport units ───────────────────────────────────────────────── */
+
+/* Use dvh (dynamic viewport height) where available so the address bar
+   doesn't clip content on iOS Safari. */
+.vh-full    { height: 100vh; height: 100dvh; }
+.min-vh-full { min-height: 100vh; min-height: 100dvh; }
+
+/* ── Safe-area padding ───────────────────────────────────────────────────────── */
+
+/* Applied to any sticky bottom bar (composer, mobile nav) */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ── Scroll containers — prevent momentum bounce from overshooting ───────────── */
+
+.scroll-container {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ── Modal / overlay scroll isolation ───────────────────────────────────────── */
+
+/* When a modal is open, body scroll is typically locked by JS.
+   This rule prevents iOS from scrolling the background through the overlay. */
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  /* Preserve scroll position via JS: body.style.top = `-${scrollY}px` */
+}
+
+/* ── Image hardening ─────────────────────────────────────────────────────────── */
+
+img {
+  max-width: 100%;
+  height: auto;
+  /* Prevent broken-image alt text from jumping layout */
+  min-height: 1px;
+}
+
+/* Fade in lazy images smoothly */
+img[loading="lazy"] {
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+img[loading="lazy"].loaded,
+img[loading="lazy"]:not([src=""]) {
+  opacity: 1;
+}
+
+/* ── Text selection — emerald brand colour ───────────────────────────────────── */
+
+::selection {
+  background: rgba(15, 118, 110, 0.15);
+  color: inherit;
+}
+
+/* ── Input autofill — prevent yellow flash on Chrome ────────────────────────── */
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill {
+  -webkit-text-fill-color: #0F172A;
+  -webkit-box-shadow: 0 0 0 1000px #fff inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* ── Tap callout — disable long-press context menus on images ────────────────── */
+
+img,
+.no-callout {
+  -webkit-touch-callout: none;
+}
+
+/* ── Mobile keyboard: don't zoom on input focus (iOS) ───────────────────────── */
+/* Inputs must be ≥ 16px to avoid this. Enforce it globally. */
+input,
+textarea,
+select {
+  font-size: max(16px, 1em);
+}
+
+/* But allow label/small text to keep its size */
+.form-label,
+.input-label,
+label {
+  font-size: unset;
+}
+
+/* ── Viewport meta guard — clip any element that bleeds off-screen ───────────── */
+/* overflow-x: clip (not hidden) — prevents horizontal bleed without creating a
+   scroll container. overflow-x: hidden makes the element a scroll container,
+   which absorbs mouse-wheel events before they reach the real scrollable viewport. */
+
+.page-root,
+.main-layout {
+  overflow-x: clip;
+  position: relative;
+}
+
+/* ── Loading spinner (used by Suspense fallback in App.js) ───────────────────── */
+
+@keyframes page-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Consistent card/surface transitions ─────────────────────────────────────── */
+
+/* All interactive cards should feel snappy, not sluggish */
+.property-card,
+.conversation-item,
+.al-card,
+.account-nav-link,
+.settings-section {
+  will-change: auto; /* let browser decide; avoid forced GPU layers on static cards */
+}
+
+/* ── Link style reset ────────────────────────────────────────────────────────── */
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ── Prevent text-size-adjust on landscape rotate (iOS) ──────────────────────── */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* ── High-contrast mode support ──────────────────────────────────────────────── */
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 3px solid ButtonText;
+  }
+
+  .property-card,
+  .conversation-item {
+    border: 1px solid ButtonText;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MOBILE-SPECIFIC QA FIXES
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Prevent subpixel font sizing on small screens */
+  body {
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Maps — prevent pinch-to-zoom from triggering browser zoom instead of map zoom */
+  .mapboxgl-canvas-container,
+  .map-container {
+    touch-action: none;
+  }
+
+  /* Modals — prevent bounce scroll behind the overlay on iOS */
+  .modal-overlay,
+  .filter-modal-overlay {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Filter modals / bottom sheets — ensure they don't hide behind system UI */
+  .filter-modal,
+  .property-modal-content,
+  .modal-inner {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 20px);
+  }
+
+  /* Tap target boost for navigation links in mobile menu */
+  .nav-links a,
+  .mobile-nav-link {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  /* Prevent long property titles from overflowing card containers */
+  .card-title,
+  .conv-property-name,
+  .thread-prop-title {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+}
+
+/* ── Keyboard visible: shrink sticky composers ───────────────────────────────── */
+
+/* When the virtual keyboard is up, visual viewport shrinks.
+   This keeps composer inputs visible and not behind the keyboard. */
+@supports (height: 100dvh) {
+  .message-thread {
+    max-height: calc(100dvh - var(--navbar-height, 72px) - 48px);
+  }
+}

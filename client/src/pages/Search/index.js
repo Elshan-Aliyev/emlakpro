@@ -1,673 +1,881 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom';
+import { AlertCircle, ZoomIn, Image, Check, Sparkles, Bookmark } from 'lucide-react';
 import { getProperties, getSavedProperties } from '../../services/api';
-import { useTheme } from '../../context/ThemeContext';
+import { geocodeAddress } from '../../services/geocoding';
 import PropertyMap from '../../components/PropertyMap';
 import PropertyModal from '../../components/PropertyModal';
+import PropertyPreviewDrawer from '../../components/PropertyPreviewDrawer';
 import FilterBar from '../../components/FilterBar';
 import Button from '../../components/Button';
-import Badge from '../../components/Badge';
 import FavoriteButton from '../../components/FavoriteButton';
+import { getAiInsightRich, getPrimaryTrustSignal, getAreaInsight } from '../../utils/propertyAI';
+import { track, measureAsync } from '../../services/analytics';
 import './Search.css';
 
-// Helper function to get verification badge info
-const getVerificationBadge = (accountType) => {
-  switch (accountType) {
-    case 'unverified-user':
-      return { text: 'Unverified User', className: 'badge-unverified' };
-    case 'verified-user':
-      return { text: 'Verified User', className: 'badge-verified-user' };
-    case 'verified-seller':
-      return { text: 'Verified Seller', className: 'badge-verified-seller' };
-    case 'realtor':
-      return { text: 'Realtor', className: 'badge-realtor' };
-    case 'corporate':
-      return { text: 'Corporate', className: 'badge-corporate' };
-    default:
-      return { text: 'Unverified User', className: 'badge-unverified' };
-  }
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const getImageUrl = (image) => {
+  if (!image) return null;
+  if (typeof image === 'string') return image;
+  return image.thumbnail || image.medium || image.large;
 };
+
+const getLocation = (property) => {
+  if (typeof property.location === 'string') return property.location;
+  if (typeof property.city    === 'string') return property.city;
+  if (typeof property.address === 'string') return property.address;
+  if (property.location?.city) return property.location.city;
+  if (property.address?.city)  return property.address.city;
+  return 'Location not specified';
+};
+
+const isNewThisWeek = (property) => {
+  if (!property.createdAt) return false;
+  return Date.now() - new Date(property.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000;
+};
+
+const PLURAL = {
+  apartment: 'apartments', house: 'houses', villa: 'villas',
+  townhouse: 'townhouses', penthouse: 'penthouses', studio: 'studios',
+  duplex: 'duplexes', office: 'offices', land: 'plots',
+  'commercial-retail': 'commercial spaces',
+};
+
+const NEARBY_DISTRICTS = ['Yasamal', 'Nərimanov', 'Nəsimi', 'Xətai', 'Binəqədi', 'Sabunçu'];
+
+// Deterministic per-property image tone — avoids "all from same template" feel across grid
+const idHash = (id) => {
+  if (!id) return 0;
+  let h = 0;
+  for (let i = 0; i < Math.min(id.length, 12); i++)
+    h = (h * 31 + id.charCodeAt(i)) & 0xffffffff;
+  return Math.abs(h);
+};
+
+// [rest, hover] filter pairs — very subtle, 40% chance neutral
+const IMAGE_TONE_PAIRS = [
+  [null, null],
+  [null, null],
+  ['sepia(0.04) saturate(1.04) brightness(1.01)', 'sepia(0.04) saturate(1.06) brightness(1.025)'],
+  ['saturate(0.97) hue-rotate(3deg)',               'saturate(1.04) hue-rotate(3deg) brightness(1.025)'],
+  ['saturate(1.05) contrast(1.02)',                  'saturate(1.07) brightness(1.02) contrast(1.03)'],
+];
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+
+const SkeletonCard = ({ index = 0 }) => (
+  <div className="lc lc-skeleton" aria-hidden="true" style={{ '--sk-delay': `${Math.min(index, 5) * 80}ms` }}>
+    <div className="lc-sk-img" />
+    <div className="lc-body">
+      <div className="lc-sk lc-sk-price" />
+      <div className="lc-sk lc-sk-title" />
+      <div className="lc-sk lc-sk-trust" />
+      <div className="lc-sk lc-sk-meta"  />
+    </div>
+  </div>
+);
+
+const SKELETON_COUNT = 5;
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const Search = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { location: routeLocation = '', propertyId } = useParams();
-  const { isBuyMode } = useTheme();
 
-  // Debug navigation - removed
-  
-  // Default location for legacy /search links
-  const defaultLocation = routeLocation || searchParams.get('country') || 'Azerbaijan';
+  const defaultLocation = routeLocation || 'Azerbaijan';
 
-  // Helper function to safely get location string
-  const getLocation = (property) => {
-    if (typeof property.location === 'string') return property.location;
-    if (typeof property.city === 'string') return property.city;
-    if (typeof property.address === 'string') return property.address;
-    if (property.location?.city && typeof property.location.city === 'string') return property.location.city;
-    if (property.address?.city && typeof property.address.city === 'string') return property.address.city;
-    return 'Location not specified';
-  };
-  
-  // State
-  const [properties, setProperties] = useState([]);
+  // ── State ─────────────────────────────────────────────────────────────────
   const [filteredProperties, setFilteredProperties] = useState([]);
-  const [savedPropertyIds, setSavedPropertyIds] = useState(new Set());
-  const [loading, setLoading] = useState(true);
-  const [mapHidden, setMapHidden] = useState(window.innerWidth < 768);
-  const [hoveredPropertyId, setHoveredPropertyId] = useState(null);
-  const [mapCenter, setMapCenter] = useState([
-    parseFloat(searchParams.get('lng')) || 49.8671,
-    parseFloat(searchParams.get('lat')) || 40.4093
-  ]);
-  const [mapZoom, setMapZoom] = useState(parseFloat(searchParams.get('zoom')) || 12);
-  const [selectedProperty, setSelectedProperty] = useState(null);
-  
-  // Filters
-  const [listingType, setListingType] = useState(searchParams.get('listingStatus') === 'for-sale' ? 'buy' : searchParams.get('listingStatus') === 'for-rent' ? 'rent' : 'buy');
-  const [purpose, setPurpose] = useState(searchParams.get('purpose') || '');
-  const [propertyType, setPropertyType] = useState(searchParams.get('propertyType') || '');
-  const [priceMin, setPriceMin] = useState(searchParams.get('priceMin') || '');
-  const [priceMax, setPriceMax] = useState(searchParams.get('priceMax') || '');
-  const [bedrooms, setBedrooms] = useState(searchParams.get('bedrooms') || '');
-  const [bathrooms, setBathrooms] = useState(searchParams.get('bathrooms') || '');
-  const [areaMin, setAreaMin] = useState(searchParams.get('areaMin') || '');
-  const [areaMax, setAreaMax] = useState(searchParams.get('areaMax') || '');
-  const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'newest');
-  const [showMoreFilters, setShowMoreFilters] = useState(false);
-  const [viewMode, setViewMode] = useState(searchParams.get('view') || 'map');
-  
-  // More filters
-  const [parking, setParking] = useState(false);
-  const [balcony, setBalcony] = useState(false);
-  const [petFriendly, setPetFriendly] = useState(false);
-  const [furnished, setFurnished] = useState(false);
-  const [newConstruction, setNewConstruction] = useState(false);
-  const [ownerListedOnly, setOwnerListedOnly] = useState(false);
-  const [showSold, setShowSold] = useState(false);
-  const [yearBuiltMin, setYearBuiltMin] = useState(searchParams.get('yearBuiltMin') || '');
-  const [yearBuiltMax, setYearBuiltMax] = useState(searchParams.get('yearBuiltMax') || '');
-  const [stories, setStories] = useState(searchParams.get('stories') || '');
-  const [view, setView] = useState(searchParams.get('view') || '');
-  const [parkingSpots, setParkingSpots] = useState(searchParams.get('parkingSpots') || '');
-  const [listedSince, setListedSince] = useState(searchParams.get('listedSince') || '');
-  const [keywords, setKeywords] = useState(searchParams.get('keywords') || '');
+  const [savedPropertyIds,   setSavedPropertyIds]   = useState(new Set());
+  const [loading,            setLoading]            = useState(true);
+  const [loadingMore,        setLoadingMore]        = useState(false);
+  const [page,               setPage]               = useState(1);
+  const [hasMore,            setHasMore]            = useState(true);
+  const [total,              setTotal]              = useState(0);
+  const [hoveredPropertyId,  setHoveredPropertyId]  = useState(null);
+  const [selectedProperty,   setSelectedProperty]   = useState(null);
+  const [drawerPropertyId,   setDrawerPropertyId]   = useState(null);
+  const [flyToTarget,        setFlyToTarget]        = useState(null);
+  const [mobileSheetOpen,    setMobileSheetOpen]    = useState(false);
+  const [fetchError,         setFetchError]         = useState(false);
+  const [retryCount,         setRetryCount]         = useState(0);
+  const [loadingPhase,       setLoadingPhase]       = useState(0); // 0 = loading, 1 = still loading
 
-  // Update map center and zoom from URL
-  useEffect(() => {
-    const lng = parseFloat(searchParams.get('lng'));
-    const lat = parseFloat(searchParams.get('lat'));
-    const zoom = parseFloat(searchParams.get('zoom'));
-    
-    if (lng && lat) {
-      setMapCenter([lng, lat]);
+  const searchUrlRef        = useRef(null);
+  const drawerPropertyIdRef = useRef(null);
+
+  const initialCenter = useRef([
+    parseFloat(searchParams.get('lng')) || 49.8671,
+    parseFloat(searchParams.get('lat')) || 40.4093,
+  ]);
+  const initialZoom   = useRef(parseFloat(searchParams.get('zoom')) || 12);
+  const isInitialLoad = useRef(true);
+  const prevCityRef   = useRef(searchParams.get('city'));
+
+  const viewMode = searchParams.get('view') || 'map';
+
+  const FILTER_KEYS = ['listingStatus', 'city', 'propertyType', 'priceMin', 'priceMax', 'bedrooms', 'bathrooms', 'keyword'];
+  const filterSignature = FILTER_KEYS.map(k => searchParams.get(k) || '').join('|');
+
+  const hasActiveFilters = ['city', 'propertyType', 'priceMin', 'priceMax', 'bedrooms', 'bathrooms', 'keyword']
+    .some(k => searchParams.get(k));
+
+  // ── Params builder ────────────────────────────────────────────────────────
+  const buildParams = useCallback((overrides = {}) => {
+    const params = {};
+    for (const [key, value] of searchParams.entries()) {
+      if (['view', 'lng', 'lat', 'zoom'].includes(key)) continue;
+      params[key] = value;
     }
-    if (zoom) {
-      setMapZoom(zoom);
-    }
+    return { ...params, limit: 20, ...overrides };
   }, [searchParams]);
 
-  // Debounced map position update to URL
-  const updateMapPositionInURL = useCallback((center, zoom) => {
-    setSearchParams(prev => {
-      const params = new URLSearchParams(prev);
-      params.set('lng', center[0].toFixed(4));
-      params.set('lat', center[1].toFixed(4));
-      params.set('zoom', zoom.toFixed(2));
-      return params;
-    }, { replace: true });
-  }, [setSearchParams]);
+  // Always-current ref so the filter effect never captures a stale closure
+  const buildParamsRef = useRef(buildParams);
+  buildParamsRef.current = buildParams;
 
-  // Fetch properties
+  // ── M-1: Clear stale hover when the hovered property leaves filtered results
   useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        setLoading(true);
-        const res = await getProperties();
-        setProperties(res.data || []);
-      } catch (err) {
-        console.error('Error fetching properties:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProperties();
-    // Fetch saved properties if user is logged in
-    const fetchSavedProperties = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const res = await getSavedProperties(token);
-          const savedIds = new Set(res.data.map(p => p._id));
-          setSavedPropertyIds(savedIds);
-        } catch (err) {
-          console.error('Error fetching saved properties', err);
-        }
-      }
-    };
-    fetchSavedProperties();
+    if (!hoveredPropertyId) return;
+    if (!filteredProperties.some(p => p._id === hoveredPropertyId)) {
+      setHoveredPropertyId(null);
+    }
+  }, [filteredProperties, hoveredPropertyId]);
+
+  // ── M-1b: Scroll guard on mount — runs before paint ─────────────────────
+  // If no saved position exists this is a fresh entry → top immediately.
+  // If a saved position exists the data-load effect (M-2) will restore it.
+  useLayoutEffect(() => {
+    if (!sessionStorage.getItem('search-scroll')) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, []); // mount only
+
+  // ── M-2: Restore scroll position after returning from property detail ─────
+  useEffect(() => {
+    if (loading) return;
+    const saved = sessionStorage.getItem('search-scroll');
+    if (!saved) return;
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: parseInt(saved, 10), behavior: 'instant' });
+      sessionStorage.removeItem('search-scroll');
+    });
+  }, [loading]);
+
+  // ── M-9: Cleanup dangling mapMove timeout on unmount ──────────────────────
+  useEffect(() => {
+    return () => { clearTimeout(mapMoveTimeoutRef.current); };
   }, []);
 
-  // Sync with navbar buy/rent toggle (theme changes) - only on search routes
+  // ── M-10: Progressive loading phase — "Still retrieving…" after 3.5 s ────
   useEffect(() => {
-    // Only run theme sync when actually on search routes
-    if (!location.pathname.startsWith('/search')) {
-      return;
-    }
-    
-    const currentListingStatus = searchParams.get('listingStatus');
-    const expectedListingStatus = isBuyMode ? 'for-sale' : 'for-rent';
-    
-    // Only update if different to avoid infinite loops
-    if (currentListingStatus !== expectedListingStatus) {
-      setSearchParams(prev => {
-        const params = new URLSearchParams(prev);
-        params.set('listingStatus', expectedListingStatus);
-        return params;
-      }, { replace: true });
-    }
-  }, [isBuyMode, location.pathname]);
+    if (!loading) { setLoadingPhase(0); return; }
+    const t = setTimeout(() => setLoadingPhase(1), 3500);
+    return () => clearTimeout(t);
+  }, [loading]);
 
-  // Sync state with URL params when they change - read from URL always
-  useEffect(() => {
-    const listingStatus = searchParams.get('listingStatus');
-    const urlPurpose = searchParams.get('purpose');
-    const urlPropertyType = searchParams.get('propertyType');
-    const urlBedrooms = searchParams.get('bedrooms');
-    const urlBathrooms = searchParams.get('bathrooms');
-    const urlPriceMin = searchParams.get('priceMin');
-    const urlPriceMax = searchParams.get('priceMax');
-    const urlAreaMin = searchParams.get('areaMin');
-    const urlAreaMax = searchParams.get('areaMax');
-    const urlSortBy = searchParams.get('sortBy');
-    const urlShowSold = searchParams.get('showSold');
-    const urlView = searchParams.get('view');
-    const urlParking = searchParams.get('parking');
-    const urlBalcony = searchParams.get('balcony');
-    const urlPetFriendly = searchParams.get('petFriendly');
-    const urlFurnished = searchParams.get('furnished');
-    const urlNewConstruction = searchParams.get('newConstruction');
-    const urlOwnerListedOnly = searchParams.get('ownerListedOnly');
-    const urlYearBuiltMin = searchParams.get('yearBuiltMin');
-    const urlYearBuiltMax = searchParams.get('yearBuiltMax');
-    const urlStories = searchParams.get('stories');
-    const urlPropertyView = searchParams.get('view');
-    const urlParkingSpots = searchParams.get('parkingSpots');
-    const urlListedSince = searchParams.get('listedSince');
-    const urlKeywords = searchParams.get('keywords');
+  // ── Drawer sync ref ───────────────────────────────────────────────────────
+  useEffect(() => { drawerPropertyIdRef.current = drawerPropertyId; }, [drawerPropertyId]);
 
-    if (listingStatus === 'for-sale') {
-      setListingType('buy');
-    } else if (listingStatus === 'for-rent') {
-      setListingType('rent');
-    } else if (listingStatus === 'new-project') {
-      setListingType('buy');
-    }
-
-    setPurpose(urlPurpose || '');
-    setPropertyType(urlPropertyType || '');
-    setBedrooms(urlBedrooms || '');
-    setBathrooms(urlBathrooms || '');
-    setPriceMin(urlPriceMin || '');
-    setPriceMax(urlPriceMax || '');
-    setAreaMin(urlAreaMin || '');
-    setAreaMax(urlAreaMax || '');
-    setSortBy(urlSortBy || 'newest');
-    setShowSold(urlShowSold === 'true');
-    setViewMode(urlView || 'map');
-    setParking(urlParking === 'true');
-    setBalcony(urlBalcony === 'true');
-    setPetFriendly(urlPetFriendly === 'true');
-    setFurnished(urlFurnished === 'true');
-    setNewConstruction(urlNewConstruction === 'true');
-    setOwnerListedOnly(urlOwnerListedOnly === 'true');
-    setYearBuiltMin(urlYearBuiltMin || '');
-    setYearBuiltMax(urlYearBuiltMax || '');
-    setStories(urlStories || '');
-    setView(urlPropertyView || '');
-    setParkingSpots(urlParkingSpots || '');
-    setListedSince(urlListedSince || '');
-    setKeywords(urlKeywords || '');
-  }, [searchParams]);
-
-  // Apply filters
-  useEffect(() => {
-    let filtered = [...properties];
-
-    // Check for new-project status from URL
-    const listingStatus = searchParams.get('listingStatus');
-    
-    // Listing type filter
-    if (listingStatus === 'new-project') {
-      filtered = filtered.filter(p => p.listingStatus === 'new-project');
-    } else if (listingType === 'buy') {
-      filtered = filtered.filter(p => p.listingStatus === 'for-sale');
-    } else if (listingType === 'rent') {
-      filtered = filtered.filter(p => p.listingStatus === 'for-rent');
-    }
-    
-    // Show sold properties if checkbox is checked
-    if (showSold) {
-      // Don't filter out sold properties
+  // ── Drawer: open (desktop only) ───────────────────────────────────────────
+  const openDrawer = useCallback((propertyId) => {
+    if (!propertyId || window.innerWidth <= 1024) return;
+    if (drawerPropertyIdRef.current) {
+      // Swapping: replace history entry so one back press always closes
+      window.history.replaceState({ ppd: propertyId }, '', `/properties/${propertyId}`);
     } else {
-      // Filter out sold properties by default
-      filtered = filtered.filter(p => p.status !== 'sold');
+      // First open: push a new entry so back button can close
+      searchUrlRef.current = window.location.pathname + window.location.search;
+      window.history.pushState({ ppd: propertyId }, '', `/properties/${propertyId}`);
     }
+    setDrawerPropertyId(propertyId);
+  }, []);
 
-    // Purpose filter (residential vs commercial)
-    if (purpose) {
-      // If purpose is set, filter by purpose
-      // Also check propertyType as fallback for properties without purpose field
-      filtered = filtered.filter(p => {
-        if (p.purpose) {
-          return p.purpose === purpose;
+  // ── Drawer: close (explicit — user closes via X / ESC) ────────────────────
+  const closeDrawer = useCallback(() => {
+    setDrawerPropertyId(null);
+    if (searchUrlRef.current) {
+      window.history.pushState(null, '', searchUrlRef.current);
+    }
+  }, []);
+
+  // ── Popstate: back button closes drawer without double pushState ───────────
+  useEffect(() => {
+    const handlePopState = () => {
+      if (drawerPropertyIdRef.current) {
+        setDrawerPropertyId(null);
+        // URL already restored by browser — no manual pushState needed
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // ── Fetch saved ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    getSavedProperties(token)
+      .then(res => setSavedPropertyIds(new Set(res.data.map(p => p._id))))
+      .catch(() => {});
+  }, []);
+
+  // ── Fetch on filter change ────────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const currentCity = searchParams.get('city');
+      const cityChanged = currentCity !== prevCityRef.current;
+      const shouldFly   = isInitialLoad.current || cityChanged;
+
+      try {
+        setLoading(true);
+        setFetchError(false);
+        // Use ref so we always read the latest searchParams, not a stale closure
+        const res = await getProperties(buildParamsRef.current({ page: 1 }));
+        if (!cancelled) {
+          const d = res.data;
+          const loaded = d.properties || [];
+          setFilteredProperties(loaded);
+          setTotal(d.total || 0);
+          setPage(1);
+          setHasMore((d.totalPages || 1) > 1);
+
+          if (loaded.length === 0 && !isInitialLoad.current) {
+            track('search_no_results', {
+              city:           searchParams.get('city')          || '',
+              district:       searchParams.get('district')      || '',
+              property_type:  searchParams.get('propertyType')  || '',
+              listing_status: searchParams.get('listingStatus') || '',
+              keyword:        searchParams.get('keyword')       || '',
+              has_price_range: !!(searchParams.get('priceMin') || searchParams.get('priceMax')),
+            });
+          }
+
+          if (shouldFly) {
+            const withCoords = loaded.filter(
+              p => p.coordinates && (p.coordinates.lat || p.coordinates.latitude)
+            );
+            if (withCoords.length > 0) {
+              const lats = withCoords.map(p => p.coordinates.lat || p.coordinates.latitude);
+              const lngs = withCoords.map(p => p.coordinates.lng || p.coordinates.longitude);
+              setFlyToTarget({
+                bounds: [
+                  [Math.min(...lngs), Math.min(...lats)],
+                  [Math.max(...lngs), Math.max(...lats)],
+                ],
+                padding: 80,
+              });
+            } else if (currentCity) {
+              geocodeAddress(currentCity).then(result => {
+                if (!cancelled && result) {
+                  setFlyToTarget({ center: [result.lng, result.lat], zoom: 12 });
+                }
+              });
+            }
+          }
+
+          isInitialLoad.current = false;
+          prevCityRef.current   = currentCity;
         }
-        // Fallback: determine purpose from propertyType
-        const commercialTypes = ['commercial-retail', 'commercial-unit', 'office', 'industrial', 'warehouse', 'shop', 'restaurant'];
-        const isCommercial = commercialTypes.includes(p.propertyType);
-        return purpose === 'commercial' ? isCommercial : !isCommercial;
-      });
-    }
-
-    // Property type filter
-    if (propertyType) {
-      filtered = filtered.filter(p => p.propertyType === propertyType);
-    }
-
-    // Price filter
-    if (priceMin) {
-      filtered = filtered.filter(p => p.price >= Number(priceMin));
-    }
-    if (priceMax) {
-      filtered = filtered.filter(p => p.price <= Number(priceMax));
-    }
-
-    // Bedrooms filter
-    if (bedrooms) {
-      filtered = filtered.filter(p => p.bedrooms >= Number(bedrooms));
-    }
-
-    // Bathrooms filter
-    if (bathrooms) {
-      filtered = filtered.filter(p => p.bathrooms >= Number(bathrooms));
-    }
-
-    // Area filter
-    if (areaMin) {
-      filtered = filtered.filter(p => (p.builtUpArea || 0) >= Number(areaMin));
-    }
-    if (areaMax) {
-      filtered = filtered.filter(p => (p.builtUpArea || 0) <= Number(areaMax));
-    }
-
-    // More filters
-    if (parking) {
-      filtered = filtered.filter(p => p.parking > 0);
-    }
-    if (balcony) {
-      filtered = filtered.filter(p => p.balcony);
-    }
-    if (petFriendly) {
-      filtered = filtered.filter(p => p.petFriendly);
-    }
-    if (furnished) {
-      filtered = filtered.filter(p => p.furnishing === 'furnished');
-    }
-    if (newConstruction) {
-      filtered = filtered.filter(p => p.constructionStatus === 'ready' && (new Date().getFullYear() - (p.yearBuilt || 0)) <= 2);
-    }
-    if (ownerListedOnly) {
-      filtered = filtered.filter(p => p.listingBadge === 'for-sale-by-owner');
-    }
-
-    // Year built filter
-    if (yearBuiltMin) {
-      filtered = filtered.filter(p => (p.yearBuilt || 0) >= Number(yearBuiltMin));
-    }
-    if (yearBuiltMax) {
-      filtered = filtered.filter(p => (p.yearBuilt || 0) <= Number(yearBuiltMax));
-    }
-
-    // Stories filter
-    if (stories) {
-      if (stories === '5') {
-        filtered = filtered.filter(p => (p.totalFloorsInBuilding || 0) >= 5);
-      } else {
-        filtered = filtered.filter(p => (p.totalFloorsInBuilding || 0) === Number(stories));
+      } catch (err) {
+        console.error('Error fetching properties:', err);
+        if (!cancelled) setFetchError(true);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    }
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [filterSignature, retryCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // View filter
-    if (view) {
-      filtered = filtered.filter(p => p.viewType === view);
-    }
-
-    // Parking spots filter
-    if (parkingSpots) {
-      if (parkingSpots === '4') {
-        filtered = filtered.filter(p => (p.parkingSpaces || 0) >= 4);
-      } else {
-        filtered = filtered.filter(p => (p.parkingSpaces || 0) === Number(parkingSpots));
-      }
-    }
-
-    // Listed since filter
-    if (listedSince) {
-      const days = Number(listedSince);
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - days);
-      filtered = filtered.filter(p => new Date(p.createdAt) >= cutoffDate);
-    }
-
-    // Keywords filter
-    if (keywords) {
-      const searchTerms = keywords.toLowerCase().split(' ');
-      filtered = filtered.filter(p => {
-        const searchableText = `${p.title || ''} ${p.description || ''} ${p.location || ''} ${p.city || ''}`.toLowerCase();
-        return searchTerms.every(term => searchableText.includes(term));
+  // ── Load more ─────────────────────────────────────────────────────────────
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    const nextPage = page + 1;
+    try {
+      setLoadingMore(true);
+      const res = await getProperties(buildParams({ page: nextPage }));
+      const d = res.data;
+      const incoming = d.properties || [];
+      setFilteredProperties(prev => {
+        const seen = new Set(prev.map(p => p._id));
+        return [...prev, ...incoming.filter(p => !seen.has(p._id))];
       });
+      setTotal(d.total || 0);
+      setPage(nextPage);
+      setHasMore(nextPage < (d.totalPages || 1));
+    } catch (err) {
+      console.error('Error loading more:', err);
+    } finally {
+      setLoadingMore(false);
     }
+  }, [page, hasMore, loadingMore, buildParams]);
 
-    // Sort
-    if (sortBy === 'newest') {
-      filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    } else if (sortBy === 'price-low') {
-      filtered.sort((a, b) => a.price - b.price);
-    } else if (sortBy === 'price-high') {
-      filtered.sort((a, b) => b.price - a.price);
-    } else if (sortBy === 'beds') {
-      filtered.sort((a, b) => (b.bedrooms || 0) - (a.bedrooms || 0));
-    } else if (sortBy === 'area') {
-      filtered.sort((a, b) => (b.builtUpArea || 0) - (a.builtUpArea || 0));
-    }
-
-    setFilteredProperties(filtered);
-  }, [properties, listingType, purpose, propertyType, priceMin, priceMax, bedrooms, bathrooms, areaMin, areaMax, sortBy, parking, balcony, petFriendly, furnished, newConstruction, ownerListedOnly, showSold, yearBuiltMin, yearBuiltMax, stories, view, parkingSpots, listedSince, keywords, searchParams]);
-
-  // Favorite toggle handler
-  const handleFavoriteToggle = (propertyId, isFavorite) => {
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  const handleFavoriteToggle = useCallback((propId, isFavorite) => {
     setSavedPropertyIds(prev => {
-      const newSet = new Set(prev);
-      if (isFavorite) {
-        newSet.add(propertyId);
-      } else {
-        newSet.delete(propertyId);
-      }
-      return newSet;
+      const next = new Set(prev);
+      if (isFavorite) next.add(propId); else next.delete(propId);
+      return next;
     });
-  };
+  }, []);
 
-  // Update URL with current filter state
-  const updateURL = useCallback((updates) => {
+  const clearFilters = useCallback(() => {
     setSearchParams(prev => {
-      const params = new URLSearchParams(prev);
-      
-      Object.entries(updates).forEach(([key, value]) => {
-        if (value === '' || value === null || value === undefined || value === false) {
-          params.delete(key);
-        } else if (value === true) {
-          params.set(key, 'true');
-        } else {
-          params.set(key, value);
-        }
-      });
-      
-      return params;
+      const next = new URLSearchParams();
+      if (prev.get('listingStatus')) next.set('listingStatus', prev.get('listingStatus'));
+      if (prev.get('view'))  next.set('view',  prev.get('view'));
+      if (prev.get('lng'))   next.set('lng',   prev.get('lng'));
+      if (prev.get('lat'))   next.set('lat',   prev.get('lat'));
+      if (prev.get('zoom'))  next.set('zoom',  prev.get('zoom'));
+      return next;
     }, { replace: true });
   }, [setSearchParams]);
 
-  // Clear individual filter
-  const clearFilter = useCallback((filterName) => {
-    const updates = { [filterName]: '' };
-    updateURL(updates);
-  }, [updateURL]);
+  const removeParam = useCallback((keys) => {
+    const keyList = Array.isArray(keys) ? keys : [keys];
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      keyList.forEach(k => next.delete(k));
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
-  // Clear all filters
-  const clearFilters = () => {
-    const listingStatus = searchParams.get('listingStatus');
-    const purpose = searchParams.get('purpose');
-    
-    const params = new URLSearchParams();
-    if (listingStatus) params.set('listingStatus', listingStatus);
-    if (purpose) params.set('purpose', purpose);
-    // Preserve map position
-    const lng = searchParams.get('lng');
-    const lat = searchParams.get('lat');
-    const zoom = searchParams.get('zoom');
-    if (lng) params.set('lng', lng);
-    if (lat) params.set('lat', lat);
-    if (zoom) params.set('zoom', zoom);
-    
-    setSearchParams(params, { replace: true });
-  };
-
-  // Save current search to browser
-  const saveSearch = () => {
-    const searchUrl = window.location.href;
-    const searchName = `Search - ${filteredProperties.length} properties`;
-    const savedSearches = JSON.parse(localStorage.getItem('savedSearches') || '[]');
-    
-    const newSearch = {
+  const saveSearch = useCallback(() => {
+    const saved = JSON.parse(localStorage.getItem('savedSearches') || '[]');
+    saved.unshift({
       id: Date.now(),
-      name: searchName,
-      url: searchUrl,
+      name: `Search — ${filteredProperties.length} properties`,
+      url: window.location.href,
       timestamp: new Date().toISOString(),
-      propertyCount: filteredProperties.length
-    };
-    
-    savedSearches.unshift(newSearch);
-    // Keep only last 10 searches
-    if (savedSearches.length > 10) {
-      savedSearches.pop();
-    }
-    
-    localStorage.setItem('savedSearches', JSON.stringify(savedSearches));
-    alert('Search saved! You can access it from your account.');
-  };
+      propertyCount: filteredProperties.length,
+    });
+    localStorage.setItem('savedSearches', JSON.stringify(saved.slice(0, 10)));
+  }, [filteredProperties.length]);
 
-  const handleLocationSelect = useCallback((location) => {
-    if (location.center) {
-      setMapCenter(location.center);
-      setMapZoom(14);
-      updateMapPositionInURL(location.center, 14);
+  // ── Search this area (bounds-based fetch, no viewport change) ────────────
+  const handleSearchArea = useCallback(async ({ west, south, east, north }) => {
+    track('map_search_area_clicked', {
+      listing_status: searchParams.get('listingStatus') || '',
+    });
+    try {
+      setLoading(true);
+      setFilteredProperties([]);
+      const res = await getProperties(buildParams({
+        page: 1,
+        bboxWest: west.toFixed(6),
+        bboxSouth: south.toFixed(6),
+        bboxEast: east.toFixed(6),
+        bboxNorth: north.toFixed(6),
+      }));
+      const d = res.data;
+      const loaded = d.properties || [];
+      setFilteredProperties(loaded);
+      setTotal(d.total || 0);
+      setPage(1);
+      setHasMore((d.totalPages || 1) > 1);
+    } catch (err) {
+      console.error('Error fetching by area:', err);
+    } finally {
+      setLoading(false);
     }
-  }, [updateMapPositionInURL]);
+  }, [buildParams]);
 
-  // Handle map movement to update URL
+  const mapMoveTimeoutRef = useRef(null);
   const handleMapMove = useCallback((center, zoom) => {
-    setMapCenter(center);
-    setMapZoom(zoom);
-    // Debounce URL update to avoid too many history entries
-    const timeoutId = setTimeout(() => {
-      updateMapPositionInURL(center, zoom);
+    clearTimeout(mapMoveTimeoutRef.current);
+    mapMoveTimeoutRef.current = setTimeout(() => {
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.set('lng',  center[0].toFixed(4));
+        next.set('lat',  center[1].toFixed(4));
+        next.set('zoom', zoom.toFixed(2));
+        return next;
+      }, { replace: true });
     }, 1000);
-    return () => clearTimeout(timeoutId);
-  }, [updateMapPositionInURL]);
+  }, [setSearchParams]);
 
-  const getImageUrl = (image) => {
-    if (!image) return null;
-    if (typeof image === 'string') return image;
-    return image.thumbnail || image.medium || image.large;
+  // ── Context label ─────────────────────────────────────────────────────────
+  const buildSearchContext = () => {
+    if (loading) return loadingPhase === 0 ? 'Loading listings…' : 'Still retrieving listings…';
+    const status = searchParams.get('listingStatus');
+    const type   = searchParams.get('propertyType');
+    const city   = searchParams.get('city');
+    const beds   = searchParams.get('bedrooms');
+    if (total === 0) return 'No listings matched these filters';
+    const typeLabel = type ? (PLURAL[type] || `${type}s`) : 'listings';
+    const parts = [`${total} ${typeLabel}`];
+    if (status === 'for-rent')     parts.push('for rent');
+    else if (status === 'for-sale') parts.push('for sale');
+    if (city) parts.push(`in ${city}`);
+    if (beds) parts.push(`· ${beds}+ beds`);
+    return parts.join(' ');
   };
 
-  return (
-    <div className="search-page">
-      {/* Filter Bar */}
-      <FilterBar />
-      
-      {/* Main Content */}
-      <div className="search-content">
-        {/* Listings Panel - Show in list view or alongside map */}
-        {viewMode === 'list' && (
-          <div className="listings-panel full-width list-view">
-            {/* Header */}
-            <div className="listings-info">
-              <h2>{filteredProperties.length} Properties Found</h2>
-              <button onClick={saveSearch} className="save-search-btn" title="Save this search">
-                🔖 Save Search
-              </button>
+  // ── Trust helpers ─────────────────────────────────────────────────────────
+  const getTrustLevel = (property) => {
+    if (property.suspectedDuplicate) return 'low';
+    let score = 0;
+    if (property.ownershipVerificationStatus === 'verified') score += 2;
+    if (property.ownerId?.phoneVerified) score += 1;
+    if ((property.qualityScore || 0) >= 70) score += 1;
+    return score >= 2 ? 'high' : 'default';
+  };
+
+  // ── AI insight — delegates to propertyAI utility ─────────────────────────
+  const getAiInsight = getAiInsightRich;
+
+  // ── Few-results hint ──────────────────────────────────────────────────────
+  const FewResultsHint = () => {
+    if (loading || total === 0 || total >= 6 || !hasActiveFilters) return null;
+
+    const chips = [
+      searchParams.get('propertyType') && {
+        label: `Remove: ${searchParams.get('propertyType')}`,
+        action: () => removeParam('propertyType'),
+      },
+      (searchParams.get('priceMin') || searchParams.get('priceMax')) && {
+        label: 'Widen price range',
+        action: () => removeParam(['priceMin', 'priceMax']),
+      },
+      searchParams.get('bedrooms') && {
+        label: 'Any bedrooms',
+        action: () => removeParam('bedrooms'),
+      },
+      searchParams.get('city') && {
+        label: 'All locations',
+        action: () => removeParam('city'),
+      },
+    ].filter(Boolean);
+
+    if (chips.length === 0) return null;
+
+    return (
+      <div className="sp-few-results">
+        <span className="sp-few-label">{total} result{total !== 1 ? 's' : ''} — broaden:</span>
+        <div className="sp-few-chips">
+          {chips.map(c => (
+            <button key={c.label} className="sp-few-chip" onClick={c.action}>
+              {c.label} ×
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // ── Area insight — derived from visible properties ───────────────────────
+  const areaInsight = useMemo(() => getAreaInsight(filteredProperties), [filteredProperties]);
+
+  // ── Adjacent search suggestions ──────────────────────────────────────────
+  const ExploreStrip = () => {
+    if (loading || total === 0 || !hasActiveFilters || total >= 30) return null;
+
+    const curCity     = searchParams.get('city');
+    const curDistrict = searchParams.get('district');
+    const curBeds     = searchParams.get('bedrooms');
+    const curPriceMax = searchParams.get('priceMax');
+    const curType     = searchParams.get('propertyType');
+    const curLoc      = curDistrict || curCity;
+
+    const suggestions = [];
+
+    if (curLoc && NEARBY_DISTRICTS.includes(curLoc)) {
+      const others = NEARBY_DISTRICTS.filter(d => d !== curLoc);
+      const pick   = others[Math.floor(others.length / 2)] || others[0];
+      if (pick) suggestions.push({
+        label: pick,
+        action: () => setSearchParams(prev => {
+          const next = new URLSearchParams(prev);
+          next.set(curDistrict ? 'district' : 'city', pick);
+          return next;
+        }, { replace: true }),
+      });
+    }
+
+    if (curBeds && parseInt(curBeds, 10) > 1) {
+      const fewer = parseInt(curBeds, 10) - 1;
+      suggestions.push({
+        label: `${fewer}+ beds`,
+        action: () => setSearchParams(prev => {
+          const next = new URLSearchParams(prev);
+          next.set('bedrooms', fewer);
+          return next;
+        }, { replace: true }),
+      });
+    }
+
+    if (curPriceMax && !curBeds) {
+      const higher = Math.round(parseInt(curPriceMax, 10) * 1.3 / 10000) * 10000;
+      suggestions.push({
+        label: `Under ₼${Math.round(higher / 1000)}k`,
+        action: () => setSearchParams(prev => {
+          const next = new URLSearchParams(prev);
+          next.set('priceMax', higher);
+          return next;
+        }, { replace: true }),
+      });
+    }
+
+    if (curType && !curBeds && !curLoc) {
+      suggestions.push({ label: 'All property types', action: () => removeParam('propertyType') });
+    }
+
+    if (suggestions.length === 0) return null;
+
+    return (
+      <div className="sp-explore-strip">
+        <span className="sp-explore-label">Also try:</span>
+        {suggestions.slice(0, 3).map((s, i) => (
+          <button key={i} className="sp-explore-chip" onClick={s.action}>{s.label}</button>
+        ))}
+      </div>
+    );
+  };
+
+  // ── Error state (network / server failure) ────────────────────────────────
+  const errorState = (
+    <div className="sp-empty">
+      <div className="sp-empty-icon">
+        <AlertCircle size={28} strokeWidth={1.5} aria-hidden="true" />
+      </div>
+      <h3 className="sp-empty-title">Listings temporarily unavailable</h3>
+      <p className="sp-empty-body">
+        We were unable to load properties at this time. This is usually temporary — please try again in a moment.
+      </p>
+      <Button onClick={() => setRetryCount(c => c + 1)} style={{ marginTop: '16px' }}>
+        Try again
+      </Button>
+    </div>
+  );
+
+  // ── Empty state ───────────────────────────────────────────────────────────
+  const emptyState = (
+    <div className="sp-empty">
+      <div className="sp-empty-icon">
+        <ZoomIn size={28} strokeWidth={1.5} aria-hidden="true" />
+      </div>
+      <h3 className="sp-empty-title">Nothing matched these filters</h3>
+      <p className="sp-empty-body">
+        {hasActiveFilters
+          ? "We couldn't find an exact match. Try adjusting a filter or widening your search area."
+          : 'Listings in this area are still growing. Try a nearby district or check back soon.'}
+      </p>
+      {hasActiveFilters && (
+        <div className="sp-empty-chips">
+          {searchParams.get('propertyType') && (
+            <button className="sp-empty-chip" onClick={() => removeParam('propertyType')}>
+              {PLURAL[searchParams.get('propertyType')] || searchParams.get('propertyType')} ×
+            </button>
+          )}
+          {(searchParams.get('priceMin') || searchParams.get('priceMax')) && (
+            <button className="sp-empty-chip" onClick={() => removeParam(['priceMin', 'priceMax'])}>
+              price filter ×
+            </button>
+          )}
+          {searchParams.get('bedrooms') && (
+            <button className="sp-empty-chip" onClick={() => removeParam('bedrooms')}>
+              {searchParams.get('bedrooms')}+ bedrooms ×
+            </button>
+          )}
+          {searchParams.get('city') && (
+            <button className="sp-empty-chip" onClick={() => removeParam('city')}>
+              {searchParams.get('city')} ×
+            </button>
+          )}
+        </div>
+      )}
+      <Button onClick={clearFilters} style={{ marginTop: '16px' }}>
+        Browse all listings
+      </Button>
+      <div className="sp-empty-districts">
+        <p className="sp-empty-districts-label">Browse by district</p>
+        <div className="sp-empty-districts-chips">
+          {NEARBY_DISTRICTS.map(d => (
+            <button
+              key={d}
+              className="sp-district-chip"
+              onClick={() => {
+                setSearchParams(prev => {
+                  const next = new URLSearchParams(prev);
+                  next.set('city', d);
+                  ['propertyType','priceMin','priceMax','bedrooms','bathrooms','keyword'].forEach(k => next.delete(k));
+                  return next;
+                }, { replace: true });
+              }}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── Card renderer ─────────────────────────────────────────────────────────
+  const renderCard = (property, index, isMapView = false) => {
+    const trustLevel   = getTrustLevel(property);
+    const aiInsight    = getAiInsight(property);
+    const primaryTrust = getPrimaryTrustSignal(property);
+    const newListing   = isNewThisWeek(property);
+
+    const toneIdx  = idHash(property._id) % IMAGE_TONE_PAIRS.length;
+    const [toneRest, toneHover] = IMAGE_TONE_PAIRS[toneIdx];
+    const imgFilter      = toneRest  ? `${toneRest} contrast(1.01)`  : 'saturate(1.02) contrast(1.01)';
+    const imgHoverFilter = toneHover ? `${toneHover} contrast(1.03)` : 'saturate(1.06) brightness(1.025) contrast(1.03)';
+
+    const cardClass = [
+      'lc',
+      isMapView ? '' : 'lc--grid',
+      trustLevel === 'high' ? 'lc--high-trust' : '',
+      trustLevel === 'low'  ? 'lc--low-conf'   : '',
+      drawerPropertyId === property._id                                    ? 'lc--active'      : '',
+      isMapView && hoveredPropertyId === property._id && !drawerPropertyId ? 'lc--highlighted' : '',
+    ].filter(Boolean).join(' ');
+
+    return (
+      <div
+        key={property._id}
+        className={cardClass}
+        style={{ '--img-filter': imgFilter, '--img-hover-filter': imgHoverFilter, '--card-index': Math.min(index, 8) }}
+        onMouseEnter={isMapView ? () => setHoveredPropertyId(property._id) : undefined}
+        onMouseLeave={isMapView ? () => setHoveredPropertyId(null)          : undefined}
+        onClick={() => {
+          const ctx = isMapView ? 'map' : 'list';
+          track(ctx === 'map' ? 'listing_opened_from_map' : 'listing_opened_from_list', {
+            property_id:    property._id,
+            listing_status: property.listingStatus,
+            property_type:  property.propertyType,
+            district:       property.district || '',
+            context:        ctx,
+          });
+          if (window.innerWidth > 1024) {
+            openDrawer(property._id);
+          } else if (isMapView) {
+            setSelectedProperty(property);
+          } else {
+            // Save position so M-2 can restore it when user returns via back button
+            sessionStorage.setItem('search-scroll', String(window.scrollY));
+            navigate(`/properties/${property._id}`);
+          }
+        }}
+      >
+        {/* Image */}
+        <div className="lc-img">
+          {property.images?.length > 0
+            ? <>
+                <img
+                  src={getImageUrl(property.images[0])}
+                  alt={property.title}
+                  loading="lazy"
+                  style={{ opacity: 0, transition: 'opacity 380ms cubic-bezier(0.22,1,0.36,1)' }}
+                  onLoad={(e) => { e.currentTarget.style.opacity = '1'; }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
+                  }}
+                />
+                <div className="lc-img-error" style={{ display: 'none' }} aria-hidden="true" />
+              </>
+            : <div className="lc-img-placeholder">
+                <Image size={24} strokeWidth={1.5} aria-hidden="true" />
+              </div>
+          }
+          {property.images?.length > 1 && (
+            <div className="lc-photo-count">
+              <Image size={11} strokeWidth={2} aria-hidden="true" />
+              {property.images.length}
             </div>
+          )}
+          {property.isSponsored && index % 10 === 0 && (
+            <div className="lc-sponsored">Sponsored</div>
+          )}
+          <FavoriteButton
+            propertyId={property._id}
+            initialIsFavorite={savedPropertyIds.has(property._id)}
+            onToggle={handleFavoriteToggle}
+          />
+        </div>
 
-            {/* Listings Grid for List View */}
-            <div className="listings-grid">
-              {loading ? (
-                <div className="loading-state">Loading properties...</div>
-              ) : filteredProperties.length === 0 ? (
-                <div className="empty-state">
-                  <p>No properties found matching your criteria.</p>
-                  <Button onClick={clearFilters}>Clear Filters</Button>
-                </div>
-              ) : (
-                filteredProperties.map((property, index) => (
-                  <div
-                    key={property._id}
-                    className="listing-card-grid"
-                    onClick={() => navigate(`/search/${defaultLocation}/${property._id}`)}
-                  >
-                    {/* Sponsored Tag */}
-                    {property.isSponsored && index % 10 === 0 && (
-                      <div className="sponsored-tag">SPONSORED</div>
-                    )}
+        {/* Content */}
+        <div className="lc-body">
+          {newListing && <span className="lc-new-badge">New this week</span>}
 
-                    <div className="listing-card-image">
-                      {property.images && property.images.length > 0 ? (
-                        <img src={getImageUrl(property.images[0])} alt={property.title} />
-                      ) : (
-                        <div className="image-placeholder">📷</div>
-                      )}
-                      <div className="listing-badge">
-                        <Badge type={property.listingBadge || 'for-sale-by-owner'} size="small" />
-                      </div>
-                      <div className="listing-favorite">
-                        <FavoriteButton
-                          propertyId={property._id}
-                          initialIsFavorite={savedPropertyIds.has(property._id)}
-                          onToggle={handleFavoriteToggle}
-                        />
-                      </div>
-                    </div>
+          <div className="lc-price">
+            <span className="lc-price-cur">{property.currency || 'AZN'}</span>
+            {' '}{property.price?.toLocaleString()}
+          </div>
 
-                    <div className="listing-card-content">
-                      <div className="listing-price">
-                        {property.currency || 'AZN'} {property.price?.toLocaleString()}
-                      </div>
-                      <h3 className="listing-title">{property.title}</h3>
-                      {property.ownerId?.accountType && (
-                        <div className={`verification-badge ${getVerificationBadge(property.ownerId.accountType).className}`}>
-                          {getVerificationBadge(property.ownerId.accountType).text}
-                        </div>
-                      )}
-                      <p className="listing-address">📍 {getLocation(property)}</p>
-                      <div className="listing-features">
-                        {property.bedrooms > 0 && <span>🛏️ {property.bedrooms} beds</span>}
-                        {property.bathrooms > 0 && <span>🚿 {property.bathrooms} baths</span>}
-                        {property.builtUpArea && <span>📐 {property.builtUpArea} m²</span>}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
+          <h3 className="lc-title">{property.title}</h3>
+
+          {primaryTrust && (
+            <div className="lc-trust">
+              <span className="lc-trust-item">
+                <Check size={10} strokeWidth={3} aria-hidden="true" />
+                {primaryTrust}
+              </span>
+            </div>
+          )}
+
+          <div className="lc-meta">
+            <p className="lc-location">{getLocation(property)}</p>
+            <div className="lc-features">
+              {property.bedrooms  > 0 && <span>{property.bedrooms} bd</span>}
+              {property.bathrooms > 0 && <span>{property.bathrooms} ba</span>}
+              {property.builtUpArea   && <span>{property.builtUpArea} m²</span>}
             </div>
           </div>
-        )}
-        
-        {/* Map View Layout */}
-        {viewMode === 'map' && (
-          <>
-            <div className={`listings-panel ${mapHidden ? 'full-width' : ''}`}>
-              {/* Header - Non-sticky */}
-              <div className="listings-info">
-                <h2>{filteredProperties.length} Properties Found</h2>
-                <button onClick={saveSearch} className="save-search-btn" title="Save this search">
-                  🔖 Save Search
+
+          {aiInsight && (
+            <div className="lc-ai-insight">
+              <Sparkles size={11} strokeWidth={2} className="lc-ai-icon" aria-hidden="true" />
+              {aiInsight}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  return (
+    <div className="search-page">
+      <div className="search-content">
+
+        {/* FilterBar floats over the content area */}
+        <FilterBar />
+
+        {/* ── List View ───────────────────────────────────────────────────── */}
+        {viewMode === 'list' && (
+          <div className="sp-list-view">
+            <div className="sp-list-header">
+              <h2 className="sp-context">{buildSearchContext()}</h2>
+              <div className="sp-list-header-right">
+                {areaInsight && <span className="sp-area-insight">{areaInsight}</span>}
+                <button onClick={saveSearch} className="sp-save-btn" title="Save this search">
+                  <Bookmark size={14} strokeWidth={2} aria-hidden="true" />
+                  Save search
                 </button>
               </div>
+            </div>
 
-              {/* Listings */}
-              <div className="listings-scroll">
-                {loading ? (
-                  <div className="loading-state">Loading properties...</div>
-                ) : filteredProperties.length === 0 ? (
-                  <div className="empty-state">
-                    <p>No properties found matching your criteria.</p>
-                    <Button onClick={clearFilters}>Clear Filters</Button>
+            <FewResultsHint />
+            <ExploreStrip />
+
+            <div className="sp-grid">
+              {loading
+                ? Array.from({ length: SKELETON_COUNT }, (_, i) => <SkeletonCard key={i} index={i} />)
+                : fetchError
+                  ? errorState
+                  : filteredProperties.length === 0
+                    ? emptyState
+                    : filteredProperties.map((p, i) => renderCard(p, i, false))
+              }
+            </div>
+
+            {!loading && hasMore && (
+              <div className="sp-load-more">
+                <button className="sp-load-more-btn" onClick={loadMore} disabled={loadingMore}>
+                  {loadingMore ? 'Loading…' : `Show ${total - filteredProperties.length} more`}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Map View ────────────────────────────────────────────────────── */}
+        {viewMode === 'map' && (
+          <>
+            {/* Map — full canvas */}
+            <div className="sp-map">
+              <PropertyMap
+                properties={filteredProperties}
+                height="100%"
+                center={initialCenter.current}
+                zoom={initialZoom.current}
+                flyTo={flyToTarget}
+                onPropertySelect={(property) => {
+                  if (window.innerWidth > 1024) {
+                    openDrawer(property._id);
+                  } else {
+                    setSelectedProperty(property);
+                  }
+                }}
+                highlightedPropertyId={drawerPropertyId || hoveredPropertyId}
+                onMapMove={handleMapMove}
+                onSearchArea={handleSearchArea}
+                onPinHover={setHoveredPropertyId}
+              />
+            </div>
+
+            {/* Floating list panel — slightly de-emphasised when drawer open */}
+            <div className={[
+              'sp-panel',
+              mobileSheetOpen    ? 'sp-panel--open'       : '',
+              drawerPropertyId   ? 'sp-panel--has-drawer' : '',
+            ].filter(Boolean).join(' ')}>
+              {/* Mobile drag handle — tapping header toggles sheet */}
+              <div
+                className="sp-panel-header"
+                onClick={() => window.innerWidth < 768 && setMobileSheetOpen(v => !v)}
+              >
+                <div className="sp-drag-handle" aria-hidden="true" />
+                <div className="sp-panel-header-row">
+                  <div className="sp-context-wrap">
+                    <h2 className="sp-context">{buildSearchContext()}</h2>
+                    {areaInsight && <span className="sp-area-insight">{areaInsight}</span>}
                   </div>
-                ) : (
-                  filteredProperties.map((property, index) => (
-                    <div
-                      key={property._id}
-                      className={`listing-card ${hoveredPropertyId === property._id ? 'highlighted' : ''}`}
-                      onMouseEnter={() => setHoveredPropertyId(property._id)}
-                      onMouseLeave={() => setHoveredPropertyId(null)}
-                      onClick={() => setSelectedProperty(property)}
-                    >
-                      {/* Sponsored Tag */}
-                      {property.isSponsored && index % 10 === 0 && (
-                        <div className="sponsored-tag">SPONSORED</div>
-                      )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); saveSearch(); }}
+                    className="sp-save-btn"
+                    title="Save this search"
+                  >
+                    <Bookmark size={14} strokeWidth={2} aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
 
-                      <div className="listing-card-image">
-                        {property.images && property.images.length > 0 ? (
-                          <img src={getImageUrl(property.images[0])} alt={property.title} />
-                        ) : (
-                          <div className="image-placeholder">📷</div>
-                        )}
-                        <div className="listing-badge">
-                          <Badge type={property.listingBadge || 'for-sale-by-owner'} size="small" />
-                        </div>
-                        <div className="listing-favorite">
-                          <FavoriteButton
-                            propertyId={property._id}
-                            initialIsFavorite={savedPropertyIds.has(property._id)}
-                            onToggle={handleFavoriteToggle}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="listing-card-content">
-                        <div className="listing-price">
-                          {property.currency || 'AZN'} {property.price?.toLocaleString()}
-                        </div>
-                        <h3 className="listing-title">{property.title}</h3>
-                        <p className="listing-address">📍 {getLocation(property)}</p>
-                        <div className="listing-features">
-                          {property.bedrooms > 0 && <span>🛏️ {property.bedrooms} beds</span>}
-                          {property.bathrooms > 0 && <span>🚿 {property.bathrooms} baths</span>}
-                          {property.builtUpArea && <span>📐 {property.builtUpArea} m²</span>}
-                        </div>
-                      </div>
-                    </div>
-                  ))
+              <div className="sp-panel-body">
+                <FewResultsHint />
+                <ExploreStrip />
+                {loading
+                  ? Array.from({ length: SKELETON_COUNT }, (_, i) => <SkeletonCard key={i} index={i} />)
+                  : fetchError
+                    ? errorState
+                    : filteredProperties.length === 0
+                      ? emptyState
+                      : filteredProperties.map((p, i) => renderCard(p, i, true))
+                }
+                {!loading && hasMore && (
+                  <button className="sp-load-more-btn sp-load-more-btn--inline" onClick={loadMore} disabled={loadingMore}>
+                    {loadingMore ? 'Loading…' : `${total - filteredProperties.length} more listings`}
+                  </button>
                 )}
               </div>
             </div>
-
-            {/* Map Panel */}
-            {!mapHidden && (
-              <div className="map-panel">
-                <PropertyMap
-                  properties={filteredProperties}
-                  height="100%"
-                  center={mapCenter}
-                  zoom={mapZoom}
-                  onPropertySelect={(property) => setSelectedProperty(property)}
-                  highlightedPropertyId={hoveredPropertyId}
-                  onMapMove={handleMapMove}
-                />
-              </div>
-            )}
           </>
         )}
       </div>
 
-      {/* Property Modal */}
-      {selectedProperty && (
+      {/* Property Preview Drawer — desktop only */}
+      {drawerPropertyId && (
+        <PropertyPreviewDrawer
+          propertyId={drawerPropertyId}
+          onClose={closeDrawer}
+          savedIds={savedPropertyIds}
+          onSaveToggle={handleFavoriteToggle}
+        />
+      )}
+
+      {/* Property Modal — mobile map view only */}
+      {selectedProperty && !drawerPropertyId && (
         <PropertyModal
           property={selectedProperty}
-          onClose={() => {
-            setSelectedProperty(null);
-          }}
+          onClose={() => setSelectedProperty(null)}
         />
       )}
     </div>

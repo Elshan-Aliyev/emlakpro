@@ -4,10 +4,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { geocodeAddress } from '../services/geocoding';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import LocationPicker from '../components/LocationPicker';
+import { useToast } from '../components/Toast';
 
 const UpdateProperty = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { success, error: showError } = useToast();
   
   // Basic Info
   const [title, setTitle] = useState('');
@@ -124,8 +126,7 @@ const UpdateProperty = () => {
         const ownerIdVal = property.ownerId?._id || property.ownerId;
         setOwnerId(ownerIdVal);
       } catch (err) {
-        console.error(err);
-        alert(err.response?.data?.message || 'Error fetching property');
+        showError(err.response?.data?.message || 'Error fetching property');
       }
     };
     fetchProperty();
@@ -140,8 +141,6 @@ const UpdateProperty = () => {
   const handleAddNewImages = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
-    
-    console.log('📸 Files selected for upload:', files.length);
     
     // Validate files
     const maxSize = 10 * 1024 * 1024; // 10MB
@@ -162,12 +161,12 @@ const UpdateProperty = () => {
     });
     
     if (errors.length > 0) {
-      alert('Some files were rejected:\n\n' + errors.join('\n'));
+      showError('Some files were rejected: ' + errors.join('; '));
     }
-    
+
     if (validFiles.length === 0) {
       if (errors.length > 0) {
-        alert('No valid files to upload from this selection');
+        showError('No valid files to upload from this selection');
       }
       e.target.value = ''; // Reset input
       return;
@@ -231,82 +230,57 @@ const UpdateProperty = () => {
 
 
   const uploadNewImagesToCloudinary = async (files) => {
-    console.log('=== Starting Cloudinary Upload ===');
-    console.log('Files to upload:', files.length);
-    
     const formData = new FormData();
-    files.forEach((file, index) => {
-      console.log(`📎 File ${index + 1}:`, file.name, file.type, `${(file.size / 1024).toFixed(2)}KB`);
-      formData.append('images', file);
-    });
+    files.forEach((file) => formData.append('images', file));
 
     try {
       const token = localStorage.getItem('token');
-      console.log('🔑 Token exists:', !!token);
-      
-      console.log('📤 Uploading to Cloudinary...');
-      const response = await fetch('http://localhost:5000/api/properties/upload-images', {
+      const apiBase = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+      const response = await fetch(`${apiBase}/properties/upload-images`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
       });
 
-      console.log('📥 Response status:', response.status);
-      
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('❌ Upload failed:', errorData);
         throw new Error(errorData.message || 'Upload failed');
       }
 
       const data = await response.json();
-      console.log('✅ Upload successful:', data);
-      console.log('📸 Cloudinary image data received:', data.images);
-      
-      // Update newImages with uploaded image objects (with all sizes)
+
       setNewImages(prev => {
         const startIndex = prev.length - files.length;
-        const updated = prev.map((img, idx) => {
-          // Only update the newly uploaded images (last N items)
+        return prev.map((img, idx) => {
           if (idx >= startIndex) {
-            const cloudinaryImageData = data.images[idx - startIndex];
-            console.log(`Mapping image ${idx}:`, cloudinaryImageData);
             return {
               ...img,
-              ...cloudinaryImageData, // Includes thumbnail, medium, large, full, publicId
+              ...data.images[idx - startIndex],
               uploading: false,
-              uploaded: true
+              uploaded: true,
             };
           }
           return img;
         });
-        console.log('📊 Updated newImages state:', updated);
-        return updated;
       });
-      
-      alert(`✅ ${data.count} image(s) uploaded successfully to Cloudinary!`);
+
+      success(`${data.count} image(s) uploaded successfully.`);
       return data.images;
     } catch (error) {
-      console.error('❌ Upload error:', error);
-      
       let errorMessage = 'Failed to upload images';
       if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
-        errorMessage = '🔌 Network Error: Cannot connect to server. Check if server is running on port 5000.';
+        errorMessage = 'Network error: could not reach the server.';
       } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-        errorMessage = '🔒 Authentication Error: Please log in again.';
+        errorMessage = 'Session expired. Please log in again.';
       } else if (error.message.includes('size')) {
-        errorMessage = '📦 File Size Error: Files exceed 10MB limit.';
+        errorMessage = 'File too large. Maximum 10 MB per image.';
       } else if (error.message.includes('format') || error.message.includes('type')) {
-        errorMessage = '🖼️ Format Error: Only JPEG, PNG, WEBP, HEIC allowed.';
-      } else if (error.message.includes('Cloudinary') || error.message.includes('cloud')) {
-        errorMessage = '☁️ Cloud Storage Error: Problem with image storage service.';
+        errorMessage = 'Invalid format. Only JPEG, PNG, WEBP, and HEIC are allowed.';
       } else {
-        errorMessage = `⚠️ Upload Error: ${error.message}`;
+        errorMessage = error.message || 'Upload failed. Please try again.';
       }
-      
-      alert(errorMessage);
+
+      showError(errorMessage);
       
       // Remove failed uploads from newImages
       setNewImages(prev => prev.filter(img => !img.uploading));
@@ -369,21 +343,14 @@ const UpdateProperty = () => {
           altText: ''
         }));
       
-      console.log('🖼️ Current images (remaining):', remainingImages);
-      console.log('🆕 New images (uploaded with sizes):', uploadedNewImages);
-      
       updateData.images = [...remainingImages, ...uploadedNewImages];
       
-      console.log('💾 Saving property with images:', updateData.images);
-      console.log('📋 Total images to save:', updateData.images.length);
-      
       await updateProperty(id, updateData, token);
-      
-      alert('Property updated successfully!');
+
+      success('Property updated successfully.');
       navigate(`/properties/${id}`);
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || 'Error updating property');
+      showError(err.response?.data?.message || 'Error updating property');
     }
   };
 

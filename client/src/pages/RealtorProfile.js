@@ -413,8 +413,8 @@ const RealtorProfile = () => {
                         </p>
                         <p className="property-price">₼{property?.price?.toLocaleString() || 'N/A'}</p>
                         <div className="property-details">
-                          <span>{property?.bedrooms || 0} bed</span>
-                          <span>{property?.bathrooms || 0} bath</span>
+                          <span>{property?.bedrooms || 0} bed{(property?.bedrooms || 0) !== 1 ? 's' : ''}</span>
+                          <span>{property?.bathrooms || 0} bath{(property?.bathrooms || 0) !== 1 ? 's' : ''}</span>
                           <span>{property?.area || 0} m²</span>
                         </div>
                       </div>

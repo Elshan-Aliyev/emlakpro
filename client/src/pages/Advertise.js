@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Star, Monitor, Smartphone, Search, Volume2, Eye, Activity, BarChart2, DollarSign } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -17,10 +18,17 @@ const Advertise = () => {
     totalSpent: 0
   });
 
+  const SERVICE_ICONS = {
+    'featured-listing': <Star     size={20} strokeWidth={1.75} aria-hidden="true" />,
+    'home-banner':      <Monitor  size={20} strokeWidth={1.75} aria-hidden="true" />,
+    'popup-ad':         <Smartphone size={20} strokeWidth={1.75} aria-hidden="true" />,
+    'search-top':       <Search   size={20} strokeWidth={1.75} aria-hidden="true" />,
+  };
+
   const advertisingServices = [
     {
       id: 'featured-listing',
-      icon: '⭐',
+      icon: 'featured-listing',
       title: 'Featured Listing',
       description: 'Highlight your property at the top of search results',
       features: [
@@ -38,7 +46,7 @@ const Advertise = () => {
     },
     {
       id: 'home-banner',
-      icon: '🎯',
+      icon: 'home-banner',
       title: 'Home Page Banner',
       description: 'Display your property on the homepage hero section',
       features: [
@@ -56,7 +64,7 @@ const Advertise = () => {
     },
     {
       id: 'popup-ad',
-      icon: '💥',
+      icon: 'popup-ad',
       title: 'Popup Advertisement',
       description: 'Show your listing in a popup to website visitors',
       features: [
@@ -74,7 +82,7 @@ const Advertise = () => {
     },
     {
       id: 'search-top',
-      icon: '🔝',
+      icon: 'search-top',
       title: 'Search Results Top',
       description: 'Always appear in top 3 of relevant searches',
       features: [
@@ -98,18 +106,7 @@ const Advertise = () => {
   };
 
   const handlePurchase = (service, pricing) => {
-    // This would integrate with payment system
-    console.log('Purchase:', service.id, pricing);
-    alert(`Purchasing ${service.title} - ${pricing.duration} for ${pricing.price} AZN`);
     setShowModal(false);
-  };
-
-  const handleBypassPayment = (service, pricing) => {
-    // Admin bypass - skip payment and activate service
-    console.log('Admin Bypass:', service.id, pricing);
-    alert(`✓ Admin Bypass: ${service.title} - ${pricing.duration} activated without payment`);
-    setShowModal(false);
-    // In a real implementation, this would call the backend to activate the service
   };
 
   return (
@@ -127,19 +124,19 @@ const Advertise = () => {
             className={`advertise-tab ${activeTab === 'services' ? 'active' : ''}`}
             onClick={() => setActiveTab('services')}
           >
-            📢 Services
+            Services
           </button>
           <button
             className={`advertise-tab ${activeTab === 'my-ads' ? 'active' : ''}`}
             onClick={() => setActiveTab('my-ads')}
           >
-            📊 My Ads
+            My Ads
           </button>
           <button
             className={`advertise-tab ${activeTab === 'stats' ? 'active' : ''}`}
             onClick={() => setActiveTab('stats')}
           >
-            📈 Statistics
+            Statistics
           </button>
         </div>
 
@@ -150,7 +147,7 @@ const Advertise = () => {
               {advertisingServices.map((service) => (
                 <div key={service.id} className="ad-service-card" style={{ '--service-color': service.color }}>
                   <div className="ad-service-header">
-                    <div className="ad-service-icon">{service.icon}</div>
+                    <div className="ad-service-icon">{SERVICE_ICONS[service.icon]}</div>
                     <h3>{service.title}</h3>
                     <p>{service.description}</p>
                   </div>
@@ -159,7 +156,7 @@ const Advertise = () => {
                     <h4>Features:</h4>
                     <ul>
                       {service.features.map((feature, idx) => (
-                        <li key={idx}>✓ {feature}</li>
+                        <li key={idx}>{feature}</li>
                       ))}
                     </ul>
                   </div>
@@ -176,16 +173,6 @@ const Advertise = () => {
                         >
                           Select
                         </Button>
-                        {(user?.role === 'admin' || user?.role === 'superadmin') && (
-                          <Button
-                            size="small"
-                            variant="secondary"
-                            onClick={() => handleBypassPayment(service, price)}
-                            style={{ marginTop: '0.5rem' }}
-                          >
-                            🔓 Bypass Payment (Admin)
-                          </Button>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -214,7 +201,9 @@ const Advertise = () => {
 
             {myAds.length === 0 ? (
               <div className="empty-ads">
-                <div className="empty-icon">📢</div>
+                <div className="empty-icon">
+                  <Volume2 size={28} strokeWidth={1.75} aria-hidden="true" />
+                </div>
                 <h3>No Active Ads</h3>
                 <p>You don't have any active advertising campaigns yet.</p>
                 <Button onClick={() => setActiveTab('services')}>Browse Services</Button>
@@ -264,13 +253,17 @@ const Advertise = () => {
           <div className="advertise-content">
             <div className="stats-dashboard">
               <div className="stat-card-large">
-                <div className="stat-icon">👁️</div>
+                <div className="stat-icon">
+                  <Eye size={22} strokeWidth={1.75} aria-hidden="true" />
+                </div>
                 <div className="stat-number">{adStats.totalImpressions.toLocaleString()}</div>
                 <div className="stat-label">Total Impressions</div>
               </div>
 
               <div className="stat-card-large">
-                <div className="stat-icon">🖱️</div>
+                <div className="stat-icon">
+                  <Activity size={22} strokeWidth={1.75} aria-hidden="true" />
+                </div>
                 <div className="stat-number">{adStats.totalClicks.toLocaleString()}</div>
                 <div className="stat-label">Total Clicks</div>
                 <div className="stat-sublabel">
@@ -281,13 +274,17 @@ const Advertise = () => {
               </div>
 
               <div className="stat-card-large">
-                <div className="stat-icon">📊</div>
+                <div className="stat-icon">
+                  <BarChart2 size={22} strokeWidth={1.75} aria-hidden="true" />
+                </div>
                 <div className="stat-number">{adStats.activeAds}</div>
                 <div className="stat-label">Active Campaigns</div>
               </div>
 
               <div className="stat-card-large">
-                <div className="stat-icon">💰</div>
+                <div className="stat-icon">
+                  <DollarSign size={22} strokeWidth={1.75} aria-hidden="true" />
+                </div>
                 <div className="stat-number">{adStats.totalSpent.toFixed(2)} AZN</div>
                 <div className="stat-label">Total Investment</div>
               </div>
@@ -296,7 +293,7 @@ const Advertise = () => {
             <div className="chart-placeholder">
               <h3>Performance Over Time</h3>
               <div className="coming-soon-chart">
-                📈 Charts coming soon
+                Charts coming soon
               </div>
             </div>
           </div>

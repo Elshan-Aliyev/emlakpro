@@ -1,5 +1,5 @@
 const Article = require('../models/Article');
-const cloudinary = require('../config/cloudinary');
+const { deleteImage, uploadToStorage } = require('../config/supabase');
 
 // Get all articles (public - only published)
 exports.getArticles = async (req, res) => {
@@ -180,12 +180,12 @@ exports.deleteArticle = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this article' });
     }
     
-    // Delete featured image from Cloudinary if exists
+    // Delete featured image from Supabase Storage if exists
     if (article.featuredImage?.publicId) {
       try {
-        await cloudinary.uploader.destroy(article.featuredImage.publicId);
+        await deleteImage(article.featuredImage.publicId);
       } catch (err) {
-        console.error('Error deleting image from Cloudinary:', err);
+        console.error('Error deleting image from storage:', err);
       }
     }
     
@@ -204,21 +204,21 @@ exports.uploadFeaturedImage = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: 'No image uploaded' });
     }
-    
-    // Cloudinary automatically handles the upload via multer
+
+    const ext = (req.file.originalname.split('.').pop() || 'jpg').toLowerCase();
+    const storagePath = `articles/article_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+    const { publicUrl, path } = await uploadToStorage(req.file.buffer, storagePath, req.file.mimetype);
+
     const imageData = {
-      thumbnail: req.file.path.replace('/upload/', '/upload/w_400,h_300,c_fill,q_auto:low,f_auto/'),
-      medium: req.file.path.replace('/upload/', '/upload/w_800,h_600,c_limit,q_auto:good,f_auto/'),
-      large: req.file.path.replace('/upload/', '/upload/w_1200,h_800,c_limit,q_auto:good,f_auto/'),
-      full: req.file.path,
-      publicId: req.file.filename,
+      thumbnail: publicUrl,
+      medium: publicUrl,
+      large: publicUrl,
+      full: publicUrl,
+      publicId: path,
       altText: req.body.altText || ''
     };
-    
-    res.json({
-      message: 'Image uploaded successfully',
-      image: imageData
-    });
+
+    res.json({ message: 'Image uploaded successfully', image: imageData });
   } catch (err) {
     console.error('Upload image error:', err);
     res.status(500).json({ message: 'Server error' });

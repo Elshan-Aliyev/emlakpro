@@ -57,41 +57,26 @@ const VerificationApplication = () => {
         return;
       }
 
-      console.log('Fetching verification data...');
-      
-      // Fetch pricing first
       try {
         const pricingRes = await getVerificationPricing();
-        console.log('Pricing response:', pricingRes);
         setPricing(pricingRes.data);
       } catch (pricingError) {
-        console.error('❌ Pricing fetch failed:', pricingError);
-        console.error('Error response:', pricingError.response);
-        setError(`Failed to load pricing: ${pricingError.message}`);
-        alert('Failed to load pricing data. Please check console and refresh the page.');
+        setError(`Failed to load pricing. Please refresh the page.`);
       }
 
-      // Fetch status
       try {
         const statusRes = await getMyApplicationStatus(token);
-        console.log('Status response:', statusRes);
         setCurrentStatus(statusRes.data);
-        
-        // If user has pending application, show status
         if (statusRes.data.application?.status === 'pending') {
-          alert('You already have a pending application under review.');
           navigate('/account/settings');
           return;
         }
-      } catch (statusError) {
-        console.error('❌ Status fetch failed:', statusError);
-        console.error('Error response:', statusError.response);
+      } catch {
+        // Status check failure is non-fatal
       }
-      
+
       setLoading(false);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      console.error('Error details:', error.response);
+    } catch (err) {
       setLoading(false);
     }
   };
@@ -123,8 +108,7 @@ const VerificationApplication = () => {
 
       setStep(3);
     } catch (error) {
-      console.error('Error submitting application:', error);
-      alert(error.response?.data?.message || 'Failed to submit application');
+      setError(error.response?.data?.message || 'Failed to submit application. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -146,10 +130,8 @@ const VerificationApplication = () => {
       }, token);
 
       setDocuments([...documents, { type: documentType, url: documentUrl }]);
-      alert('Document uploaded successfully');
     } catch (error) {
-      console.error('Error uploading document:', error);
-      alert('Failed to upload document');
+      setError('Failed to upload document. Please try again.');
     }
   };
 
@@ -166,24 +148,34 @@ const VerificationApplication = () => {
         transactionId: `TXN-${Date.now()}`
       }, token);
 
-      alert('Payment processed! Your application is under review.');
       navigate('/account/settings');
     } catch (error) {
-      console.error('Error processing payment:', error);
-      alert(error.response?.data?.message || 'Payment failed');
+      setError(error.response?.data?.message || 'Payment failed. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
   if (loading) {
-    return <div className="verification-loading">Loading...</div>;
+    return (
+      <div className="verification-application-page">
+        <div className="verification-container">
+          {[180, 120, 260, 220].map((w, i) => (
+            <div key={i} style={{
+              height: i === 0 ? 28 : 16,
+              width: w,
+              maxWidth: '100%',
+              borderRadius: 6,
+              marginBottom: 16,
+              background: 'linear-gradient(90deg, #f0f0ef 25%, #e8e8e6 50%, #f0f0ef 75%)',
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 1.4s infinite linear',
+            }} />
+          ))}
+        </div>
+      </div>
+    );
   }
-
-  console.log('Render - step:', step, 'pricing:', pricing, 'selectedTier:', selectedTier);
-  console.log('Pricing exists?', !!pricing);
-  console.log('Step === 1?', step === 1);
-  console.log('Should show pricing cards?', step === 1 && pricing);
 
   return (
     <div className="verification-application-page">
@@ -191,10 +183,19 @@ const VerificationApplication = () => {
         <h1>Account Verification Application</h1>
         <p className="subtitle">Upgrade your account to unlock features and build trust</p>
 
-        {/* Debug Info */}
-        {error && <div style={{color: 'white', padding: '20px', background: '#dc3545', marginBottom: '20px', borderRadius: '8px'}}>❌ Error: {error}</div>}
-        {!pricing && !error && !loading && <div style={{color: 'white', padding: '20px', background: '#dc3545', marginBottom: '20px', borderRadius: '8px'}}>❌ Pricing data not loaded!</div>}
-        {step !== 1 && <div style={{color: '#856404', padding: '20px', background: '#fff3cd', marginBottom: '20px', borderRadius: '8px'}}>⚠️ Not on step 1 (current step: {step})</div>}
+        {error && (
+          <div style={{
+            padding: '12px 16px',
+            background: 'var(--error-50, #fef2f2)',
+            border: '1px solid var(--error-200, #fecaca)',
+            borderRadius: 8,
+            color: 'var(--error-700, #b91c1c)',
+            marginBottom: 20,
+            fontSize: '0.9rem',
+          }}>
+            {error}
+          </div>
+        )}
 
         {/* Progress Steps */}
         <div className="progress-steps">
@@ -535,8 +536,7 @@ const VerificationApplication = () => {
             </div>
 
             <div className="payment-info">
-              <p>⚠️ This is a demo. Payment integration will be added.</p>
-              <p>Click "Complete Payment" to simulate successful payment.</p>
+              <p>Payment integration coming soon. Click "Complete Payment" to submit your application.</p>
             </div>
 
             <div className="form-actions">

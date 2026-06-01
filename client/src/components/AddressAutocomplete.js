@@ -56,34 +56,26 @@ const AddressAutocomplete = ({ value, onChange, onSelectAddress, placeholder = "
     setShowSuggestions(false);
     setSuggestions([]);
     
-    // Parse city and postal code from display_name
-    const parts = suggestion.display_name.split(',').map(p => p.trim());
-    let city = '';
-    let postalCode = '';
+    // Extract structured fields from Nominatim address object
+    const a = suggestion.address || {};
+
+    const city = a.city || a.town || a.municipality || a.village || a.county || '';
+    const district = a.city_district || a.suburb || a.neighbourhood || a.quarter || '';
+    const streetName = a.road || a.street || a.pedestrian || a.path || '';
+    const streetNumber = a.house_number || '';
+    const postalCode = a.postcode || '';
     
-    // Try to extract city (usually second-to-last or third-to-last part before country)
-    if (parts.length >= 2) {
-      // Last part is usually country
-      const beforeCountry = parts[parts.length - 2];
-      // Check if it contains numbers (might be postal code)
-      if (/\d/.test(beforeCountry)) {
-        postalCode = beforeCountry.match(/\d+/)?.[0] || '';
-        if (parts.length >= 3) {
-          city = parts[parts.length - 3];
-        }
-      } else {
-        city = beforeCountry;
-      }
-    }
-    
-    // Pass coordinates and parsed address data to parent
+    // Pass all extracted data to parent
     if (onSelectAddress) {
       onSelectAddress({
         address: suggestion.display_name,
         lat: parseFloat(suggestion.lat),
         lng: parseFloat(suggestion.lng),
         city: city || 'Baku',
-        postalCode: postalCode
+        district,
+        streetName,
+        streetNumber,
+        postalCode
       });
     }
   };

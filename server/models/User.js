@@ -15,7 +15,14 @@ const userSchema = new mongoose.Schema({
     default: 'registered' 
   },
   
-  // Account Type (for verification status)
+  // User Type (for frontend role display)
+  userType: {
+    type: String,
+    enum: ['buyer', 'seller', 'agent'],
+    default: 'buyer'
+  },
+  
+  // Account Type (for admin management)
   accountType: {
     type: String,
     enum: ['unverified-user', 'verified-user', 'verified-seller', 'realtor', 'corporate'],
@@ -74,17 +81,47 @@ const userSchema = new mongoose.Schema({
   },
   
   // Account Status
-  status: { 
-    type: String, 
-    enum: ['active', 'inactive'], 
-    default: 'active' 
+  status: {
+    type: String,
+    enum: ['active', 'inactive'],
+    default: 'active'
   },
   isActive: { type: Boolean, default: true },
   isBlocked: { type: Boolean, default: false },
-  
+
   // Verification
-  emailVerified: { type: Boolean, default: false },
-  verificationToken: { type: String }
+  emailVerified:    { type: Boolean, default: false },
+  verificationToken: { type: String },
+
+  // Password reset
+  passwordResetToken:   { type: String },
+  passwordResetExpires: { type: Date },
+
+  // Phone verification
+  phoneVerified:   { type: Boolean, default: false },
+  phoneVerifiedAt: { type: Date },
+  phoneOtpSentAt:  { type: Date },   // tracks per-user send cooldown
+
+  // Ownership verification (Phase 1)
+  ownershipVerified:   { type: Boolean, default: false },
+  ownershipVerifiedAt: { type: Date },
+
+  // Seller responsiveness tracking
+  responseRate:             { type: Number, default: null },
+  averageResponseTimeHours: { type: Number, default: null },
+  lastResponseAt:           { type: Date,   default: null },
+
+  // Account trust level (0–4) — cached to avoid recomputing on every request.
+  // Recomputed after verification events. Do NOT expose via public API.
+  trustLevel: { type: Number, default: 0, min: 0, max: 4 },
+
+  // Abuse signal flags — internal only, never surfaced to users
+  abuseFlags: [{
+    type:    { type: String },
+    reason:  { type: String },
+    addedAt: { type: Date, default: Date.now },
+    addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  }],
 }, { timestamps: true });
 
 // Hash password before saving
