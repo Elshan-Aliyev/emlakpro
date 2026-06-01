@@ -19,6 +19,11 @@ const getListingBadge = (userRole, listingStatus) => {
 // Create a property
 exports.createProperty = async (req, res) => {
   try {
+    // ── Input validation ──────────────────────────────────────────────────────
+    if (Number(req.body.bedrooms) === 0) {
+      return res.status(400).json({ message: 'Studio is no longer a valid option. Please select 1 Room or more.' });
+    }
+
     // ── Trust-based listing quota ─────────────────────────────────────────────
     const quota = await checkListingQuota(req.user.id);
     if (!quota.allowed) {
@@ -438,6 +443,11 @@ exports.getProperty = async (req, res) => {
 // Update property
 exports.updateProperty = async (req, res) => {
   try {
+    // ── Input validation ──────────────────────────────────────────────────────
+    if (req.body.bedrooms !== undefined && Number(req.body.bedrooms) === 0) {
+      return res.status(400).json({ message: 'Studio is no longer a valid option. Please select 1 Room or more.' });
+    }
+
     console.log('\n=== Update Property Request ===');
     console.log('Property ID:', req.params.id);
     console.log('User:', req.user.id, req.user.role);
@@ -445,7 +455,7 @@ exports.updateProperty = async (req, res) => {
     if (req.body.images) {
       console.log('Image URLs:', req.body.images);
     }
-    
+
     const property = await Property.findById(req.params.id);
     if (!property) return res.status(404).json({ message: 'Property not found' });
 
