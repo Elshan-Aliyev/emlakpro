@@ -4,7 +4,9 @@
 //   "sea view villa for rent in Yasamal"
 //   "studio near metro furnished"
 
-const BEDROOM_TOKENS = ['bedrooms', 'bedroom', 'bdrms', 'bdrm', 'beds', 'bed', 'br', 'bd', 'otaqlı', 'otaq'];
+// BEDROOM_TOKENS retained for external consumers; internal parsing uses typed sub-groups below
+// eslint-disable-next-line no-unused-vars
+const BEDROOM_TOKENS = ['bedrooms', 'bedroom', 'bdrms', 'bdrm', 'beds', 'bed', 'br', 'bd', 'otaqlı', 'otaq', 'rooms', 'room'];
 const BATHROOM_TOKENS = ['bathrooms', 'bathroom', 'baths', 'bath', 'hamam', 'wc', 'ba'];
 
 const PRICE_MULTIPLIERS = { k: 1_000, m: 1_000_000 };
@@ -17,7 +19,6 @@ const PROPERTY_TYPE_MAP = {
   flat: 'apartment', flats: 'apartment',
   house: 'house', houses: 'house', home: 'house',
   villa: 'villa', villas: 'villa',
-  studio: 'studio', studios: 'studio',
   office: 'office', offices: 'office',
   commercial: 'commercial-retail',
   penthouse: 'penthouse', penthouses: 'penthouse',
@@ -199,29 +200,38 @@ export const parseNLQuery = (rawQuery) => {
   }
 
   // ── Bedrooms ───────────────────────────────────────────────────────────────
-  // "2 bedroom", "2+ bedrooms", "2-bedroom", "2bd", "3 otaqlı"
-  const bedTokenPattern = BEDROOM_TOKENS.join('|');
-  const bedRe = new RegExp(`(\\d+)\\s*\\+?\\s*-?\\s*(?:${bedTokenPattern})\\b`, 'i');
-  const bedMatch = text.match(bedRe);
-  if (bedMatch) {
-    const n = parseInt(bedMatch[1], 10);
-    if (!isNaN(n)) {
-      params.bedrooms = n;
-      interpretation.push(`${n} bed${n !== 1 ? 's' : ''}`);
-    }
-    consume(bedRe);
-  } else {
-    // "X-room" Azerbaijani/Russian style
-    const roomRe = /(\d+)[\s-]*(room|otaq)\b/i;
-    const rm = text.match(roomRe);
-    if (rm) {
-      const n = parseInt(rm[1], 10);
-      if (!isNaN(n) && n >= 1) {
-        params.bedrooms = n;
-        interpretation.push(`${n} room${n !== 1 ? 's' : ''}`);
-        consume(roomRe);
-      }
-    }
+  // Bedroom/room tokens split into two groups for AZ offset logic
+  const WESTERN_BEDROOM_TOKENS = ['bedrooms', 'bedroom', 'bdrms', 'bdrm', 'beds', 'bed', 'bdrm', 'bd'];
+  // ROOM_TOKENS used implicitly via bedroomRe negation (isWesternBedroom = false path)
+  // eslint-disable-next-line no-unused-vars
+  const ROOM_TOKENS = ['rooms', 'room', 'otaqlı', 'otaq'];
+
+  // Match "2br" / "3br" shorthand (always western bedroom → +1 offset)
+  const brShorthandRe = /\b(\d+)br\b/i;
+  const brMatch = text.match(brShorthandRe);
+  if (brMatch && !params.bedrooms) {
+    params.bedrooms = parseInt(brMatch[1], 10) + 1; // 2br = 3 rooms
+    interpretation.push(`${params.bedrooms} rooms`);
+    consume(brShorthandRe);
+  }
+
+  // Match "2 bedroom" / "2 room" / "2 otaqlı"
+  const bedroomRe = /(\d+)\s*[-]?\s*(bedrooms?|bdrms?|beds?|bd|rooms?|otaqlı|otaq)\b/i;
+  const bedroomMatch = text.match(bedroomRe);
+  if (bedroomMatch && !params.bedrooms) {
+    const count = parseInt(bedroomMatch[1], 10);
+    const token = bedroomMatch[2].toLowerCase();
+    const isWesternBedroom = WESTERN_BEDROOM_TOKENS.some(t => token.startsWith(t.replace(/s$/, '')));
+    params.bedrooms = isWesternBedroom ? count + 1 : count; // AZ convention
+    interpretation.push(`${params.bedrooms} room${params.bedrooms !== 1 ? 's' : ''}`);
+    consume(bedroomRe);
+  }
+
+  // Silent: "studio" query → 1 room (Azerbaijan convention)
+  if (/\bstudio\b/i.test(text) && !params.bedrooms) {
+    params.bedrooms = 1;
+    interpretation.push('1 room');
+    consume(/\bstudio\b/i);
   }
 
   // ── Bathrooms ──────────────────────────────────────────────────────────────
