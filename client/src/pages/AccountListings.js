@@ -275,16 +275,23 @@ const AccountListings = () => {
                           Awaiting approval
                         </span>
                       )}
-                      <span
-                        className="al-chip al-chip--ov"
-                        style={{ color: ovm.color, background: ovm.bg }}
-                        title={ovStatus === 'rejected' && property.ownershipReviewNote
-                          ? `Reason: ${property.ownershipReviewNote}`
-                          : undefined}
-                      >
-                        {ovStatus === 'approved' && '✓ '}
-                        {ovm.label}
-                      </span>
+                      {ovStatus !== 'none' && (
+                        <span
+                          className="al-chip al-chip--ov"
+                          style={{ color: ovm.color, background: ovm.bg }}
+                          title={ovStatus === 'rejected' && property.ownershipReviewNote
+                            ? `Reason: ${property.ownershipReviewNote}`
+                            : undefined}
+                        >
+                          {ovStatus === 'approved' && '✓ '}
+                          {ovm.label}
+                        </span>
+                      )}
+                      {(ovStatus === 'none' || ovStatus === 'rejected') && (
+                        <a href="/services/ownership-verification" style={{ fontSize: '0.75rem', color: '#0F766E', textDecoration: 'none' }}>
+                          Verify ownership →
+                        </a>
+                      )}
                       {/* Health badge */}
                       {health && stalenessLevel !== 'fresh' && (
                         <span className={`al-chip al-health-badge al-health-badge--${stalenessLevel}`}>
