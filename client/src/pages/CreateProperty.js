@@ -135,8 +135,8 @@ const CreateProperty = () => {
 
   const getPropertyTypes = () => {
     const residential = [
-      { value: 'old-building', label: 'Old Building (Köhnə tikili)' },
-      { value: 'new-building', label: 'New Building (Yeni tikili)'  },
+      { value: 'old-building', label: 'Old Building' },
+      { value: 'new-building', label: 'New Building' },
       { value: 'house',        label: 'House'                       },
       { value: 'villa',        label: 'Villa'                       },
       { value: 'penthouse',    label: 'Penthouse'                   },

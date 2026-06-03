@@ -35,12 +35,12 @@ const UnverifiedMessageModal = ({ isOpen, onClose, agent }) => {
             <User size={28} strokeWidth={1.5} aria-hidden="true" />
           </div>
           <div>
-            <div className="agent-title">{agent?.role || 'Əmlakçı'}</div>
+            <div className="agent-title">{agent?.role || 'Realtor'}</div>
             <div className="agent-name">{agent?.name || 'Agent Name'}</div>
             <div className="agent-rating-row">
               <span className="agent-star"><Star size={12} strokeWidth={2} aria-hidden="true" /></span>
               <span className="agent-rating">{agent?.rating || '4.7'}</span>
-              <span className="agent-sales">• {agent?.sales || '89'} satış</span>
+              <span className="agent-sales">• {agent?.sales || '89'} sales</span>
             </div>
             <div className="agent-contact-row">
               <span>{agent?.phone || '+994 51 345 67 89'}</span>
@@ -52,11 +52,11 @@ const UnverifiedMessageModal = ({ isOpen, onClose, agent }) => {
         </div>
         <hr className="agent-divider" />
         <form className="unverified-message-form" onSubmit={handleSubmit}>
-          <div className="form-title">Mesaj göndər</div>
+          <div className="form-title">Send a Message</div>
           <input
             type="text"
             name="name"
-            placeholder="Adınız"
+            placeholder="Your name"
             value={form.name}
             onChange={handleChange}
             required
@@ -74,7 +74,7 @@ const UnverifiedMessageModal = ({ isOpen, onClose, agent }) => {
           <input
             type="tel"
             name="phone"
-            placeholder="Telefon"
+            placeholder="Phone"
             value={form.phone}
             onChange={handleChange}
             required
@@ -82,7 +82,7 @@ const UnverifiedMessageModal = ({ isOpen, onClose, agent }) => {
           />
           <textarea
             name="message"
-            placeholder="Mesajınız..."
+            placeholder="Your message..."
             value={form.message}
             onChange={handleChange}
             required
@@ -90,9 +90,9 @@ const UnverifiedMessageModal = ({ isOpen, onClose, agent }) => {
             rows={3}
           />
           {error && <div className="form-error">{error}</div>}
-          {success && <div className="form-success">Mesaj göndərildi!</div>}
+          {success && <div className="form-success">Message sent!</div>}
           <Button type="submit" fullWidth loading={sending}>
-            Mesaj Göndər
+            Send Message
           </Button>
         </form>
       </div>
