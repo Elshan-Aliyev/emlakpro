@@ -20,6 +20,7 @@ const phoneVerificationRoutes = require('./routes/phoneVerificationRoutes');
 const reportRoutes         = require('./routes/reportRoutes');
 const ownershipRoutes      = require('./routes/ownershipRoutes');
 const listingHealthRoutes  = require('./routes/listingHealthRoutes');
+const homeRoutes           = require('./routes/homeRoutes');
 
 const app = express();
 
@@ -63,6 +64,7 @@ app.use('/api/auth', authLimiter, authRoutes);
 // ─── Public read endpoints — scraping protection ──────────────────────────────
 app.use('/api/properties', readLimiter, propertyRoutes);
 app.use('/api/articles',   readLimiter, articleRoutes);
+app.use('/api/home',       readLimiter, homeRoutes);
 
 // ─── Authenticated / write routes — general write limiter ────────────────────
 app.use('/api/users',              writeLimiter, userRoutes);

@@ -109,6 +109,9 @@ export const getSavedSearches = (token) =>
 export const getProperties = (params = {}) => api.get('/properties', { params });
 export const getPublicStats = () => api.get('/properties/stats');
 
+// ==================== HOME API ====================
+export const getHomeSections = () => api.get('/home/sections');
+
 export const createProperty = (data, token) =>
   api.post('/properties', data, { headers: { Authorization: `Bearer ${token}` } });
 
