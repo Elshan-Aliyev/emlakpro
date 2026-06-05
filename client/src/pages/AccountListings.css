@@ -548,3 +548,49 @@
     min-width: auto;
   }
 }
+
+/* ── Promotion status block ───────────────────────────────────────────────── */
+
+.al-promo-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.al-promo-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.75rem;
+  color: var(--gray-500, #64748b);
+  flex-wrap: wrap;
+}
+
+.al-promo-meta span {
+  white-space: nowrap;
+}
+
+.al-promo-expiring {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* Promote action button */
+.al-action-btn--promote {
+  background: #fffbeb;
+  border: 1px solid #f59e0b;
+  color: #d97706;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s;
+}
+.al-action-btn--promote:hover {
+  background: #fef3c7;
+}

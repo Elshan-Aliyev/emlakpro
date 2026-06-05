@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { getMyListings, deleteProperty, getMyListingsHealth, confirmListingAvailability, markPropertyStatus } from '../services/api';
 import OwnershipVerificationModal from '../components/OwnershipVerificationModal';
+import PromoteListingModal from '../components/PromoteListingModal';
 import './Account.css';
 import './AccountListings.css';
 
@@ -37,7 +38,7 @@ const getLocation = (p) => {
 };
 
 const AccountListings = () => {
-  const { user } = useAuth();
+  useAuth();
   const { success, error: showError } = useToast();
   const navigate = useNavigate();
 
@@ -49,6 +50,7 @@ const AccountListings = () => {
   const [statusTarget, setStatusTarget] = useState(null); // { property, status }
   const [markingStatus, setMarkingStatus] = useState(false);
   const [ovModal, setOvModal] = useState(null);
+  const [promoteTarget, setPromoteTarget] = useState(null);
   const [healthMap, setHealthMap] = useState({});
   const [confirming, setConfirming] = useState(null);
 
@@ -288,9 +290,9 @@ const AccountListings = () => {
                         </span>
                       )}
                       {(ovStatus === 'none' || ovStatus === 'rejected') && (
-                        <a href="/services/ownership-verification" style={{ fontSize: '0.75rem', color: '#0F766E', textDecoration: 'none' }}>
+                        <Link to="/verification-application" style={{ fontSize: '0.75rem', color: '#0F766E', textDecoration: 'none' }}>
                           Verify ownership →
-                        </a>
+                        </Link>
                       )}
                       {/* Health badge */}
                       {health && stalenessLevel !== 'fresh' && (
@@ -303,6 +305,35 @@ const AccountListings = () => {
                       {/* Photo count warning */}
                       {health && health.photo.count === 0 && (
                         <span className="al-chip al-photo-warn">No photos</span>
+                      )}
+                      {/* Active promotion status */}
+                      {property.promotionTier && property.promotionTier !== 'FREE' && property.isPromoted && (
+                        <div className="al-promo-status">
+                          <span
+                            className="al-chip al-chip--promo"
+                            style={{
+                              color: property.promotionTier === 'SPOTLIGHT' ? '#0F766E' : property.promotionTier === 'PREMIUM' ? '#7c3aed' : '#d97706',
+                              background: property.promotionTier === 'SPOTLIGHT' ? '#f0fdf4' : property.promotionTier === 'PREMIUM' ? '#f5f3ff' : '#fffbeb',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {property.promotionTier === 'SPOTLIGHT' ? 'Spotlight' : property.promotionTier === 'PREMIUM' ? 'Premium' : 'Featured'} active
+                          </span>
+                          {property.promotionEndDate && (() => {
+                            const end = new Date(property.promotionEndDate);
+                            const now = new Date();
+                            const daysLeft = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
+                            return (
+                              <span className="al-promo-meta">
+                                {property.promotionStartDate && (
+                                  <span>Started {new Date(property.promotionStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                                )}
+                                <span>Expires {end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                <span className={daysLeft <= 3 ? 'al-promo-expiring' : ''}>{daysLeft}d remaining</span>
+                              </span>
+                            );
+                          })()}
+                        </div>
                       )}
                     </div>
 
@@ -349,6 +380,14 @@ const AccountListings = () => {
                     <Link to={`/properties/update/${property._id}`} className="al-action-link">
                       Edit
                     </Link>
+                    {(!property.promotionTier || property.promotionTier === 'FREE' || !property.isPromoted) && (
+                      <button
+                        className="al-action-btn al-action-btn--promote"
+                        onClick={() => setPromoteTarget(property)}
+                      >
+                        Promote
+                      </button>
+                    )}
                     {canRequestVerification(property) && (
                       <button
                         className="al-action-btn al-action-btn--verify"
@@ -404,6 +443,17 @@ const AccountListings = () => {
           onSubmitted={() => {
             success('Verification request submitted. We will review it shortly.');
             fetchProperties();
+          }}
+        />
+      )}
+
+      {promoteTarget && (
+        <PromoteListingModal
+          property={promoteTarget}
+          onClose={() => setPromoteTarget(null)}
+          onSubmitted={() => {
+            success('Promotion request submitted. Admin will review shortly.');
+            setPromoteTarget(null);
           }}
         />
       )}
