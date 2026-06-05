@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Star, Layers, CheckCircle, Image, FileImage, ChevronDown } from 'lucide-react';
+import { Clock, Star, Layers, CheckCircle, Image, FileImage } from 'lucide-react';
 import { track } from '../services/analytics';
+import FaqItem from '../components/FaqItem';
 import './ServicePages.css';
 
 const PACKAGES = [
@@ -50,19 +51,6 @@ const FAQS = [
   { q: 'Can I request additional photos after the shoot?', a: 'Yes, additional photos can be ordered at AZN 5 each within 30 days of the shoot.' },
   { q: 'Is drone photography always included?', a: 'Drone shots are included in Standard and Premium packages where permitted. Some high-density areas have airspace restrictions — we notify you in advance.' },
 ];
-
-const FaqItem = ({ q, a }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="sp-faq-item">
-      <button className="sp-faq-q" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-        {q}
-        <ChevronDown size={16} className={`sp-faq-chevron${open ? ' sp-faq-chevron--open' : ''}`} aria-hidden="true" />
-      </button>
-      {open && <div className="sp-faq-a">{a}</div>}
-    </div>
-  );
-};
 
 const BookPhotoshoot = () => {
   const navigate = useNavigate();

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layers, Sofa, Eye, Download, Clock, RefreshCcw, ChevronDown, CheckCircle } from 'lucide-react';
+import { Layers, Sofa, Eye, Download, Clock, RefreshCcw, CheckCircle } from 'lucide-react';
 import { track } from '../services/analytics';
+import FaqItem from '../components/FaqItem';
 import './ServicePages.css';
 
 const PRICING_TIERS = [
@@ -54,19 +55,6 @@ const FAQS = [
   { q: 'What if I need more than 10 rooms?', a: 'Contact us for a custom quote. Large developments and commercial properties are handled on a per-project basis.' },
 ];
 
-const FaqItem = ({ q, a }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="sp-faq-item">
-      <button className="sp-faq-q" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-        {q}
-        <ChevronDown size={16} className={`sp-faq-chevron${open ? ' sp-faq-chevron--open' : ''}`} aria-hidden="true" />
-      </button>
-      {open && <div className="sp-faq-a">{a}</div>}
-    </div>
-  );
-};
-
 const DigitalStaging = () => {
   const navigate = useNavigate();
   const [selectedTier, setSelectedTier] = useState(null);
@@ -104,7 +92,7 @@ const DigitalStaging = () => {
               <div className="package-price">
                 <span className="currency">AZN</span>
                 <span className="amount">{tier.price}</span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)', marginLeft: 4 }}>{tier.unit}</span>
+                <span className="package-unit">{tier.unit}</span>
               </div>
               <ul className="package-features">
                 {tier.features.map((f, i) => <li key={i}><CheckCircle size={14} strokeWidth={2} aria-hidden="true" /> {f}</li>)}

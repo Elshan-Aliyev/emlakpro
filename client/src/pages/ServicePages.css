@@ -199,6 +199,12 @@
   margin-right: 8px;
 }
 
+.package-unit {
+  font-size: 0.8rem;
+  color: var(--gray-400, #94a3b8);
+  margin-left: 4px;
+}
+
 .package-features {
   list-style: none;
   padding: 0;
