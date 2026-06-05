@@ -72,7 +72,8 @@ review:             String min 20 max 2000 (required)
 recommended:        Boolean (default true)
 ownerResponse: {
   text:        String max 1000,
-  respondedAt: Date,
+  respondedAt: Date,   // set on first write, never overwritten
+  updatedAt:   Date,   // updated on every edit
 }
 status:             enum ['active', 'reported', 'hidden'] default 'active'
 reportCount:        Number default 0
@@ -80,6 +81,7 @@ reportedAt:         Date (set on first report)
 moderatedAt:        Date (set on admin action)
 moderatorNotes:     String (internal, not shown publicly)
 reviewHelpfulCount: Number default 0
+helpfulVotes: [{ userId: ObjectId ref User, votedAt: Date }]  // deduplication
 
 timestamps: createdAt, updatedAt
 ```
@@ -184,7 +186,8 @@ Scans all properties, resolves or creates PropertyIdentity for each, writes `pro
 | `POST` | `/` | required | Submit review |
 | `PUT` | `/:id` | reviewer, ≤30 days | Edit own review |
 | `DELETE` | `/:id` | reviewer | Delete own review (hard delete) |
-| `POST` | `/:id/response` | listing owner | Add or edit owner response (one per review) |
+| `POST` | `/:id/response` | listing owner | Add or edit owner response (upsert — unlimited edits, `respondedAt` preserved) |
+| `POST` | `/:id/helpful` | required | Toggle helpful vote (one per user; 409 on duplicate) |
 | `POST` | `/:id/report` | required | Report a review |
 | `PATCH` | `/:id/moderate` | admin | Set status + moderatorNotes |
 
@@ -237,6 +240,7 @@ Renders below the seller card in PropertyDetail:
 
 1. **Aggregate row**: `★ 4.7 · 23 reviews · 91% recommend`
 2. **Rating distribution bars** with counts: `5★ ████████ 12 | 4★ ████ 5 | ...`
+   Computed on-demand by `GET /by-listing/:propertyId` (aggregation pipeline, not stored on PropertyIdentity).
 3. **Sort dropdown**: Most Recent (default) | Highest Rating | Lowest Rating | Most Helpful
 4. **Review list** (paginated, 10/page) — each card: reviewer name, stars, review type chip, title, body (3-line truncate + Read more), date, recommended badge, owner response (collapsed), Report button
 5. **Write a Review CTA** — shown if logged-in, not owner, not already reviewed
@@ -322,7 +326,8 @@ All added to `TRACKED_FOR_STORE`:
 | `review_deleted` | User hard-deletes own review |
 | `review_reported` | User reports a review |
 | `review_sort_changed` | Sort dropdown change |
-| `owner_response_added` | Owner submits/edits response |
+| `owner_response_added` | Owner submits or edits response |
+| `review_helpful_voted` | User marks a review helpful |
 | `review_hidden` | Admin hides |
 | `review_restored` | Admin restores |
 | `review_deleted_by_admin` | Admin hard-deletes |
