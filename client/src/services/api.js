@@ -384,4 +384,24 @@ export const expireStalePromotionsAdmin = (token) =>
     headers: { Authorization: `Bearer ${token}` },
   });
 
+// ── Promotion Requests ────────────────────────────────────────────────────────
+
+export const submitPromotionRequest = (data, token) =>
+  api.post('/promotion-requests', data, { headers: { Authorization: `Bearer ${token}` } });
+
+export const getMyPromotionRequests = (token) =>
+  api.get('/promotion-requests/my', { headers: { Authorization: `Bearer ${token}` } });
+
+export const getAdminPromotionRequests = (status, token) =>
+  api.get('/promotion-requests/admin', {
+    params: { status },
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const approvePromotionRequest = (id, adminNote, token) =>
+  api.patch(`/promotion-requests/${id}/approve`, { adminNote }, { headers: { Authorization: `Bearer ${token}` } });
+
+export const rejectPromotionRequest = (id, adminNote, token) =>
+  api.patch(`/promotion-requests/${id}/reject`, { adminNote }, { headers: { Authorization: `Bearer ${token}` } });
+
 export default api;
