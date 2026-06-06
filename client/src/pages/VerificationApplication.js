@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  getVerificationPricing, 
+import {
+  getVerificationPricing,
   getMyApplicationStatus,
   submitVerificationApplication,
   uploadVerificationDocument,
   processVerificationPayment
 } from '../services/api';
+import { track } from '../services/analytics';
 import './VerificationApplication.css';
 
 const VerificationApplication = () => {
   const navigate = useNavigate();
   const [pricing, setPricing] = useState(null);
-  const [currentStatus, setCurrentStatus] = useState(null);
   const [step, setStep] = useState(1); // 1: Select Tier, 2: Fill Form, 3: Upload Docs, 4: Payment
   const [selectedTier, setSelectedTier] = useState('');
   const [loading, setLoading] = useState(true);
@@ -46,7 +46,12 @@ const VerificationApplication = () => {
   const [documents, setDocuments] = useState([]);
 
   useEffect(() => {
+    track('verification_page_viewed', {});
+  }, []);
+
+  useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {
@@ -66,7 +71,6 @@ const VerificationApplication = () => {
 
       try {
         const statusRes = await getMyApplicationStatus(token);
-        setCurrentStatus(statusRes.data);
         if (statusRes.data.application?.status === 'pending') {
           navigate('/account/settings');
           return;

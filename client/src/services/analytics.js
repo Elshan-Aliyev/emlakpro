@@ -240,6 +240,13 @@ const TRACKED_FOR_STORE = new Set([
   'promotion_removed',
   'spotlight_listing_viewed',
   'featured_listing_viewed',
+  // Revenue & Service Conversion events (Phase 5.5B)
+  'photography_page_viewed',
+  'virtual_staging_page_viewed',
+  'promotion_page_viewed',
+  'promotion_plan_selected',
+  'verification_page_viewed',
+  'service_inquiry_submitted',
 ]);
 
 const _localStore = {
