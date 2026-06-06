@@ -1112,3 +1112,43 @@
 }
 
 .pd-related-explore:hover { opacity: 0.75; }
+
+/* ── Owner promotion status (PropertyDetail) ─────────────────────────────── */
+
+.pd-promo-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle, rgba(15,23,42,0.07));
+  margin-top: 10px;
+}
+
+.pd-promo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pd-promo-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.75rem;
+  color: var(--gray-500, #64748b);
+  flex-wrap: wrap;
+}
+
+.pd-promo-meta span {
+  white-space: nowrap;
+}
+
+.pd-promo-expiring {
+  color: #dc2626;
+  font-weight: 600;
+}

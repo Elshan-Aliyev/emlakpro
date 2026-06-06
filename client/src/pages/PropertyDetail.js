@@ -826,6 +826,47 @@ const PropertyDetail = ({ property: propProperty, isModal = false }) => {
           <button className="pd-edit-btn" onClick={() => navigate(`/properties/update/${property._id}`)}>
             Edit listing
           </button>
+          {isOwner && property.promotionTier && property.promotionTier !== 'FREE' && property.isPromoted && (
+            <div className="pd-promo-status">
+              <span
+                className="pd-promo-badge"
+                style={{
+                  color: property.promotionTier === 'SPOTLIGHT' ? '#0F766E'
+                    : property.promotionTier === 'PREMIUM' ? '#7c3aed'
+                    : '#d97706',
+                  background: property.promotionTier === 'SPOTLIGHT' ? '#f0fdf4'
+                    : property.promotionTier === 'PREMIUM' ? '#f5f3ff'
+                    : '#fffbeb',
+                }}
+              >
+                {property.promotionTier === 'SPOTLIGHT' ? 'Spotlight'
+                  : property.promotionTier === 'PREMIUM' ? 'Premium'
+                  : 'Featured'} active
+              </span>
+              {property.promotionEndDate && (() => {
+                const end      = new Date(property.promotionEndDate);
+                const now      = new Date();
+                const daysLeft = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
+                return (
+                  <span className="pd-promo-meta">
+                    {property.promotionStartDate && (
+                      <span>
+                        Started{' '}
+                        {new Date(property.promotionStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    )}
+                    <span>
+                      Expires{' '}
+                      {end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                    <span className={daysLeft <= 3 ? 'pd-promo-expiring' : ''}>
+                      {daysLeft}d remaining
+                    </span>
+                  </span>
+                );
+              })()}
+            </div>
+          )}
         </div>
       )}
 
