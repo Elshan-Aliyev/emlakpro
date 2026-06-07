@@ -404,4 +404,7 @@ export const approvePromotionRequest = (id, adminNote, token) =>
 export const rejectPromotionRequest = (id, adminNote, token) =>
   api.patch(`/promotion-requests/${id}/reject`, { adminNote }, { headers: { Authorization: `Bearer ${token}` } });
 
+export const getAdminLeads = (params, token) =>
+  api.get('/service-leads', { params, headers: { Authorization: `Bearer ${token}` } });
+
 export default api;
