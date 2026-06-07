@@ -4,6 +4,7 @@ import { X, Share2, AlertCircle, ChevronLeft, ChevronRight, Image, ShieldCheck, 
 import { getProperty } from '../services/api';
 import { getAiInsightRich } from '../utils/propertyAI';
 import FavoriteButton from './FavoriteButton';
+import PropertyRatingChip from './PropertyRatingChip';
 import './PropertyPreviewDrawer.css';
 
 const getLocation = (p) => {
@@ -181,6 +182,14 @@ const PropertyPreviewDrawer = ({
                   <span className="ppd-status-badge ppd-status-badge--new">New Project</span>
                 )}
               </div>
+
+              {/* Rating chip — from payload, no extra request */}
+              {property.reputationSummary?.reviewCount > 0 && (
+                <PropertyRatingChip
+                  avgRating={property.reputationSummary.avgRating}
+                  reviewCount={property.reputationSummary.reviewCount}
+                />
+              )}
 
               {/* Title */}
               <h2 className="ppd-title">{property.title}</h2>

@@ -7,6 +7,7 @@ import {
 import { getProperties, getSavedProperties, getPublicStats } from '../services/api';
 import FavoriteButton from '../components/FavoriteButton';
 import TrustBadge from '../components/TrustBadge';
+import PropertyRatingChip from '../components/PropertyRatingChip';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { parseNLQuery, formatPrice } from '../utils/nlpSearch';
@@ -786,6 +787,12 @@ const Home = () => {
                     {p.bathrooms > 0 && <span>{p.bathrooms} bath</span>}
                     {p.builtUpArea   && <span>{p.builtUpArea} m²</span>}
                   </div>
+                  {p.reputationSummary?.reviewCount > 0 && (
+                    <PropertyRatingChip
+                      avgRating={p.reputationSummary.avgRating}
+                      reviewCount={p.reputationSummary.reviewCount}
+                    />
+                  )}
                   <div className="property-card-trust-row">
                     <TrustBadge trustLevel={p.trustLevel} variant="chip" />
                   </div>

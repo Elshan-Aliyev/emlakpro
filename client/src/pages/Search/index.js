@@ -9,6 +9,7 @@ import PropertyPreviewDrawer from '../../components/PropertyPreviewDrawer';
 import FilterBar from '../../components/FilterBar';
 import Button from '../../components/Button';
 import FavoriteButton from '../../components/FavoriteButton';
+import PropertyRatingChip from '../../components/PropertyRatingChip';
 import { getAiInsightRich, getPrimaryTrustSignal, getAreaInsight } from '../../utils/propertyAI';
 import { track, measureAsync } from '../../services/analytics';
 import './Search.css';
@@ -729,6 +730,13 @@ const Search = () => {
               {property.builtUpArea   && <span>{property.builtUpArea} m²</span>}
             </div>
           </div>
+
+          {property.reputationSummary?.reviewCount > 0 && (
+            <PropertyRatingChip
+              avgRating={property.reputationSummary.avgRating}
+              reviewCount={property.reputationSummary.reviewCount}
+            />
+          )}
 
           {aiInsight && (
             <div className="lc-ai-insight">

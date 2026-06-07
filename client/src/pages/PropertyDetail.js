@@ -13,6 +13,7 @@ import ListingConfidencePanel from '../components/ListingConfidencePanel';
 import InquiryModal from '../components/InquiryModal';
 import { generatePropertySummary, generateMarketInsights } from '../utils/propertyAI';
 import { track, priceBucket, captureError } from '../services/analytics';
+import PropertyReputation from '../components/PropertyReputation';
 import './PropertyDetail.css';
 
 const MemoizedPropertyMap = memo(PropertyMap);
@@ -139,6 +140,7 @@ const PropertyDetail = ({ property: propProperty, isModal = false }) => {
         captureError(err, { context: 'property_detail_fetch', id });
         setError(err.response?.data?.message || 'This listing is temporarily unavailable.');
       });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
@@ -158,6 +160,7 @@ const PropertyDetail = ({ property: propProperty, isModal = false }) => {
         setRelated(props);
       })
       .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [property?._id, isModal]);
 
   const openInquiry = useCallback(() => {
@@ -819,6 +822,12 @@ const PropertyDetail = ({ property: propProperty, isModal = false }) => {
           </button>
         </section>
       )}
+
+      {/* Property Reputation — reviews that survive relisting */}
+      <PropertyReputation
+        propertyId={property._id}
+        isOwner={isOwner}
+      />
 
       {/* Owner/admin edit link */}
       {(isAdmin || isOwner) && !isModal && (
