@@ -247,6 +247,19 @@ const TRACKED_FOR_STORE = new Set([
   'promotion_plan_selected',
   'verification_page_viewed',
   'service_inquiry_submitted',
+  // Property Review events (Phase 5.6)
+  'review_modal_opened',
+  'review_submission_started',
+  'review_submitted',
+  'review_updated',
+  'review_deleted',
+  'review_reported',
+  'review_sort_changed',
+  'owner_response_added',
+  'review_helpful_voted',
+  'review_hidden',
+  'review_restored',
+  'review_deleted_by_admin',
 ]);
 
 const _localStore = {

@@ -1,0 +1,24 @@
+.prc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.8125rem;
+  color: var(--color-graphite-700, #334155);
+  white-space: nowrap;
+}
+
+.prc-star {
+  color: #f59e0b;
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+.prc-rating {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.prc-count {
+  color: var(--gray-500, #64748b);
+  font-size: 0.75rem;
+}

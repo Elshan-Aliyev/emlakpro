@@ -407,4 +407,46 @@ export const rejectPromotionRequest = (id, adminNote, token) =>
 export const getAdminLeads = (params, token) =>
   api.get('/service-leads', { params, headers: { Authorization: `Bearer ${token}` } });
 
+// ── Property Reviews API (Phase 5.6) ─────────────────────────────────────
+
+export const getPropertyReviews = (propertyId, params = {}) =>
+  api.get(`/property-reviews/by-listing/${propertyId}`, { params });
+
+export const getReputationSummary = (propertyId) =>
+  api.get(`/property-reviews/summary/${propertyId}`);
+
+export const submitPropertyReview = (data, token) =>
+  api.post('/property-reviews', data, { headers: { Authorization: `Bearer ${token}` } });
+
+export const updatePropertyReview = (reviewId, data, token) =>
+  api.put(`/property-reviews/${reviewId}`, data, { headers: { Authorization: `Bearer ${token}` } });
+
+export const deletePropertyReview = (reviewId, token) =>
+  api.delete(`/property-reviews/${reviewId}`, { headers: { Authorization: `Bearer ${token}` } });
+
+export const addOwnerResponseToReview = (reviewId, text, token) =>
+  api.post(`/property-reviews/${reviewId}/response`, { text }, { headers: { Authorization: `Bearer ${token}` } });
+
+export const markPropertyReviewHelpful = (reviewId, token) =>
+  api.post(`/property-reviews/${reviewId}/helpful`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+export const reportPropertyReview = (reviewId, reason, token) =>
+  api.post(`/property-reviews/${reviewId}/report`, { reason }, { headers: { Authorization: `Bearer ${token}` } });
+
+export const getAdminPropertyReviews = (status, token) =>
+  api.get('/property-reviews/admin/list', {
+    params: { status },
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const adminModeratePropertyReview = (reviewId, status, moderatorNotes, token) =>
+  api.patch(`/property-reviews/${reviewId}/moderate`, { status, moderatorNotes }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const adminDeletePropertyReview = (reviewId, token) =>
+  api.delete(`/property-reviews/${reviewId}/admin`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
 export default api;
