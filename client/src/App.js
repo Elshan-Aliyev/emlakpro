@@ -65,6 +65,7 @@ const AdminReports       = lazy(() => import('./pages/AdminReports'));
 const AdminOwnership     = lazy(() => import('./pages/AdminOwnership'));
 const AdminOpsDashboard  = lazy(() => import('./pages/AdminOpsDashboard'));
 const AdminAbuse         = lazy(() => import('./pages/AdminAbuse'));
+const AdminMetrics       = lazy(() => import('./pages/AdminMetrics'));
 
 // ── Suspense fallback ─────────────────────────────────────────────────────────
 const PageLoader = () => (
@@ -208,6 +209,9 @@ function App() {
             } />
             <Route path="/admin/abuse" element={
               <ProtectedRoute requireAdmin><MainLayout><AdminAbuse /></MainLayout></ProtectedRoute>
+            } />
+            <Route path="/admin/metrics" element={
+              <ProtectedRoute requireAdmin><MainLayout><AdminMetrics /></MainLayout></ProtectedRoute>
             } />
 
             {/* ── Legacy redirects ────────────────────────────────────────────── */}
