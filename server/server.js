@@ -22,6 +22,7 @@ const ownershipRoutes      = require('./routes/ownershipRoutes');
 const listingHealthRoutes  = require('./routes/listingHealthRoutes');
 const homeRoutes           = require('./routes/homeRoutes');
 const promotionRequestRoutes = require('./routes/promotionRequestRoutes');
+const propertyReviewRoutes   = require('./routes/propertyReviewRoutes');
 
 const app = express();
 
@@ -81,6 +82,7 @@ app.use('/api/reports',            reportRoutes);
 app.use('/api/ownership',          ownershipRoutes);
 app.use('/api/listing-health',     listingHealthRoutes);
 app.use('/api/promotion-requests', promotionRequestRoutes);
+app.use('/api/property-reviews',  propertyReviewRoutes);
 
 app.get('/', (req, res) => res.send('EmlakPro API'));
 
