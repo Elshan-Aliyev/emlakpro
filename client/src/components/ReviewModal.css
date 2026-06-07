@@ -1,0 +1,170 @@
+.rm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.rm-panel {
+  background: var(--color-bg-surface, #fff);
+  border-radius: 12px;
+  border: 1px solid var(--border-default, rgba(15,23,42,0.10));
+  width: 100%;
+  max-width: 520px;
+  padding: 28px 28px 24px;
+  box-shadow: 0 20px 40px -8px rgba(15,23,42,0.20);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.rm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rm-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-graphite-900, #0f172a);
+  margin: 0;
+}
+
+.rm-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-500, #6b7280);
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+}
+.rm-close:hover { background: var(--gray-100, #f1f5f9); }
+
+.rm-field { display: flex; flex-direction: column; gap: 6px; }
+.rm-field--inline { flex-direction: row; align-items: center; justify-content: space-between; }
+
+.rm-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-graphite-700, #334155);
+}
+
+.rm-required { color: var(--color-error, #dc2626); margin-left: 2px; }
+.rm-optional { color: var(--gray-400, #94a3b8); font-weight: 400; font-size: 0.8125rem; }
+
+.rm-stars { display: flex; gap: 4px; }
+
+.rm-star {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  color: var(--gray-300, #cbd5e1);
+  transition: color 0.1s;
+  display: flex;
+}
+.rm-star--filled { color: #f59e0b; }
+
+.rm-select,
+.rm-input {
+  border: 1.5px solid var(--border-default, rgba(15,23,42,0.12));
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 0.9rem;
+  background: var(--color-bg-surface, #fff);
+  color: var(--color-graphite-700, #334155);
+  font-family: inherit;
+}
+.rm-select:focus,
+.rm-input:focus {
+  outline: none;
+  border-color: var(--color-primary, #0F766E);
+}
+
+.rm-toggle {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-default, rgba(15,23,42,0.12));
+  background: var(--gray-50, #f8fafc);
+  color: var(--gray-500, #6b7280);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.rm-toggle--on {
+  background: var(--color-primary, #0F766E);
+  border-color: var(--color-primary, #0F766E);
+  color: #fff;
+}
+
+.rm-textarea {
+  border: 1.5px solid var(--border-default, rgba(15,23,42,0.12));
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  resize: vertical;
+  font-family: inherit;
+  color: var(--color-graphite-700, #334155);
+  min-height: 120px;
+}
+.rm-textarea:focus { outline: none; border-color: var(--color-primary, #0F766E); }
+
+.rm-counter {
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--gray-400, #94a3b8);
+}
+.rm-counter--warn { color: var(--color-error, #dc2626); font-weight: 600; }
+
+.rm-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  color: #991b1b;
+  margin: 0;
+}
+
+.rm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.rm-btn {
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+.rm-btn--cancel {
+  background: none;
+  border-color: var(--border-default, rgba(15,23,42,0.12));
+  color: var(--gray-600, #475569);
+}
+.rm-btn--cancel:hover { background: var(--gray-50, #f8fafc); }
+.rm-btn--submit {
+  background: var(--color-primary, #0F766E);
+  border-color: var(--color-primary, #0F766E);
+  color: #fff;
+}
+.rm-btn--submit:hover:not(:disabled) { background: #0d6560; }
+.rm-btn--submit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+@media (max-width: 540px) {
+  .rm-panel { padding: 20px 16px 18px; }
+}
