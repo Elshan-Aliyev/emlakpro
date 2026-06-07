@@ -7,6 +7,7 @@ const { recalculateAndStoreQuality } = require('../lib/listingQuality');
 const { checkListingQuota } = require('../lib/accountTrust');
 const { detectAndStoreAgentSignals } = require('../lib/agentDetection');
 const { checkInquiryAllowed } = require('../lib/inquiryGuard');
+const { resolvePropertyIdentity } = require('../lib/reputation/resolveIdentity');
 
 // Helper function to determine listing badge
 const getListingBadge = (userRole, listingStatus) => {
@@ -45,6 +46,15 @@ exports.createProperty = async (req, res) => {
       isApproved: false,
     });
     await property.save();
+
+    // Resolve PropertyIdentity and link it — non-fatal
+    try {
+      const identity = await resolvePropertyIdentity(property);
+      await identity.updateOne({ $inc: { listingCount: 1 } });
+      await property.updateOne({ propertyIdentityId: identity._id });
+    } catch (identityErr) {
+      console.error('[reputation] identity resolve error on create:', identityErr.message);
+    }
 
     // Update user's total listings count
     await User.findByIdAndUpdate(req.user.id, { $inc: { totalListings: 1 } });
@@ -104,6 +114,8 @@ const SEARCH_SELECT = [
   'qualityScore', 'ownershipVerificationStatus', 'suspectedDuplicate',
   // Promotion
   'promotionTier', 'promotionScore', 'isPromoted', 'finalScore',
+  // Reputation
+  'propertyIdentityId',
 ].join(' ');
 
 // Get all properties (with server-side filtering + pagination)
@@ -158,11 +170,26 @@ exports.getProperties = async (req, res) => {
         .limit(limit)
         .select(SEARCH_SELECT)
         .populate('ownerId', 'name accountType phoneVerified averageResponseTimeHours responseRate')
+        .populate('propertyIdentityId', 'avgRating reviewCount recommendPercentage')
         .lean(),
     ]);
 
+    const result = properties.map(p => {
+      const identity = p.propertyIdentityId;
+      return {
+        ...p,
+        reputationSummary: identity && typeof identity === 'object'
+          ? {
+              avgRating:           identity.avgRating            || 0,
+              reviewCount:         identity.reviewCount          || 0,
+              recommendPercentage: identity.recommendPercentage  || 0,
+            }
+          : { avgRating: 0, reviewCount: 0, recommendPercentage: 0 },
+      };
+    });
+
     res.json({
-      properties,
+      properties: result,
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -488,6 +515,29 @@ exports.updateProperty = async (req, res) => {
     console.log('✅ Property updated. Images in DB:', updatedProperty.images ? updatedProperty.images.length : 0);
     console.log('Saved images:', updatedProperty.images);
 
+    // Re-resolve identity if fingerprint-relevant fields changed
+    const fingerprintFields = ['fullAddress', 'location', 'bedrooms', 'propertyType'];
+    const fingerprintChanged = fingerprintFields.some(f => req.body[f] !== undefined);
+    if (fingerprintChanged) {
+      try {
+        const updated = await Property.findById(req.params.id);
+        if (updated) {
+          const newIdentity = await resolvePropertyIdentity(updated);
+          const oldIdentityId = updated.propertyIdentityId;
+          if (!oldIdentityId || String(oldIdentityId) !== String(newIdentity._id)) {
+            if (oldIdentityId) {
+              const PropertyIdentityModel = require('../models/PropertyIdentity');
+              await PropertyIdentityModel.findByIdAndUpdate(oldIdentityId, { $inc: { listingCount: -1 } });
+            }
+            await newIdentity.updateOne({ $inc: { listingCount: 1 } });
+            await updated.updateOne({ propertyIdentityId: newIdentity._id });
+          }
+        }
+      } catch (identityErr) {
+        console.error('[reputation] identity resolve error on update:', identityErr.message);
+      }
+    }
+
     // Rescore moderation priority after update (async — don't block response)
     const ownerId = updatedProperty.ownerId;
     calculateModerationPriority(updatedProperty._id, ownerId)
@@ -535,7 +585,20 @@ exports.deleteProperty = async (req, res) => {
     }
 
     await property.deleteOne();
-    
+
+    // Decrement listingCount on PropertyIdentity — non-fatal
+    if (property.propertyIdentityId) {
+      try {
+        const PropertyIdentityModel = require('../models/PropertyIdentity');
+        await PropertyIdentityModel.findByIdAndUpdate(
+          property.propertyIdentityId,
+          { $inc: { listingCount: -1 } }
+        );
+      } catch (identityErr) {
+        console.error('[reputation] listingCount decrement error on delete:', identityErr.message);
+      }
+    }
+
     // Decrement user's total listings count
     await User.findByIdAndUpdate(property.ownerId, { $inc: { totalListings: -1 } });
     
