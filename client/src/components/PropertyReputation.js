@@ -47,7 +47,7 @@ function DistributionBars({ distribution }) {
   const max = Math.max(...distribution.map(d => d.count), 1);
   return (
     <div className="prr-dist">
-      {distribution.map(({ star, count }) => (
+      {[...distribution].sort((a, b) => b.star - a.star).map(({ star, count }) => (
         <div key={star} className="prr-dist-row">
           <span className="prr-dist-label">{star}★</span>
           <div className="prr-dist-track">
@@ -127,6 +127,7 @@ function ReviewCard({ review, currentUserId, isOwner, onReport, onHelpful, onOwn
           Helpful{review.reviewHelpfulCount > 0 ? ` (${review.reviewHelpfulCount})` : ''}
         </button>
 
+        {/* Report: visible only to authenticated non-owners (unauthenticated users cannot submit reports) */}
         {currentUserId && currentUserId !== String(reviewer?._id) && !isOwner && (
           <button
             className="prr-report-btn"
