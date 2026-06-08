@@ -756,3 +756,97 @@ exports.getPublicStats = async (req, res) => {
     res.status(500).json({ message: 'Stats unavailable' });
   }
 };
+
+// ── Seller Intelligence Dashboard ─────────────────────────────────────────
+exports.getMyDashboard = async (req, res) => {
+  try {
+    // 1. Fetch all of this seller's listings with full stat fields
+    const listings = await Property.find({ ownerId: req.user.id })
+      .populate('propertyIdentityId', 'avgRating reviewCount recommendPercentage')
+      .select(
+        'title city location price currency status isApproved listingStatus images createdAt ' +
+        'ownershipVerificationStatus propertyType bedrooms ' +
+        'viewsCount favoritesCount inquiryCount phoneRevealCount sharesCount ' +
+        'promotionTier isPromoted promotionStartDate promotionEndDate promotionScore ' +
+        'propertyIdentityId'
+      )
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (listings.length === 0) {
+      return res.json({ listings: [] });
+    }
+
+    // 2. Compute city+type benchmark averages across all active approved listings
+    const benchmarkAgg = await Property.aggregate([
+      {
+        $match: {
+          status:     { $in: ['active', 'pending'] },
+          isApproved: true,
+          $or: listings.map(p => ({
+            city:         p.city         || '',
+            propertyType: p.propertyType || '',
+          })),
+        },
+      },
+      {
+        $group: {
+          _id:            { city: '$city', propertyType: '$propertyType' },
+          avgViews:       { $avg: '$viewsCount'       },
+          avgFavorites:   { $avg: '$favoritesCount'   },
+          avgInquiries:   { $avg: '$inquiryCount'     },
+          avgPhoneReveal: { $avg: '$phoneRevealCount' },
+          count:          { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Build lookup map: "city::type" → benchmark averages
+    const benchmarkMap = {};
+    for (const b of benchmarkAgg) {
+      const key = `${b._id.city || ''}::${b._id.propertyType || ''}`;
+      benchmarkMap[key] = b;
+    }
+
+    // 3. Classify each listing's performance
+    const MIN_COMPARABLE = 3;
+
+    function benchmarkLabel(value, avg, count) {
+      if (!count || count < MIN_COMPARABLE || !avg || avg === 0) return 'average';
+      const ratio = value / avg;
+      if (ratio > 1.2) return 'above_average';
+      if (ratio < 0.8) return 'below_average';
+      return 'average';
+    }
+
+    const enriched = listings.map(p => {
+      const key   = `${p.city || ''}::${p.propertyType || ''}`;
+      const bm    = benchmarkMap[key] || {};
+      const count = bm.count || 0;
+      const identity = p.propertyIdentityId;
+
+      return {
+        ...p,
+        reputationSummary: identity && typeof identity === 'object'
+          ? {
+              avgRating:           identity.avgRating            || 0,
+              reviewCount:         identity.reviewCount          || 0,
+              recommendPercentage: identity.recommendPercentage  || 0,
+            }
+          : { avgRating: 0, reviewCount: 0, recommendPercentage: 0 },
+        benchmark: {
+          views:           benchmarkLabel(p.viewsCount      || 0, bm.avgViews,       count),
+          favorites:       benchmarkLabel(p.favoritesCount  || 0, bm.avgFavorites,   count),
+          inquiries:       benchmarkLabel(p.inquiryCount    || 0, bm.avgInquiries,   count),
+          phoneReveal:     benchmarkLabel(p.phoneRevealCount|| 0, bm.avgPhoneReveal, count),
+          comparableCount: count,
+        },
+      };
+    });
+
+    res.json({ listings: enriched });
+  } catch (err) {
+    console.error('getMyDashboard error:', err);
+    res.status(500).json({ message: 'Failed to load dashboard.' });
+  }
+};

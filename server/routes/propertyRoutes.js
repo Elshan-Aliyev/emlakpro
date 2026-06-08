@@ -22,12 +22,14 @@ const {
   revealPhone,
   markPropertyStatus,
   getPublicStats,
+  getMyDashboard,
 } = require('../controllers/propertyController');
 
 // Property CRUD routes
 router.post('/', verifyToken, checkAccountStatus, listingCreateLimiter, createProperty);
 router.get('/', getProperties);
-router.get('/stats', getPublicStats);  // must be before /:id
+router.get('/stats', getPublicStats);          // must be before /:id
+router.get('/my-dashboard', verifyToken, getMyDashboard);  // must be before /:id
 router.get('/:id', getProperty);
 router.put('/:id', verifyToken, checkAccountStatus, updateProperty);
 router.delete('/:id', verifyToken, deleteProperty);

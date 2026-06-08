@@ -449,4 +449,8 @@ export const adminDeletePropertyReview = (reviewId, token) =>
     headers: { Authorization: `Bearer ${token}` },
   });
 
+// ── Seller Intelligence Dashboard ─────────────────────────────────────────
+export const getMyDashboard = (token) =>
+  api.get('/properties/my-dashboard', { headers: { Authorization: `Bearer ${token}` } });
+
 export default api;
