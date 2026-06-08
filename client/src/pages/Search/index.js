@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
-import { useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { AlertCircle, ZoomIn, Image, Check, Sparkles, Bookmark } from 'lucide-react';
 import { getProperties, getSavedProperties } from '../../services/api';
 import { geocodeAddress } from '../../services/geocoding';
@@ -11,7 +11,7 @@ import Button from '../../components/Button';
 import FavoriteButton from '../../components/FavoriteButton';
 import PropertyRatingChip from '../../components/PropertyRatingChip';
 import { getAiInsightRich, getPrimaryTrustSignal, getAreaInsight } from '../../utils/propertyAI';
-import { track, measureAsync } from '../../services/analytics';
+import { track } from '../../services/analytics';
 import './Search.css';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -83,11 +83,8 @@ const SKELETON_COUNT = 5;
 
 const Search = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { location: routeLocation = '', propertyId } = useParams();
-
-  const defaultLocation = routeLocation || 'Azerbaijan';
+  useParams(); // route params reserved for future use
 
   // ── State ─────────────────────────────────────────────────────────────────
   const [filteredProperties, setFilteredProperties] = useState([]);
@@ -384,7 +381,7 @@ const Search = () => {
     } finally {
       setLoading(false);
     }
-  }, [buildParams]);
+  }, [buildParams, searchParams]);
 
   const mapMoveTimeoutRef = useRef(null);
   const handleMapMove = useCallback((center, zoom) => {

@@ -208,7 +208,12 @@ const propertySchema = new mongoose.Schema({
 
   // Owner reference and seller info
   ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  
+  propertyIdentityId: {
+    type:  mongoose.Schema.Types.ObjectId,
+    ref:   'PropertyIdentity',
+    index: true,
+  },
+
   // Listing Badge and Type
   listingBadge: { 
     type: String, 
