@@ -17,6 +17,17 @@ const getListingBadge = (userRole, listingStatus) => {
   return 'for-sale-by-owner';
 };
 
+// ── Benchmark helpers (module scope so they can be tested independently) ────
+const MIN_COMPARABLE = 3;
+
+function benchmarkLabel(value, avg, count) {
+  if (!count || count < MIN_COMPARABLE || !avg || avg === 0) return 'average';
+  const ratio = value / avg;
+  if (ratio > 1.2) return 'above_average';
+  if (ratio < 0.8) return 'below_average';
+  return 'average';
+}
+
 // Create a property
 exports.createProperty = async (req, res) => {
   try {
@@ -778,28 +789,41 @@ exports.getMyDashboard = async (req, res) => {
     }
 
     // 2. Compute city+type benchmark averages across all active approved listings
-    const benchmarkAgg = await Property.aggregate([
-      {
-        $match: {
-          status:     { $in: ['active', 'pending'] },
-          isApproved: true,
-          $or: listings.map(p => ({
-            city:         p.city         || '',
-            propertyType: p.propertyType || '',
-          })),
+    // Only benchmark listings that have city+type — skip others gracefully
+    const validPairs = [];
+    const seen = new Set();
+    for (const p of listings) {
+      if (p.city && p.propertyType) {
+        const key = `${p.city}::${p.propertyType}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          validPairs.push({ city: p.city, propertyType: p.propertyType });
+        }
+      }
+    }
+
+    let benchmarkAgg = [];
+    if (validPairs.length > 0) {
+      benchmarkAgg = await Property.aggregate([
+        {
+          $match: {
+            status:     { $in: ['active', 'pending'] },
+            isApproved: true,
+            $or: validPairs,
+          },
         },
-      },
-      {
-        $group: {
-          _id:            { city: '$city', propertyType: '$propertyType' },
-          avgViews:       { $avg: '$viewsCount'       },
-          avgFavorites:   { $avg: '$favoritesCount'   },
-          avgInquiries:   { $avg: '$inquiryCount'     },
-          avgPhoneReveal: { $avg: '$phoneRevealCount' },
-          count:          { $sum: 1 },
+        {
+          $group: {
+            _id:            { city: '$city', propertyType: '$propertyType' },
+            avgViews:       { $avg: '$viewsCount'       },
+            avgFavorites:   { $avg: '$favoritesCount'   },
+            avgInquiries:   { $avg: '$inquiryCount'     },
+            avgPhoneReveal: { $avg: '$phoneRevealCount' },
+            count:          { $sum: 1 },
+          },
         },
-      },
-    ]);
+      ]);
+    }
 
     // Build lookup map: "city::type" → benchmark averages
     const benchmarkMap = {};
@@ -809,16 +833,6 @@ exports.getMyDashboard = async (req, res) => {
     }
 
     // 3. Classify each listing's performance
-    const MIN_COMPARABLE = 3;
-
-    function benchmarkLabel(value, avg, count) {
-      if (!count || count < MIN_COMPARABLE || !avg || avg === 0) return 'average';
-      const ratio = value / avg;
-      if (ratio > 1.2) return 'above_average';
-      if (ratio < 0.8) return 'below_average';
-      return 'average';
-    }
-
     const enriched = listings.map(p => {
       const key   = `${p.city || ''}::${p.propertyType || ''}`;
       const bm    = benchmarkMap[key] || {};
