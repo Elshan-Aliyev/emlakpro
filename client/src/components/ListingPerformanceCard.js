@@ -31,7 +31,7 @@ function StatRow({ icon, label, value, benchmark }) {
   );
 }
 
-const ListingPerformanceCard = ({ listing, localEvents }) => {
+const ListingPerformanceCard = ({ listing, localEvents = [] }) => {
   const [expanded, setExpanded] = useState(false);
 
   const {
