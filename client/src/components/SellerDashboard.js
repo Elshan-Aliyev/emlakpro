@@ -14,8 +14,10 @@ const RELEVANT_EVENTS = new Set([
 ]);
 
 function buildLocalEventIndex(listings) {
-  const ids    = new Set(listings.map(p => String(p._id)));
-  const events = getLocalAnalyticsStore().filter(
+  const ids = new Set(listings.map(p => String(p._id)));
+  let rawEvents;
+  try { rawEvents = getLocalAnalyticsStore() ?? []; } catch { rawEvents = []; }
+  const events = rawEvents.filter(
     e => RELEVANT_EVENTS.has(e.event) && ids.has(String(e.props?.property_id))
   );
   const index = {};
