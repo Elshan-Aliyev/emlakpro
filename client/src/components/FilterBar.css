@@ -469,24 +469,6 @@
   color: var(--color-primary, #0F766E);
 }
 
-.fb-active-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 17px;
-  height: 17px;
-  background: var(--color-primary, #0F766E);
-  color: #fff;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-  padding: 0 4px;
-}
-
-.fb-filters-btn--active .fb-active-count {
-  background: var(--color-primary, #0F766E);
-}
 
 .fb-view-toggle {
   display: flex;
@@ -1187,31 +1169,68 @@
   .fms-apply { font-size: 1rem; }
 }
 
-/* ── Clear all filters button ────────────────────────────────────────────── */
+/* ── Active filter chips row ─────────────────────────────────────────────── */
 
-.fb-clear-btn {
+.fb-active-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px 2px;
+  flex-wrap: wrap;
+}
+
+.fb-ac-mode {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-graphite-900, #0F172A);
+  white-space: nowrap;
+  margin-right: 2px;
+}
+
+.fb-ac-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border-radius: 7px;
-  border: 1.5px solid var(--border-default, rgba(15,23,42,0.10));
-  background: none;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--gray-500, #64748b);
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  background: var(--color-bg-surface, #fff);
+  color: var(--color-text-muted, #6b7280);
+  font-size: 0.775rem;
+  font-family: var(--font-sans, 'Inter Tight', 'Inter', sans-serif);
+  border-radius: 999px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.12s, border-color 0.12s;
+  transition: border-color 0.15s, color 0.15s;
 }
 
-.fb-clear-btn:hover {
-  background: var(--gray-50, #f8fafc);
-  border-color: rgba(15,23,42,0.14);
+.fb-ac-chip:hover {
+  border-color: var(--color-primary, #0F766E);
+  color: var(--color-primary, #0F766E);
 }
 
+.fb-ac-chip svg { opacity: 0.6; }
+.fb-ac-chip:hover svg { opacity: 1; }
+
+.fb-ac-clear {
+  background: none;
+  border: none;
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: var(--color-primary, #0F766E);
+  cursor: pointer;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+.fb-ac-clear:hover { text-decoration: underline; }
+
+/* Mobile: single-line horizontal scroll */
 @media (max-width: 768px) {
-  .fb-clear-btn {
-    display: none;
+  .fb-active-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 6px;
   }
+  .fb-active-chips::-webkit-scrollbar { display: none; }
 }

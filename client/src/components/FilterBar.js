@@ -38,13 +38,29 @@ const ALL_FILTER_KEYS = [
   'newBuilding', 'elevator', 'renovated', 'seaView',
 ];
 
-// Keys that live in the modal (not quick pills) — for the badge count
-const MODAL_FILTER_KEYS = [
-  'city', 'district', 'keyword', 'bathrooms',
-  'verified', 'fastResponse', 'newThisWeek', 'goodValue', 'recentlyConfirmed',
-  'nearMetro', 'familyFriendly', 'quietArea', 'furnished', 'parking',
-  'newBuilding', 'elevator', 'renovated', 'seaView',
-];
+// Static labels for toggle filters shown as removable chips
+const TOGGLE_CHIP_LABELS = {
+  verified:          'Verified Owner',
+  fastResponse:      'Fast Response',
+  newThisWeek:       'New This Week',
+  goodValue:         'Good Value',
+  recentlyConfirmed: 'Recently Confirmed',
+  nearMetro:         'Near Metro',
+  familyFriendly:    'Family Friendly',
+  quietArea:         'Quiet Area',
+  furnished:         'Furnished',
+  parking:           'Parking',
+  newBuilding:       'New Building',
+  elevator:          'Elevator',
+  renovated:         'Renovated',
+  seaView:           'Sea View',
+};
+
+const fmtChipPrice = (n) => {
+  const num = parseInt(n, 10);
+  if (!num) return '0';
+  return num >= 1000 ? `${Math.round(num / 1000)}k` : String(num);
+};
 
 const FilterBar = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -114,6 +130,15 @@ const FilterBar = () => {
       ['listingStatus', 'view', 'lng', 'lat', 'zoom'].forEach(k => {
         if (prev.get(k)) next.set(k, prev.get(k));
       });
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const removeChip = useCallback((keys) => {
+    const keyList = Array.isArray(keys) ? keys : [keys];
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      keyList.forEach(k => next.delete(k));
       return next;
     }, { replace: true });
   }, [setSearchParams]);
@@ -191,7 +216,33 @@ const FilterBar = () => {
                       : 'Duration';
 
   const hasActiveFilters = ALL_FILTER_KEYS.some(k => searchParams.get(k));
-  const modalActiveCount = MODAL_FILTER_KEYS.filter(k => searchParams.get(k)).length;
+
+  // ── Active filter chips — one removable chip per active filter ────────────
+  const activeChips = [];
+  if (propertyType) activeChips.push({
+    key: 'propertyType',
+    label: propertyType.charAt(0).toUpperCase() + propertyType.slice(1).replace(/-/g, ' '),
+  });
+  if (city)     activeChips.push({ key: 'city',     label: city });
+  if (district) activeChips.push({ key: 'district', label: district });
+  if (priceMin || priceMax) activeChips.push({
+    key: ['priceMin', 'priceMax'],
+    label: priceMin && priceMax ? `₼${fmtChipPrice(priceMin)} – ₼${fmtChipPrice(priceMax)}`
+         : priceMax ? `Up to ₼${fmtChipPrice(priceMax)}`
+         : `₼${fmtChipPrice(priceMin)}+`,
+  });
+  if (bedrooms)  activeChips.push({ key: 'bedrooms',  label: `${bedrooms}+ Rooms` });
+  if (bathrooms) activeChips.push({ key: 'bathrooms', label: `${bathrooms}+ Baths` });
+  if (keyword)   activeChips.push({ key: 'keyword',   label: `"${keyword}"` });
+  if (subCategory) activeChips.push({
+    key: 'subCategory',
+    label: subCategory === 'short-term' ? 'Short-term' : 'Long-term',
+  });
+  Object.entries(TOGGLE_CHIP_LABELS).forEach(([k, label]) => {
+    if (searchParams.get(k)) activeChips.push({ key: k, label });
+  });
+
+  const activeFilterCount = activeChips.length;
 
   // ── Modal filters object ─────────────────────────────────────────────────────
   const modalFilters = {
@@ -490,28 +541,13 @@ const FilterBar = () => {
 
         {/* ── Actions ── */}
         <div className="fb-actions">
-          {hasActiveFilters && (
-            <button
-              className="fb-clear-btn"
-              onClick={handleClearFilters}
-              aria-label="Clear all filters"
-            >
-              <X size={13} strokeWidth={2.5} aria-hidden="true" />
-              Clear all
-            </button>
-          )}
           <button
             className={`fb-filters-btn${hasActiveFilters ? ' fb-filters-btn--active' : ''}`}
             onClick={() => setShowFilterModal(true)}
             aria-label="All filters"
           >
             <SlidersHorizontal size={13} strokeWidth={2} aria-hidden="true" />
-            Filters
-            {modalActiveCount > 0 && (
-              <span className="fb-active-count" aria-label={`${modalActiveCount} active filters`}>
-                {modalActiveCount}
-              </span>
-            )}
+            Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
           </button>
 
           <div className="fb-view-toggle" role="group" aria-label="View mode">
@@ -535,6 +571,31 @@ const FilterBar = () => {
         </div>
 
       </div>
+
+      {/* ── Active filter chips ── */}
+      {activeChips.length > 0 && (
+        <div className="fb-active-chips" aria-label="Active filters">
+          {listingStatus && (
+            <span className="fb-ac-mode">
+              {listingStatus === 'for-sale' ? 'For Sale' : listingStatus === 'for-rent' ? 'For Rent' : 'New Projects'}
+            </span>
+          )}
+          {activeChips.map((chip) => (
+            <button
+              key={Array.isArray(chip.key) ? chip.key.join('-') : chip.key}
+              className="fb-ac-chip"
+              onClick={() => removeChip(chip.key)}
+              aria-label={`Remove filter: ${chip.label}`}
+            >
+              {chip.label}
+              <X size={11} strokeWidth={2.5} aria-hidden="true" />
+            </button>
+          ))}
+          <button className="fb-ac-clear" onClick={handleClearFilters}>
+            Clear all
+          </button>
+        </div>
+      )}
 
       {liveChips.length > 0 && (
         <div className="fb-nl-chips" aria-live="polite">
