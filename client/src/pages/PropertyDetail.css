@@ -1152,3 +1152,47 @@
   color: #dc2626;
   font-weight: 600;
 }
+
+/* ── Sticky card summary ─────────────────────────────────────────────────── */
+
+.pd-sticky-summary {
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border-subtle, rgba(15, 23, 42, 0.07));
+}
+
+.pd-sticky-price {
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-graphite-900, #0f172a);
+  margin-bottom: 8px;
+}
+
+.pd-sticky-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pd-sticky-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pd-sticky-badge--verified { color: #166534; background: #f0fdf4; }
+.pd-sticky-badge--rating   { color: #92400e; background: #fffbeb; }
+.pd-sticky-badge--featured  { color: #d97706; background: #fffbeb; }
+.pd-sticky-badge--premium   { color: #7c3aed; background: #f5f3ff; }
+.pd-sticky-badge--spotlight { color: #0F766E; background: #f0fdf4; }
+
+/* Desktop only — hide in stacked mobile layout */
+@media (max-width: 1024px) {
+  .pd-sticky-summary { display: none; }
+}

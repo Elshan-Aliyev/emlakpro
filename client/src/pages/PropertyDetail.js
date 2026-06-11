@@ -675,6 +675,31 @@ const PropertyDetail = ({ property: propProperty, isModal = false }) => {
           <div className="pd-contact-sticky">
             <div className="pd-contact-card">
 
+              {/* Sticky summary — price + trust badges, desktop only */}
+              <div className="pd-sticky-summary">
+                <div className="pd-sticky-price">
+                  {property.currency || 'AZN'} {property.price?.toLocaleString() || '—'}
+                </div>
+                <div className="pd-sticky-badges">
+                  {property.ownershipVerificationStatus === 'approved' && (
+                    <span className="pd-sticky-badge pd-sticky-badge--verified">
+                      <IconCheck size={11} />
+                      Verified Owner
+                    </span>
+                  )}
+                  {property.isPromoted && property.promotionTier && property.promotionTier !== 'FREE' && (
+                    <span className={`pd-sticky-badge pd-sticky-badge--promo pd-sticky-badge--${property.promotionTier.toLowerCase()}`}>
+                      {property.promotionTier === 'SPOTLIGHT' ? 'Spotlight' : property.promotionTier === 'PREMIUM' ? 'Premium' : 'Featured'}
+                    </span>
+                  )}
+                  {property.propertyIdentityId?.avgRating > 0 && property.propertyIdentityId?.reviewCount > 0 && (
+                    <span className="pd-sticky-badge pd-sticky-badge--rating">
+                      ★ {property.propertyIdentityId.avgRating.toFixed(1)} ({property.propertyIdentityId.reviewCount})
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {/* Seller identity */}
               {property.ownerId && (
                 <div className="pd-seller-row">
