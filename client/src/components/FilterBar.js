@@ -490,6 +490,16 @@ const FilterBar = () => {
 
         {/* ── Actions ── */}
         <div className="fb-actions">
+          {hasActiveFilters && (
+            <button
+              className="fb-clear-btn"
+              onClick={handleClearFilters}
+              aria-label="Clear all filters"
+            >
+              <X size={13} strokeWidth={2.5} aria-hidden="true" />
+              Clear all
+            </button>
+          )}
           <button
             className={`fb-filters-btn${hasActiveFilters ? ' fb-filters-btn--active' : ''}`}
             onClick={() => setShowFilterModal(true)}

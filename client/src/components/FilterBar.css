@@ -1186,3 +1186,32 @@
   .fms-reset { min-width: 100px; }
   .fms-apply { font-size: 1rem; }
 }
+
+/* ── Clear all filters button ────────────────────────────────────────────── */
+
+.fb-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1.5px solid var(--border-default, rgba(15,23,42,0.10));
+  background: none;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--gray-500, #64748b);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.fb-clear-btn:hover {
+  background: var(--gray-50, #f8fafc);
+  border-color: rgba(15,23,42,0.14);
+}
+
+@media (max-width: 768px) {
+  .fb-clear-btn {
+    display: none;
+  }
+}
