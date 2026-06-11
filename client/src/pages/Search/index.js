@@ -298,7 +298,7 @@ const Search = () => {
         if (!cancelled) setLoading(false);
       }
     }, 300);
-    return () => { cancelled = true; clearTimeout(timer); };
+    return () => { cancelled = true; clearTimeout(timer); areaSearchCancelRef.current = true; };
   }, [filterSignature, retryCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Load more ─────────────────────────────────────────────────────────────
@@ -368,6 +368,7 @@ const Search = () => {
 
   // ── Search this area (bounds-based fetch, no viewport change) ────────────
   const handleSearchArea = useCallback(async ({ west, south, east, north }) => {
+    areaSearchCancelRef.current = false;
     track('map_search_area_clicked', {
       listing_status: searchParams.get('listingStatus') || '',
     });
@@ -381,6 +382,7 @@ const Search = () => {
         bboxEast: east.toFixed(6),
         bboxNorth: north.toFixed(6),
       }));
+      if (areaSearchCancelRef.current) return;
       const d = res.data;
       const loaded = d.properties || [];
       setFilteredProperties(loaded);
@@ -388,9 +390,9 @@ const Search = () => {
       setPage(1);
       setHasMore((d.totalPages || 1) > 1);
     } catch (err) {
-      console.error('Error fetching by area:', err);
+      if (!areaSearchCancelRef.current) console.error('Error fetching by area:', err);
     } finally {
-      setLoading(false);
+      if (!areaSearchCancelRef.current) setLoading(false);
     }
   }, [buildParams, searchParams]);
 
