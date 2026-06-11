@@ -413,17 +413,19 @@ const Search = () => {
   // ── Context label ─────────────────────────────────────────────────────────
   const buildSearchContext = () => {
     if (loading) return loadingPhase === 0 ? 'Loading listings…' : 'Still retrieving listings…';
-    const status = searchParams.get('listingStatus');
-    const type   = searchParams.get('propertyType');
-    const city   = searchParams.get('city');
-    const beds   = searchParams.get('bedrooms');
+    const status   = searchParams.get('listingStatus');
+    const type     = searchParams.get('propertyType');
+    const city     = searchParams.get('city');
+    const beds     = searchParams.get('bedrooms');
+    const verified = searchParams.get('verified');
     if (total === 0) return 'No listings matched these filters';
-    const typeLabel = type ? (PLURAL[type] || `${type}s`) : 'listings';
+    let typeLabel = type ? (PLURAL[type] || `${type}s`) : 'listings';
+    if (verified) typeLabel = `verified owner ${typeLabel}`;
     const parts = [`${total} ${typeLabel}`];
-    if (status === 'for-rent')     parts.push('for rent');
+    if (status === 'for-rent')      parts.push('for rent');
     else if (status === 'for-sale') parts.push('for sale');
     if (city) parts.push(`in ${city}`);
-    if (beds) parts.push(`· ${beds}+ beds`);
+    if (beds) parts.push(`· ${beds}+ rooms`);
     return parts.join(' ');
   };
 
