@@ -217,6 +217,7 @@ function App() {
             } />
 
             {/* ── Legacy redirects ────────────────────────────────────────────── */}
+            <Route path="/services/promote" element={<Navigate to="/account/listings" replace />} />
             <Route path="/properties"   element={<Navigate to="/" replace />} />
             <Route path="/dashboard"    element={<Navigate to="/account" replace />} />
             <Route path="/profile"      element={<Navigate to="/account/settings" replace />} />

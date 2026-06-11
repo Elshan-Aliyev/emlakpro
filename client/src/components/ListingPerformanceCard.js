@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Eye, Heart, Phone, MessageSquare, Shield, Star, TrendingUp, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import './ListingPerformanceCard.css';
 
@@ -13,6 +14,26 @@ const BENCHMARK_META = {
   above_average: { label: 'Above Average', color: '#166534', bg: '#f0fdf4' },
   average:       { label: 'Average',        color: '#6b7280', bg: '#f9fafb' },
   below_average: { label: 'Below Average',  color: '#dc2626', bg: '#fef2f2' },
+};
+
+// ── Performance Score — simple weighted 0–100, no AI ───────────────────────
+// views 20 | contacts 25 | favorites 15 | reviews 15 | promotion 10 | verification 15
+function computePerformanceScore(l) {
+  const views     = Math.min((l.viewsCount || 0) / 100, 1) * 20;
+  const contacts  = Math.min(((l.inquiryCount || 0) + (l.phoneRevealCount || 0)) / 10, 1) * 25;
+  const favorites = Math.min((l.favoritesCount || 0) / 10, 1) * 15;
+  const rep       = l.reputationSummary || {};
+  const reviews   = rep.reviewCount > 0 ? Math.min((rep.avgRating || 0) / 5, 1) * 15 : 0;
+  const promo     = l.isPromoted && l.promotionTier && l.promotionTier !== 'FREE' ? 10 : 0;
+  const verify    = l.ownershipVerificationStatus === 'approved' ? 15 : 0;
+  return Math.round(views + contacts + favorites + reviews + promo + verify);
+}
+
+const SCORE_META = (score) => {
+  if (score >= 80) return { label: 'Excellent',       color: '#166534', bg: '#f0fdf4' };
+  if (score >= 60) return { label: 'Good',            color: '#0F766E', bg: '#f0fdfa' };
+  if (score >= 40) return { label: 'Average',         color: '#92400e', bg: '#fffbeb' };
+  return                  { label: 'Needs attention', color: '#dc2626', bg: '#fef2f2' };
 };
 
 function StatRow({ icon, label, value, benchmark }) {
@@ -57,7 +78,10 @@ const ListingPerformanceCard = ({ listing, localEvents = [] }) => {
   const tier     = TIER_META[promotionTier] || TIER_META.FREE;
   const isActive = isPromoted && endDate && endDate > now;
 
-  const verified = ownershipVerificationStatus === 'approved';
+  const verified  = ownershipVerificationStatus === 'approved';
+  const score     = computePerformanceScore(listing);
+  const scoreMeta = SCORE_META(score);
+  const isOrganic = !isPromoted || !promotionTier || promotionTier === 'FREE';
   const { avgRating = 0, reviewCount = 0, recommendPercentage = 0 } = reputationSummary || {};
 
   return (
@@ -116,6 +140,13 @@ const ListingPerformanceCard = ({ listing, localEvents = [] }) => {
             {BENCHMARK_META[benchmark.views]?.label}
           </span>
         )}
+        <span
+          className="lpc-score-pill"
+          style={{ color: scoreMeta.color, background: scoreMeta.bg }}
+          title={`Performance score: ${score}/100 — based on views, contacts, favorites, reviews, promotion, verification`}
+        >
+          {score}/100 · {scoreMeta.label}
+        </span>
       </div>
 
       {/* Expanded detail sections */}
@@ -220,6 +251,17 @@ const ListingPerformanceCard = ({ listing, localEvents = [] }) => {
               </>
             )}
           </div>
+
+            {/* Promotion upsell — organic listings only */}
+            {isOrganic && (
+              <div className="lpc-upsell">
+                <p className="lpc-upsell-title">Want more visibility?</p>
+                <p className="lpc-upsell-body">Promoted listings receive more views and enquiries.</p>
+                <Link to="/services/promote" className="lpc-upsell-link">
+                  Promote Listing →
+                </Link>
+              </div>
+            )}
 
           {/* Benchmark note */}
           {benchmark.comparableCount > 0 && (

@@ -167,3 +167,45 @@
   padding-top: 8px;
   border-top: 1px solid var(--border-subtle, rgba(15,23,42,0.06));
 }
+
+/* ── Performance score pill ──────────────────────────────────────────────── */
+
+.lpc-score-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ── Promotion upsell ────────────────────────────────────────────────────── */
+
+.lpc-upsell {
+  background: var(--gray-50, #f8fafc);
+  border: 1px solid var(--border-subtle, rgba(15,23,42,0.08));
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.lpc-upsell-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-graphite-800, #1e293b);
+  margin: 0 0 2px;
+}
+
+.lpc-upsell-body {
+  font-size: 0.75rem;
+  color: var(--gray-500, #64748b);
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.lpc-upsell-link {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-primary, #0F766E);
+  text-decoration: none;
+}
+.lpc-upsell-link:hover { text-decoration: underline; }
