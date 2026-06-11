@@ -4,6 +4,7 @@ import { trackPage } from './services/analytics';
 import MainLayout   from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary  from './components/ErrorBoundary';
+import { HelmetProvider } from 'react-helmet-async';
 
 // ── Eager (critical path — loaded in the initial bundle) ──────────────────────
 import HomeNew        from './pages/HomeNew';
@@ -104,6 +105,7 @@ function RouteTracker() {
 // ── App ───────────────────────────────────────────────────────────────────────
 function App() {
   return (
+    <HelmetProvider>
     <ErrorBoundary>
       <div className="App">
         <Suspense fallback={<PageLoader />}>
@@ -222,12 +224,13 @@ function App() {
             <Route path="/saved"        element={<Navigate to="/account/saved" replace />} />
 
             {/* ── 404 ─────────────────────────────────────────────────────────── */}
-            <Route path="*" element={<NotFound />} />
+            <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
 
           </Routes>
         </Suspense>
       </div>
     </ErrorBoundary>
+    </HelmetProvider>
   );
 }
 

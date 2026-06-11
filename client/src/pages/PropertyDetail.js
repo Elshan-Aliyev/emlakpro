@@ -14,6 +14,7 @@ import InquiryModal from '../components/InquiryModal';
 import { generatePropertySummary, generateMarketInsights } from '../utils/propertyAI';
 import { track, priceBucket, captureError } from '../services/analytics';
 import PropertyReputation from '../components/PropertyReputation';
+import { Helmet } from 'react-helmet-async';
 import './PropertyDetail.css';
 
 const MemoizedPropertyMap = memo(PropertyMap);
@@ -348,6 +349,21 @@ const PropertyDetail = ({ property: propProperty, isModal = false }) => {
 
   return (
     <div className={`pd-container${isModal ? ' modal-mode' : ''}`}>
+
+      {property && (
+        <Helmet>
+          <title>{property.title} — Əmlak Pro</title>
+          <meta name="description" content={`${property.propertyType || 'Property'} in ${property.city || 'Azerbaijan'}. ${(property.price || 0).toLocaleString()} ${property.currency || 'AZN'}.`} />
+          <meta property="og:title" content={property.title} />
+          <meta property="og:description" content={`${property.propertyType || 'Property'} in ${property.city || 'Azerbaijan'} — ${(property.price || 0).toLocaleString()} ${property.currency || 'AZN'}`} />
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content={`https://emlakpro.az/properties/${property._id}`} />
+          {property.images?.[0] && (
+            <meta property="og:image" content={getImageUrl(property.images[0], 'large') || ''} />
+          )}
+          <link rel="canonical" href={`https://emlakpro.az/properties/${property._id}`} />
+        </Helmet>
+      )}
 
       {/* ── Structured data for rich Google results ─────────────────── */}
       {jsonLd && (
