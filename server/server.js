@@ -78,8 +78,8 @@ app.use('/api/home',       readLimiter, homeRoutes);
 
 // ─── Authenticated / write routes — general write limiter ────────────────────
 app.use('/api/users',              writeLimiter, userRoutes);
-app.use('/api/admin',              adminRoutes);
-app.use('/api/admin/abuse',        adminAbuseRoutes);
+app.use('/api/admin',              writeLimiter, adminRoutes);
+app.use('/api/admin/abuse',        writeLimiter, adminAbuseRoutes);
 app.use('/api/images',             writeLimiter, imageRoutes);
 app.use('/api/settings',           writeLimiter, settingsRoutes);
 app.use('/api/messages',           writeLimiter, messageRoutes);

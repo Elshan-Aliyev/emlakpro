@@ -15,6 +15,7 @@ const {
   uploadAvatar
 } = require('../controllers/userController');
 const verifyToken = require('../middleware/authMiddleware');
+const { checkAccountStatus } = require('../middleware/authMiddleware');
 
 // GET /api/users
 router.get('/', verifyToken, getUsers);
@@ -29,16 +30,16 @@ router.get('/saved-properties', verifyToken, getSavedProperties);
 router.get('/saved-searches', verifyToken, getSavedSearches);
 
 // POST /api/users/upload-avatar
-router.post('/upload-avatar', verifyToken, require('../config/supabase').uploadAvatar.single('avatar'), uploadAvatar);
+router.post('/upload-avatar', verifyToken, checkAccountStatus, require('../config/supabase').uploadAvatar.single('avatar'), uploadAvatar);
 
 // POST /api/users/save-property
-router.post('/save-property', verifyToken, saveProperty);
+router.post('/save-property', verifyToken, checkAccountStatus, saveProperty);
 
 // DELETE /api/users/unsave-property/:propertyId
 router.delete('/unsave-property/:propertyId', verifyToken, unsaveProperty);
 
 // POST /api/users/save-search
-router.post('/save-search', verifyToken, saveSearch);
+router.post('/save-search', verifyToken, checkAccountStatus, saveSearch);
 
 // DELETE /api/users/saved-search/:searchId
 router.delete('/saved-search/:searchId', verifyToken, deleteSavedSearch);
