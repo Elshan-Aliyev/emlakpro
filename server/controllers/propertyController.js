@@ -106,6 +106,8 @@ const ALLOWED_FILTER_PARAMS = new Set([
   'listingStatus', 'city', 'propertyType',
   'priceMin', 'priceMax', 'bedrooms', 'bathrooms',
   'keyword',
+  // Sort
+  'sort',
   // Pagination
   'page', 'limit',
   // System (not user-facing)
@@ -173,10 +175,19 @@ exports.getProperties = async (req, res) => {
     const limit = Math.min(Math.max(1, parseInt(q.limit) || 20), 200);
     const skip  = (page - 1) * limit;
 
+    // Whitelisted user sorts — anything else falls back to ranking default
+    const SORT_MAP = {
+      newest:       { createdAt: -1 },
+      'price-asc':  { price: 1 },
+      'price-desc': { price: -1 },
+      updated:      { updatedAt: -1 },
+    };
+    const userSort = SORT_MAP[req.query.sort] || null;
+
     const [total, properties] = await Promise.all([
       Property.countDocuments(query),
       Property.find(query)
-        .sort({ finalScore: -1, qualityScore: -1, createdAt: -1 })
+        .sort(userSort || { finalScore: -1, qualityScore: -1, createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .select(SEARCH_SELECT)

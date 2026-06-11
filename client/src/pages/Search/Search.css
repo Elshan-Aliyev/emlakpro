@@ -912,3 +912,29 @@
 @media (max-width: 1200px) and (min-width: 769px) {
   .sp-panel { width: 360px; }
 }
+
+/* ── Sort select ─────────────────────────────────────────────────────────── */
+
+.sp-sort-select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  background: var(--color-bg-surface, #fff);
+  color: var(--color-text-muted, #6b7280);
+  font-size: 0.775rem;
+  font-family: var(--font-sans, 'Inter Tight', 'Inter', sans-serif);
+  padding: 5px 26px 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.sp-sort-select:hover,
+.sp-sort-select:focus-visible {
+  border-color: var(--color-primary, #0F766E);
+  color: var(--color-primary, #0F766E);
+  outline: none;
+}

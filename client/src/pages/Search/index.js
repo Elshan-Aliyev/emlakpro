@@ -43,6 +43,16 @@ const PLURAL = {
   'commercial-retail': 'commercial spaces',
 };
 
+const SORT_OPTIONS = [
+  { value: '',           label: 'Recommended'      },
+  { value: 'newest',     label: 'Newest'            },
+  { value: 'price-asc',  label: 'Price Low → High'  },
+  { value: 'price-desc', label: 'Price High → Low'  },
+  { value: 'rated',      label: 'Highest Rated'     },
+  { value: 'reviewed',   label: 'Most Reviewed'     },
+  { value: 'updated',    label: 'Recently Updated'  },
+];
+
 const NEARBY_DISTRICTS = ['Yasamal', 'Nərimanov', 'Nəsimi', 'Xətai', 'Binəqədi', 'Sabunçu'];
 
 // Deterministic per-property image tone — avoids "all from same template" feel across grid
@@ -117,7 +127,7 @@ const Search = () => {
 
   const viewMode = searchParams.get('view') || 'map';
 
-  const FILTER_KEYS = ['listingStatus', 'city', 'propertyType', 'priceMin', 'priceMax', 'bedrooms', 'bathrooms', 'keyword'];
+  const FILTER_KEYS = ['listingStatus', 'city', 'propertyType', 'priceMin', 'priceMax', 'bedrooms', 'bathrooms', 'keyword', 'sort'];
   const filterSignature = FILTER_KEYS.map(k => searchParams.get(k) || '').join('|');
 
   const hasActiveFilters = ['city', 'propertyType', 'priceMin', 'priceMax', 'bedrooms', 'bathrooms', 'keyword']
@@ -484,6 +494,31 @@ const Search = () => {
   // ── Area insight — derived from visible properties ───────────────────────
   const areaInsight = useMemo(() => getAreaInsight(filteredProperties), [filteredProperties]);
 
+  // ── Sort: rated/reviewed sort client-side; others are server-side ─────────
+  const sortValue = searchParams.get('sort') || '';
+  const displayedProperties = useMemo(() => {
+    if (sortValue === 'rated') {
+      return [...filteredProperties].sort(
+        (a, b) => (b.reputationSummary?.avgRating || 0) - (a.reputationSummary?.avgRating || 0)
+      );
+    }
+    if (sortValue === 'reviewed') {
+      return [...filteredProperties].sort(
+        (a, b) => (b.reputationSummary?.reviewCount || 0) - (a.reputationSummary?.reviewCount || 0)
+      );
+    }
+    return filteredProperties;
+  }, [filteredProperties, sortValue]);
+
+  const handleSortChange = useCallback((e) => {
+    const v = e.target.value;
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (v) next.set('sort', v); else next.delete('sort');
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
   // ── Adjacent search suggestions ──────────────────────────────────────────
   const ExploreStrip = () => {
     if (loading || total === 0 || !hasActiveFilters || total >= 30) return null;
@@ -775,6 +810,9 @@ const Search = () => {
             <div className="sp-list-header">
               <h2 className="sp-context">{buildSearchContext()}</h2>
               <div className="sp-list-header-right">
+                <select className="sp-sort-select" value={sortValue} onChange={handleSortChange} aria-label="Sort listings">
+                  {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
                 {areaInsight && <span className="sp-area-insight">{areaInsight}</span>}
                 <button onClick={saveSearch} className="sp-save-btn" title="Save this search">
                   <Bookmark size={14} strokeWidth={2} aria-hidden="true" />
@@ -793,7 +831,7 @@ const Search = () => {
                   ? errorState
                   : filteredProperties.length === 0
                     ? emptyState
-                    : filteredProperties.map((p, i) => renderCard(p, i, false))
+                    : displayedProperties.map((p, i) => renderCard(p, i, false))
               }
             </div>
 
@@ -849,6 +887,15 @@ const Search = () => {
                     <h2 className="sp-context">{buildSearchContext()}</h2>
                     {areaInsight && <span className="sp-area-insight">{areaInsight}</span>}
                   </div>
+                  <select
+                    className="sp-sort-select sp-sort-select--panel"
+                    value={sortValue}
+                    onChange={handleSortChange}
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label="Sort listings"
+                  >
+                    {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
                   <button
                     onClick={(e) => { e.stopPropagation(); saveSearch(); }}
                     className="sp-save-btn"
@@ -868,7 +915,7 @@ const Search = () => {
                     ? errorState
                     : filteredProperties.length === 0
                       ? emptyState
-                      : filteredProperties.map((p, i) => renderCard(p, i, true))
+                      : displayedProperties.map((p, i) => renderCard(p, i, true))
                 }
                 {!loading && hasMore && (
                   <button className="sp-load-more-btn sp-load-more-btn--inline" onClick={loadMore} disabled={loadingMore}>
