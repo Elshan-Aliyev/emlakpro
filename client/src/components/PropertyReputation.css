@@ -246,7 +246,11 @@
   font-family: inherit;
   resize: vertical;
 }
-.prr-respond-input:focus { outline: none; border-color: var(--color-primary, #0F766E); }
+.prr-respond-input:focus {
+  outline: none;
+  border-color: var(--color-primary, #0F766E);
+  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2);
+}
 
 .prr-respond-actions {
   display: flex;
