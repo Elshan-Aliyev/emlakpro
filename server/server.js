@@ -58,6 +58,14 @@ app.use(cors({
 // ─── Body parsing — size limits prevent JSON bomb DoS ─────────────────────────
 app.use(express.json({ limit: '2mb' }));
 
+// ─── Required env vars — fail fast before connecting to DB ──────────────────
+const REQUIRED_ENV = ['JWT_SECRET', 'MONGODB_URI'];
+const _missingEnv = REQUIRED_ENV.filter(k => !process.env[k]);
+if (_missingEnv.length) {
+  console.error(`[startup] Missing required env vars: ${_missingEnv.join(', ')}`);
+  process.exit(1);
+}
+
 connectDB();
 
 // ─── Auth routes with brute-force protection ─────────────────────────────────
@@ -85,6 +93,22 @@ app.use('/api/promotion-requests', promotionRequestRoutes);
 app.use('/api/property-reviews',  propertyReviewRoutes);
 
 app.get('/', (req, res) => res.send('EmlakPro API'));
+
+// ─── 404 handler ─────────────────────────────────────────────────────────────
+app.use((req, res) => {
+  res.status(404).json({ message: 'Not found.' });
+});
+
+// ─── Global error handler ─────────────────────────────────────────────────────
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  const isDev = process.env.NODE_ENV !== 'production';
+  console.error(`[error] ${req.method} ${req.path}:`, err.message);
+  res.status(err.status || 500).json({
+    message: isDev ? err.message : 'Internal server error.',
+    ...(isDev && { stack: err.stack }),
+  });
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`[server] listening on port ${PORT}`));
