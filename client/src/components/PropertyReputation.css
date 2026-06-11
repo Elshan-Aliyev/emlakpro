@@ -411,3 +411,16 @@
   color: #fff !important;
 }
 .prr-report-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Helpful social proof ────────────────────────────────────────────────── */
+
+.prr-helpful-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: var(--gray-500, #64748b);
+  margin: 6px 0 0;
+}
+
+.prr-helpful-count svg { color: var(--color-primary, #0F766E); }

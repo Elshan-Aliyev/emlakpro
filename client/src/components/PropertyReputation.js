@@ -8,9 +8,9 @@ import './PropertyReputation.css';
 
 const SORT_OPTIONS = [
   { value: 'recent',  label: 'Most Recent'   },
-  { value: 'highest', label: 'Highest Rating' },
-  { value: 'lowest',  label: 'Lowest Rating'  },
-  { value: 'helpful', label: 'Most Helpful'   },
+  { value: 'helpful', label: 'Most Helpful'  },
+  { value: 'highest', label: 'Highest Rated' },
+  { value: 'lowest',  label: 'Lowest Rated'  },
 ];
 
 const REVIEW_TYPE_LABELS = {
@@ -115,6 +115,13 @@ function ReviewCard({ review, currentUserId, isOwner, onReport, onHelpful, onOwn
         <button className="prr-expand-btn" onClick={() => setExpanded(e => !e)}>
           {expanded ? 'Show less' : 'Read more'}
         </button>
+      )}
+
+      {review.reviewHelpfulCount > 0 && (
+        <p className="prr-helpful-count">
+          <ThumbsUp size={11} strokeWidth={2} aria-hidden="true" />
+          {review.reviewHelpfulCount} {review.reviewHelpfulCount === 1 ? 'person' : 'people'} found this helpful
+        </p>
       )}
 
       <div className="prr-card-actions">
