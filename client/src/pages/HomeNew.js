@@ -756,7 +756,7 @@ const Home = () => {
               >
                 <div className="property-card-image">
                   {imgUrl
-                    ? <img src={imgUrl} alt={p.title} />
+                    ? <img src={imgUrl} alt={p.title} loading="lazy" />
                     : <div className="property-placeholder" aria-hidden="true"><HomeIcon size={32} strokeWidth={1.25} /></div>
                   }
                   {hasImg && images.length > 1 && (

@@ -383,6 +383,7 @@ const PropertyDetail = ({ property: propProperty, isModal = false }) => {
                   <img
                     src={getImageUrl(img, 'medium')}
                     alt={`View ${i + 2}`}
+                    loading="lazy"
                     style={{ opacity: 0, transition: `opacity ${280 + i * 60}ms cubic-bezier(0.22,1,0.36,1)` }}
                     onLoad={(e) => { e.currentTarget.style.opacity = '1'; }}
                     onError={(e) => { e.currentTarget.style.opacity = '0'; }}

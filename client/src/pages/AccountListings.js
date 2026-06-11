@@ -269,7 +269,7 @@ const AccountListings = () => {
                       {/* Thumbnail */}
                       <div className="al-card-thumb">
                         {imgUrl ? (
-                          <img src={imgUrl} alt={property.title} />
+                          <img src={imgUrl} alt={property.title} loading="lazy" />
                         ) : (
                           <div className="al-card-thumb-placeholder">No photo</div>
                         )}
