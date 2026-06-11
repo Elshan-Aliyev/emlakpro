@@ -113,7 +113,7 @@ const Search = () => {
   const initialZoom   = useRef(parseFloat(searchParams.get('zoom')) || 12);
   const isInitialLoad = useRef(true);
   const prevCityRef   = useRef(searchParams.get('city'));
-  const areaSearchCancelRef = useRef(false); // eslint-disable-line no-unused-vars
+  const areaSearchCancelRef = useRef(false);
 
   const viewMode = searchParams.get('view') || 'map';
 
