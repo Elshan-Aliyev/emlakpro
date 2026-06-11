@@ -113,6 +113,7 @@ const Search = () => {
   const initialZoom   = useRef(parseFloat(searchParams.get('zoom')) || 12);
   const isInitialLoad = useRef(true);
   const prevCityRef   = useRef(searchParams.get('city'));
+  const areaSearchCancelRef = useRef(false); // eslint-disable-line no-unused-vars
 
   const viewMode = searchParams.get('view') || 'map';
 
@@ -179,6 +180,16 @@ const Search = () => {
   // ── Drawer sync ref ───────────────────────────────────────────────────────
   useEffect(() => { drawerPropertyIdRef.current = drawerPropertyId; }, [drawerPropertyId]);
 
+  // Keep restore URL in sync with filter changes while drawer is open.
+  // After setSearchParams(replace:true), window.location reflects the updated /search?... URL.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!drawerPropertyIdRef.current) return;
+    if (window.location.pathname.includes('search')) {
+      searchUrlRef.current = window.location.pathname + window.location.search;
+    }
+  }, [searchParams]);
+
   // ── Drawer: open (desktop only) ───────────────────────────────────────────
   const openDrawer = useCallback((propertyId) => {
     if (!propertyId || window.innerWidth <= 1024) return;
@@ -197,7 +208,7 @@ const Search = () => {
   const closeDrawer = useCallback(() => {
     setDrawerPropertyId(null);
     if (searchUrlRef.current) {
-      window.history.pushState(null, '', searchUrlRef.current);
+      window.history.replaceState(null, '', searchUrlRef.current);
     }
   }, []);
 
