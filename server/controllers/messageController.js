@@ -14,8 +14,6 @@ exports.sendMessage = async (req, res) => {
     
     const senderId = req.user.id;
 
-    console.log('Message request:', { senderId, recipientId, propertyId, content: content?.substring(0, 50) });
-
     // Validate required fields
     if (!recipientId) {
       return res.status(400).json({ message: 'Recipient ID is required' });
@@ -115,17 +113,6 @@ exports.getConversations = async (req, res) => {
           ? message.recipient 
           : message.sender;
         
-        console.log('Debug message:', { 
-          senderId, 
-          userId,
-          senderObj: message.sender,
-          recipientObj: message.recipient
-        });
-        console.log('Conversation otherUser:', { 
-          id: otherUser?._id, 
-          name: otherUser?.name, 
-          lastName: otherUser?.lastName 
-        });
         
         // Count unread messages in this conversation
         const unreadCount = messages.filter(m => 

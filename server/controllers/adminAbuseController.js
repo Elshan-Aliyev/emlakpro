@@ -222,9 +222,6 @@ exports.bulkAction = async (req, res) => {
       return res.status(400).json({ message: 'targetType must be user or property.' });
     }
 
-    // Audit log to console (attach to AuditLog model later if needed)
-    console.log(`[admin-abuse] BULK ${action} on ${targetType}(s) [${targetIds.join(',')}] by ${req.user.id}${reason ? ` — reason: ${reason}` : ''}`);
-
     res.json({ message: 'Action applied.', modifiedCount });
   } catch (err) {
     console.error('[adminAbuse] bulkAction:', err);
