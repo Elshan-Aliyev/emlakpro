@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { updateProperty } from '../services/api';
+import { BedDouble, AlertTriangle, Lightbulb, Clock, Check } from 'lucide-react';
 import './MiniEnhancement.css';
 
 const AddRoomsEnhancement = () => {
@@ -41,7 +42,7 @@ const AddRoomsEnhancement = () => {
       navigate(`/properties/${id}/enhance`, {
         state: { 
           enhanced: true,
-          message: '✅ Room details added successfully!'
+          message: 'Room details added successfully!'
         }
       });
 
@@ -65,7 +66,7 @@ const AddRoomsEnhancement = () => {
         </button>
 
         <div className="mini-header">
-          <span className="mini-icon">🛏️</span>
+          <span className="mini-icon"><BedDouble size={15} strokeWidth={2} aria-hidden="true" /></span>
           <h1>Add Room Details</h1>
           <p className="mini-subtitle">
             Listings with room info get <strong>5x more inquiries</strong>
@@ -74,7 +75,7 @@ const AddRoomsEnhancement = () => {
 
         {error && (
           <div className="mini-error">
-            ⚠️ {error}
+            <AlertTriangle size={14} strokeWidth={2} aria-hidden="true" /> {error}
           </div>
         )}
 
@@ -116,7 +117,7 @@ const AddRoomsEnhancement = () => {
 
           {/* Helper Text */}
           <div className="mini-tip">
-            <span className="tip-icon">💡</span>
+            <span className="tip-icon"><Lightbulb size={14} strokeWidth={2} aria-hidden="true" /></span>
             <span className="tip-text">
               Room details help buyers filter search results and find properties that match their needs
             </span>
@@ -138,7 +139,7 @@ const AddRoomsEnhancement = () => {
             onClick={handleSubmit}
             disabled={isSubmitting || !bedrooms || !bathrooms}
           >
-            {isSubmitting ? '⏳ Saving...' : '✅ Save & Continue'}
+            {isSubmitting ? <><Clock size={14} strokeWidth={2} aria-hidden="true" /> Saving...</> : <><Check size={14} strokeWidth={2.5} aria-hidden="true" /> Save & Continue</>}
           </button>
         </div>
 

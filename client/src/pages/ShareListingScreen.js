@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getProperty, incrementPropertyViews, incrementPropertyShares } from '../services/api';
+import { Check, Home, MapPin, Eye, Upload, Link2, Smartphone, Send, Users } from 'lucide-react';
 import './ShareListingScreen.css';
 
 const ShareListingScreen = () => {
@@ -111,7 +112,7 @@ const ShareListingScreen = () => {
 
         {/* Success Header */}
         <div className="success-header">
-          <div className="success-icon">✅</div>
+          <div className="success-icon"><Check size={14} strokeWidth={2.5} aria-hidden="true" /></div>
           <h1 className="success-title">Listing Posted Successfully</h1>
           <p className="success-subtitle">Your property is now live on the platform</p>
         </div>
@@ -125,7 +126,7 @@ const ShareListingScreen = () => {
                 alt={property.title}
               />
             ) : (
-              <div className="placeholder-image">🏠</div>
+              <div className="placeholder-image"><Home size={15} strokeWidth={2} aria-hidden="true" /></div>
             )}
           </div>
           <div className="preview-details">
@@ -133,15 +134,15 @@ const ShareListingScreen = () => {
             <p className="preview-price">
               {property.currency || 'AZN'} {property.price?.toLocaleString() || 'N/A'}
             </p>
-            <p className="preview-location">📍 {property.city || property.location || 'Location'}</p>
+            <p className="preview-location"><MapPin size={14} strokeWidth={2} aria-hidden="true" /> {property.city || property.location || 'Location'}</p>
             <div className="preview-stats-row">
               <span className="preview-stat">
-                <span className="stat-icon">👁</span>
+                <span className="stat-icon"><Eye size={14} strokeWidth={2} aria-hidden="true" /></span>
                 {property.viewsCount || 0} views
               </span>
               {sharesCount > 0 && (
                 <span className="preview-stat">
-                  <span className="stat-icon">📤</span>
+                  <span className="stat-icon"><Upload size={14} strokeWidth={2} aria-hidden="true" /></span>
                   {sharesCount} {sharesCount === 1 ? 'share' : 'shares'}
                 </span>
               )}
@@ -159,25 +160,25 @@ const ShareListingScreen = () => {
               onClick={handleCopyLink}
               className={`share-btn share-btn-copy ${copySuccess ? 'success' : ''}`}
             >
-              <span className="share-btn-icon">🔗</span>
+              <span className="share-btn-icon"><Link2 size={14} strokeWidth={2} aria-hidden="true" /></span>
               <span className="share-btn-text">{copySuccess ? 'Link Copied' : 'Copy Link'}</span>
               <span className="share-btn-hint">Share anywhere</span>
             </button>
 
             <button onClick={handleWhatsAppShare} className="share-btn share-btn-whatsapp">
-              <span className="share-btn-icon">📱</span>
+              <span className="share-btn-icon"><Smartphone size={14} strokeWidth={2} aria-hidden="true" /></span>
               <span className="share-btn-text">WhatsApp</span>
               <span className="share-btn-hint">Share with contacts</span>
             </button>
 
             <button onClick={handleTelegramShare} className="share-btn share-btn-telegram">
-              <span className="share-btn-icon">✈️</span>
+              <span className="share-btn-icon"><Send size={14} strokeWidth={2} aria-hidden="true" /></span>
               <span className="share-btn-text">Telegram</span>
               <span className="share-btn-hint">Share in groups</span>
             </button>
 
             <button onClick={handleFacebookShare} className="share-btn share-btn-facebook">
-              <span className="share-btn-icon">👥</span>
+              <span className="share-btn-icon"><Users size={14} strokeWidth={2} aria-hidden="true" /></span>
               <span className="share-btn-text">Facebook</span>
               <span className="share-btn-hint">Share on timeline</span>
             </button>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Home, MapPin, Sparkles, Check, Camera, BedDouble, FileText, LayoutList } from 'lucide-react';
 import { getProperty } from '../services/api';
 import CompletenessBar from '../components/CompletenessBar';
 import EnhancementCard from '../components/EnhancementCard';
@@ -77,7 +78,7 @@ const EnhanceProperty = () => {
   const enhancements = [
     {
       id: 'photos',
-      icon: '📸',
+      icon: <Camera size={15} strokeWidth={2} aria-hidden="true" />,
       title: 'Add Photos',
       impact: 'Listings with photos get 10x more views',
       boost: '+40%',
@@ -88,7 +89,7 @@ const EnhanceProperty = () => {
     },
     {
       id: 'rooms',
-      icon: '🛏️',
+      icon: <BedDouble size={15} strokeWidth={2} aria-hidden="true" />,
       title: 'Add Bedrooms & Bathrooms',
       impact: 'Listings with room info get 5x more inquiries',
       boost: '+20%',
@@ -99,7 +100,7 @@ const EnhanceProperty = () => {
     },
     {
       id: 'description',
-      icon: '📝',
+      icon: <FileText size={15} strokeWidth={2} aria-hidden="true" />,
       title: 'Write a Description',
       impact: 'Good descriptions increase contact rate by 3x',
       boost: '+20%',
@@ -110,7 +111,7 @@ const EnhanceProperty = () => {
     },
     {
       id: 'features',
-      icon: '✨',
+      icon: <LayoutList size={15} strokeWidth={2} aria-hidden="true" />,
       title: 'Add Features & Amenities',
       impact: 'Features help buyers find exactly what they need',
       boost: '+15%',
@@ -149,7 +150,7 @@ const EnhanceProperty = () => {
         {/* Success Header */}
         {isNewListing && (
           <div className="success-banner">
-            <h1>🎉 Your Listing is LIVE!</h1>
+            <h1>Your Listing is LIVE!</h1>
             <p>Your property is now visible to thousands of potential buyers in Azerbaijan</p>
           </div>
         )}
@@ -170,7 +171,7 @@ const EnhanceProperty = () => {
               <img src={property.images[0]} alt={property.title} />
             ) : (
               <div className="preview-placeholder">
-                <span className="placeholder-icon">🏠</span>
+                <span className="placeholder-icon"><Home size={15} strokeWidth={2} aria-hidden="true" /></span>
                 <span className="placeholder-text">No photo yet</span>
               </div>
             )}
@@ -178,10 +179,10 @@ const EnhanceProperty = () => {
           <div className="preview-content">
             <h3>{property.title}</h3>
             <p className="preview-price">
-              💰 {property.price?.toLocaleString()} {property.currency || 'AZN'}
+              {property.price?.toLocaleString()} {property.currency || 'AZN'}
             </p>
             <p className="preview-location">
-              📍 {property.city}, {property.location}
+              <MapPin size={14} strokeWidth={2} aria-hidden="true" /> {property.city}, {property.location}
             </p>
             <button 
               className="view-listing-btn"
@@ -195,9 +196,9 @@ const EnhanceProperty = () => {
         {/* Completeness Progress */}
         <div className="completeness-section">
           <div className="completeness-header">
-            <h2>📊 Listing Completeness: {completeness}%</h2>
+            <h2>Listing Completeness: {completeness}%</h2>
             {completeness === 100 && (
-              <span className="perfect-badge">✨ Perfect!</span>
+              <span className="perfect-badge"><Sparkles size={14} strokeWidth={2} aria-hidden="true" /> Perfect!</span>
             )}
           </div>
           <CompletenessBar percentage={completeness} />
@@ -210,7 +211,7 @@ const EnhanceProperty = () => {
           )}
           {completeness === 100 && (
             <p className="completeness-message success">
-              🎉 Your listing is complete! You're 5x more likely to get inquiries.
+              Your listing is complete! You're 5x more likely to get inquiries.
             </p>
           )}
         </div>
@@ -239,7 +240,7 @@ const EnhanceProperty = () => {
         {/* Completed Enhancements */}
         {completedCount > 0 && (
           <div className="completed-section">
-            <h3>✅ Completed ({completedCount}/{enhancements.length})</h3>
+            <h3><Check size={14} strokeWidth={2.5} aria-hidden="true" /> Completed ({completedCount}/{enhancements.length})</h3>
             <div className="completed-list">
               {enhancements
                 .filter(e => e.completed)
@@ -268,7 +269,7 @@ const EnhanceProperty = () => {
             className="view-btn"
             onClick={() => navigate(`/properties/${id}`)}
           >
-            {completeness === 100 ? 'View Perfect Listing 🎉' : 'View My Listing'}
+            {completeness === 100 ? 'View Perfect Listing' : 'View My Listing'}
           </button>
         </div>
 

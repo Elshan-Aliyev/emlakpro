@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../components/Button';
+import { Home, Check } from 'lucide-react';
 import './StaticPages.css';
 
 const Services = () => {
@@ -14,7 +15,7 @@ const Services = () => {
           <h2>Property Listing Services</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
             <div style={{ padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-              <h3>📸 Professional Photography</h3>
+              <h3>Professional Photography</h3>
               <p>High-quality photos that showcase your property in the best light.</p>
               <p style={{ fontWeight: '600', color: '#059669', marginTop: '0.5rem' }}>₼150 - ₼300</p>
               <Link to="/services/photography">
@@ -22,7 +23,7 @@ const Services = () => {
               </Link>
             </div>
             <div style={{ padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-              <h3>🎨 Virtual Staging</h3>
+              <h3>Virtual Staging</h3>
               <p>Enhance your property with professional virtual furniture staging.</p>
               <p style={{ fontWeight: '600', color: '#059669', marginTop: '0.5rem' }}>₼100 - ₼200</p>
               <Link to="/services/staging">
@@ -30,7 +31,7 @@ const Services = () => {
               </Link>
             </div>
             <div style={{ padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-              <h3>📋 Property Valuation</h3>
+              <h3>Property Valuation</h3>
               <p>Get an accurate market valuation for your property.</p>
               <p style={{ fontWeight: '600', color: '#059669', marginTop: '0.5rem' }}>₼50 - ₼150</p>
               <Link to="/services/valuation">
@@ -44,7 +45,7 @@ const Services = () => {
           <h2>Advertising & Promotion</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
             <div style={{ padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '8px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-              <h3>🚀 Property Boost</h3>
+              <h3>Property Boost</h3>
               <p>Increase visibility with featured placement and priority search results.</p>
               <ul style={{ margin: '1rem 0', paddingLeft: '1.5rem' }}>
                 <li>Featured listing for 7 days</li>
@@ -56,7 +57,7 @@ const Services = () => {
               <Button variant="secondary" size="sm" style={{ marginTop: '1rem', background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)' }}>Boost Now</Button>
             </div>
             <div style={{ padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-              <h3>📢 Social Media Promotion</h3>
+              <h3>Social Media Promotion</h3>
               <p>Promote your property across social media platforms.</p>
               <p style={{ fontWeight: '600', color: '#059669', marginTop: '0.5rem' }}>₼75 - ₼150</p>
               <Link to="/services/social">
@@ -64,7 +65,7 @@ const Services = () => {
               </Link>
             </div>
             <div style={{ padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-              <h3>🎯 Targeted Advertising</h3>
+              <h3>Targeted Advertising</h3>
               <p>Reach specific audiences interested in your property type.</p>
               <p style={{ fontWeight: '600', color: '#059669', marginTop: '0.5rem' }}>₼100 - ₼300</p>
               <Link to="/services/advertising">
@@ -78,7 +79,7 @@ const Services = () => {
           <h2>Legal & Documentation</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
             <div style={{ padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-              <h3>📄 Contract Preparation</h3>
+              <h3>Contract Preparation</h3>
               <p>Professional contract drafting for property transactions.</p>
               <p style={{ fontWeight: '600', color: '#059669', marginTop: '0.5rem' }}>₼200 - ₼500</p>
               <Link to="/services/contracts">
@@ -86,7 +87,7 @@ const Services = () => {
               </Link>
             </div>
             <div style={{ padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-              <h3>🏠 Property Inspection</h3>
+              <h3><Home size={15} strokeWidth={2} aria-hidden="true" /> Property Inspection</h3>
               <p>Comprehensive property inspection and condition report.</p>
               <p style={{ fontWeight: '600', color: '#059669', marginTop: '0.5rem' }}>₼150 - ₼300</p>
               <Link to="/services/inspection">
@@ -94,7 +95,7 @@ const Services = () => {
               </Link>
             </div>
             <div style={{ padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-              <h3>⚖️ Legal Consultation</h3>
+              <h3>Legal Consultation</h3>
               <p>Expert legal advice for property transactions.</p>
               <p style={{ fontWeight: '600', color: '#059669', marginTop: '0.5rem' }}>₼100/hour</p>
               <Link to="/services/legal">
@@ -108,19 +109,19 @@ const Services = () => {
           <h2>Why Choose Our Services?</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
             <div>
-              <h3>✅ Verified Professionals</h3>
+              <h3><Check size={14} strokeWidth={2.5} aria-hidden="true" /> Verified Professionals</h3>
               <p>All our service providers are licensed and verified.</p>
             </div>
             <div>
-              <h3>💰 Competitive Pricing</h3>
+              <h3>Competitive Pricing</h3>
               <p>Transparent pricing with no hidden fees.</p>
             </div>
             <div>
-              <h3>⚡ Fast Turnaround</h3>
+              <h3>Fast Turnaround</h3>
               <p>Quick service delivery to meet your timeline.</p>
             </div>
             <div>
-              <h3>🛡️ Quality Guarantee</h3>
+              <h3>Quality Guarantee</h3>
               <p>Satisfaction guaranteed or your money back.</p>
             </div>
           </div>

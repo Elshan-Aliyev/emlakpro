@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Home, TrendingUp, Star } from 'lucide-react';
 import './ServicePages.css';
 
 const ListProperty = () => {
@@ -11,7 +12,7 @@ const ListProperty = () => {
     <div className="service-page">
       <div className="service-hero">
         <div className="service-hero-content">
-          <h1>🏠 List My Property</h1>
+          <h1><Home size={15} strokeWidth={2} aria-hidden="true" /> List My Property</h1>
           <p>Get professional help listing your property</p>
         </div>
       </div>
@@ -62,22 +63,22 @@ const ListProperty = () => {
           <h2>Why Choose Professional Listing?</h2>
           <div className="info-grid">
             <div className="info-item">
-              <span className="info-icon">📈</span>
+              <span className="info-icon"><TrendingUp size={15} strokeWidth={2} aria-hidden="true" /></span>
               <h4>Sell Faster</h4>
               <p>Professional listings sell 50% faster on average</p>
             </div>
             <div className="info-item">
-              <span className="info-icon">💰</span>
+              <span className="info-icon"></span>
               <h4>Better Price</h4>
               <p>Get the best market value for your property</p>
             </div>
             <div className="info-item">
-              <span className="info-icon">⭐</span>
+              <span className="info-icon"><Star size={14} strokeWidth={2} aria-hidden="true" /></span>
               <h4>Quality Assured</h4>
               <p>Professional photos and compelling descriptions</p>
             </div>
             <div className="info-item">
-              <span className="info-icon">🎯</span>
+              <span className="info-icon"></span>
               <h4>Targeted Marketing</h4>
               <p>Reach the right buyers through multiple channels</p>
             </div>

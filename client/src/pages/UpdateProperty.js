@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getProperty, updateProperty } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { geocodeAddress } from '../services/geocoding';
+import { Trash2, Upload } from 'lucide-react';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import LocationPicker from '../components/LocationPicker';
 import { useToast } from '../components/Toast';
@@ -150,11 +151,11 @@ const UpdateProperty = () => {
     
     files.forEach((file) => {
       if (file.size > maxSize) {
-        errors.push(`❌ "${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Max: 10MB.`);
+        errors.push(`"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Max: 10MB.`);
         return;
       }
       if (!allowedFormats.includes(file.type.toLowerCase())) {
-        errors.push(`❌ "${file.name}" invalid format (${file.type}). Allowed: JPEG, PNG, WEBP, HEIC.`);
+        errors.push(`"${file.name}" invalid format (${file.type}). Allowed: JPEG, PNG, WEBP, HEIC.`);
         return;
       }
       validFiles.push(file);
@@ -492,27 +493,27 @@ const UpdateProperty = () => {
                 <option value="farm">Farm</option>
               </optgroup>
               <optgroup label="Short-term / Unique">
-                <option value="cabin">🏕️ Cabin</option>
-                <option value="cottage">🏠 Cottage</option>
-                <option value="bungalow">🏘️ Bungalow</option>
-                <option value="chalet">🏔️ Chalet</option>
-                <option value="loft">🏙️ Loft</option>
-                <option value="tiny-house">🏠 Tiny House</option>
-                <option value="mobile-home">🚐 Mobile Home</option>
-                <option value="rv">🚐 RV</option>
-                <option value="camper-van">🚐 Camper Van</option>
-                <option value="boat">⛵ Boat</option>
-                <option value="treehouse">🌳 Treehouse</option>
-                <option value="dome">🏔️ Dome</option>
-                <option value="a-frame">🏔️ A-Frame</option>
-                <option value="barn">🏭 Barn</option>
-                <option value="castle">🏰 Castle</option>
-                <option value="cave">🕳️ Cave</option>
-                <option value="windmill">🌾 Windmill</option>
-                <option value="lighthouse">🏮 Lighthouse</option>
-                <option value="room">🛏️ Room</option>
-                <option value="shared-room">👥 Shared Room</option>
-                <option value="entire-place">🏠 Entire Place</option>
+                <option value="cabin">Cabin</option>
+                <option value="cottage">Cottage</option>
+                <option value="bungalow">Bungalow</option>
+                <option value="chalet">Chalet</option>
+                <option value="loft">Loft</option>
+                <option value="tiny-house">Tiny House</option>
+                <option value="mobile-home">Mobile Home</option>
+                <option value="rv">RV</option>
+                <option value="camper-van">Camper Van</option>
+                <option value="boat">Boat</option>
+                <option value="treehouse">Treehouse</option>
+                <option value="dome">Dome</option>
+                <option value="a-frame">A-Frame</option>
+                <option value="barn">Barn</option>
+                <option value="castle">Castle</option>
+                <option value="cave">Cave</option>
+                <option value="windmill">Windmill</option>
+                <option value="lighthouse">Lighthouse</option>
+                <option value="room">Room</option>
+                <option value="shared-room">Shared Room</option>
+                <option value="entire-place">Entire Place</option>
               </optgroup>
             </select>
           </div>
@@ -758,7 +759,7 @@ const UpdateProperty = () => {
                       onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(220, 38, 38, 0.9)'}
                       title="Remove image"
                     >
-                      🗑️
+                      <Trash2 size={14} strokeWidth={2} aria-hidden="true" />
                     </button>
                   </div>
                 ))}
@@ -840,7 +841,7 @@ const UpdateProperty = () => {
                       onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(220, 38, 38, 0.9)'}
                       title="Remove new image"
                     >
-                      🗑️
+                      <Trash2 size={14} strokeWidth={2} aria-hidden="true" />
                     </button>
                     <div style={{
                       position: 'absolute',
@@ -880,7 +881,7 @@ const UpdateProperty = () => {
               onMouseEnter={(e) => e.currentTarget.style.background = '#059669'}
               onMouseLeave={(e) => e.currentTarget.style.background = '#10b981'}
             >
-              📤 Add New Images
+              <Upload size={14} strokeWidth={2} aria-hidden="true" /> Add New Images
             </label>
             <input 
               id="add-images-input"

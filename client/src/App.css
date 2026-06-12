@@ -21,14 +21,10 @@
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-  color: var(--brand-shadow, #333333);
+  color: var(--color-graphite-900, #333333);
 }
 
 :root {
-  /* Legacy brand variables - now mapped to theme system */
-  --brand-primary: var(--theme-button, var(--theme-primary));
-  --brand-accent: var(--theme-button, var(--theme-primary));
-  --brand-shadow: #333333;
   --bg: var(--theme-background-low, #F5F7FA);
 }
 
@@ -58,7 +54,7 @@
   height: clamp(36px,4.5vw,48px);
   border-radius: 6px;
   overflow: hidden;
-  background: var(--brand-primary);
+  background: var(--color-primary, #0F766E);
 }
 .toggle-full button {
   flex: 1 1 0;
@@ -74,7 +70,7 @@
 .input-grid-rent-long { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 12px; align-items: end; width: 100%; }
 .input-grid-rent-short { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 12px; align-items: end; width: 100%; }
 .input-field { padding: 12px; border-radius: 6px; border: none; width: 100%; box-sizing: border-box; height: clamp(40px,4.2vw,56px); }
-.search-btn { display:flex; align-items:center; justify-content:center; border-radius:0 6px 6px 0; background:var(--brand-accent); color:#fff; border:none; cursor:pointer; width: clamp(40px,5vw,56px); height: clamp(40px,4.2vw,56px); align-self: end; margin-left: -12px; }
+.search-btn { display:flex; align-items:center; justify-content:center; border-radius:0 6px 6px 0; background:var(--color-primary-hover, #0d5f57); color:#fff; border:none; cursor:pointer; width: clamp(40px,5vw,56px); height: clamp(40px,4.2vw,56px); align-self: end; margin-left: -12px; }
 
 /* Responsive adjustments */
 @media (max-width: 900px) {
@@ -91,10 +87,10 @@
 }
 
 /* Global link and button defaults that follow the brand */
-nav a { color: var(--brand-primary); text-decoration: none; }
+nav a { color: var(--color-primary, #0F766E); text-decoration: none; }
 button { font-family: inherit; }
 
-body { background: var(--bg); color: var(--brand-shadow); }
+body { background: var(--bg); color: var(--color-graphite-900, #0f172a); }
 
 
 @keyframes App-logo-spin {
@@ -135,7 +131,7 @@ body { background: var(--bg); color: var(--brand-shadow); }
   border-radius: 999px;
   overflow: hidden;
   box-sizing: border-box;
-  background: var(--brand-primary);
+  background: var(--color-primary, #0F766E);
   order: -1;
 }
 .mode-indicator { display: none; }
@@ -146,11 +142,11 @@ body { background: var(--bg); color: var(--brand-shadow); }
   color: #fff;
   cursor: pointer;
   font-weight: 500;
-  background: var(--brand-primary);
+  background: var(--color-primary, #0F766E);
 }
 .mode-btn:first-child { border-top-left-radius: 999px; border-bottom-left-radius: 999px; }
 .mode-btn:last-child { border-top-right-radius: 999px; border-bottom-right-radius: 999px; }
-.mode-btn.active { background: var(--brand-accent); font-weight: 700; }
+.mode-btn.active { background: var(--color-primary-hover, #0d5f57); font-weight: 700; }
 .top-links { color: #fff; display: flex; gap: 12px; align-items: center; }
 .term-column .term-label { display: none; }
 .right-area { flex: 1 1 0; max-width: 100%; }
@@ -161,21 +157,21 @@ body { background: var(--bg); color: var(--brand-shadow); }
 .featured-card { width: 230px; border: 1px solid rgba(30,78,140,0.08); border-radius: 6px; padding: 8px; box-sizing: border-box; background: #fff; }
 .featured-card a { text-decoration: none; color: inherit; display: block; }
 .featured-title { font-weight: bold; }
-.featured-location { font-size: 12px; color: var(--brand-shadow); margin-top: 4px; }
-.toggle-full button.active { background: var(--brand-accent); }
+.featured-location { font-size: 12px; color: var(--color-graphite-900, #0f172a); margin-top: 4px; }
+.toggle-full button.active { background: var(--color-primary-hover, #0d5f57); }
 
 /* Vertical Buy/Rent toggle on the left of the search */
 .vertical-toggle { display: flex; flex-direction: column; gap: 0; align-items: stretch; width: 100%; height: 100%; }
-.vertical-toggle-inner { display:flex; flex-direction: column; background: var(--brand-primary); border-radius: 8px; overflow: hidden; height: 100%; }
+.vertical-toggle-inner { display:flex; flex-direction: column; background: var(--color-primary, #0F766E); border-radius: 8px; overflow: hidden; height: 100%; }
 .vertical-toggle-inner { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .vertical-toggle-inner button { flex: 1 1 0; padding: 10px 8px; border: none; background: transparent; color: #fff; cursor: pointer; height: clamp(44px,6vw,64px); }
-.vertical-toggle-inner button.active { background: var(--brand-accent); font-weight: 700; }
+.vertical-toggle-inner button.active { background: var(--color-primary-hover, #0d5f57); font-weight: 700; }
 
 /* Category/term toggle placed above the Location label and attached to the input */
 .category-row { margin-bottom: 8px; }
-.category-toggle { display: inline-flex; width: 18em; max-width: 100%; border-radius: 6px; overflow: hidden; background: var(--brand-primary); }
+.category-toggle { display: inline-flex; width: 18em; max-width: 100%; border-radius: 6px; overflow: hidden; background: var(--color-primary, #0F766E); }
 .category-toggle button { flex: 1 1 0; padding: 8px 10px; border: none; background: transparent; color: #fff; cursor: pointer; }
-.category-toggle button.active { background: var(--brand-accent); }
+.category-toggle button.active { background: var(--color-primary-hover, #0d5f57); }
 .category-toggle { margin-left: 0; }
 
 /* Ensure the hero-search-container items are aligned baseline so the button won't drop */
