@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
 require('dotenv').config();
 
 const connectDB = require('./config/db');
@@ -23,6 +24,7 @@ const listingHealthRoutes  = require('./routes/listingHealthRoutes');
 const homeRoutes           = require('./routes/homeRoutes');
 const promotionRequestRoutes = require('./routes/promotionRequestRoutes');
 const propertyReviewRoutes   = require('./routes/propertyReviewRoutes');
+const cronRoutes             = require('./routes/cronRoutes');
 
 const app = express();
 
@@ -59,7 +61,7 @@ app.use(cors({
 app.use(express.json({ limit: '2mb' }));
 
 // ─── Required env vars — fail fast before connecting to DB ──────────────────
-const REQUIRED_ENV = ['JWT_SECRET', 'MONGODB_URI'];
+const REQUIRED_ENV = ['JWT_SECRET', 'MONGO_URI', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
 const _missingEnv = REQUIRED_ENV.filter(k => !process.env[k]);
 if (_missingEnv.length) {
   console.error(`[startup] Missing required env vars: ${_missingEnv.join(', ')}`);
@@ -91,8 +93,35 @@ app.use('/api/ownership',          ownershipRoutes);
 app.use('/api/listing-health',     listingHealthRoutes);
 app.use('/api/promotion-requests', promotionRequestRoutes);
 app.use('/api/property-reviews',  propertyReviewRoutes);
+app.use('/api/cron',              cronRoutes);
 
 app.get('/', (req, res) => res.send('EmlakPro API'));
+
+// ─── Health check — used by uptime monitors and Vercel cron pre-flight ────────
+app.get('/api/health', async (req, res) => {
+  const mongoState = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+  const mongo = mongoState[mongoose.connection.readyState] ?? 'unknown';
+
+  // Lightweight Supabase ping — list buckets (already authenticated via service key)
+  let supabase = 'ok';
+  try {
+    const { createClient } = require('@supabase/supabase-js');
+    const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const { error } = await sb.storage.listBuckets();
+    if (error) supabase = 'error';
+  } catch {
+    supabase = 'error';
+  }
+
+  res.status(200).json({
+    status:    'ok',
+    mongo,
+    supabase,
+    version:   process.env.npm_package_version || '1.0.0-beta',
+    uptime:    Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // ─── 404 handler ─────────────────────────────────────────────────────────────
 app.use((req, res) => {
@@ -110,5 +139,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`[server] listening on port ${PORT}`));
+// Local dev: start the HTTP server. Vercel imports this module directly and
+// calls the exported handler — it never reaches app.listen().
+if (process.env.VERCEL !== '1') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`[server] listening on port ${PORT}`));
+}
+
+module.exports = app;

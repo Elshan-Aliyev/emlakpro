@@ -59,9 +59,6 @@ router.get('/stats', verifyToken, isAdmin, async (req, res) => {
 // Get all listings for admin with filters
 router.get('/listings', verifyToken, isAdmin, async (req, res) => {
   try {
-    // Auto-expire stale promotions on every admin listing fetch
-    expireStalePromotions().catch(err => console.error('[adminRoutes] expireStalePromotions:', err));
-
     const { search, status, type, category, sortBy, order } = req.query;
     const query = {};
     
