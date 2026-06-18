@@ -8,7 +8,7 @@ const { expireStalePromotions } = require('../lib/promotion/expirePromotions');
 // Called daily by Vercel Cron (vercel.json).
 // Vercel sends: Authorization: Bearer <CRON_SECRET>
 // Reject all other callers — this route must never be publicly triggerable.
-router.post('/expire-promotions', async (req, res) => {
+router.get('/expire-promotions', async (req, res) => {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
     console.error('[cron] CRON_SECRET is not set — refusing to run');
