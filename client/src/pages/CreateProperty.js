@@ -173,13 +173,13 @@ const CreateProperty = () => {
 
   // ── Location ────────────────────────────────────────────────────────────────
   const [location,          setLocation]          = useState('');
-  const [fullAddress,       setFullAddress]       = useState('');
+  const [fullAddress]       = useState('');
   const [city,              setCity]              = useState('');
   const [district,          setDistrict]          = useState('');
   const [street,            setStreet]            = useState('');
   const [streetNumber,      setStreetNumber]      = useState('');
   const [nearestMetro,      setNearestMetro]      = useState('');
-  const [buildingName,      setBuildingName]      = useState('');
+  const [buildingName]      = useState('');
   const [floorNumber,       setFloorNumber]       = useState('');
   const [unitNumber,        setUnitNumber]        = useState('');
   const [coordinates,       setCoordinates]       = useState(null);
@@ -260,7 +260,7 @@ const CreateProperty = () => {
   const [projectName,   setProjectName]   = useState('');
 
   // ── Images ──────────────────────────────────────────────────────────────────
-  const [selectedFiles,   setSelectedFiles]   = useState([]);
+  const [,   setSelectedFiles]   = useState([]);
   const [imagePreview,    setImagePreview]    = useState([]);
   const [uploadedImages,  setUploadedImages]  = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -1425,7 +1425,7 @@ const CreateProperty = () => {
                 type="button"
                 className="cp-nav-next"
                 onClick={goNext}
-                disabled={currentStep === 1 && !isStep1Complete || currentStep === 2 && !isStep2Complete}
+                disabled={(currentStep === 1 && !isStep1Complete) || (currentStep === 2 && !isStep2Complete)}
               >
                 Continue →
               </button>

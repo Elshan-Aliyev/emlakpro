@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import './Admin.css';
 
 const AdminSettings = () => {
-  const { user } = useAuth();
   const { success, error: showError } = useToast();
 
   // Site Settings

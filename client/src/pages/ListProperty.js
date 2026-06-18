@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { Home, TrendingUp, Star } from 'lucide-react';
 import './ServicePages.css';
 
 const ListProperty = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   return (

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getProperty, updateProperty } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
-import { geocodeAddress } from '../services/geocoding';
 import { Trash2, Upload } from 'lucide-react';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import LocationPicker from '../components/LocationPicker';
@@ -53,23 +52,20 @@ const UpdateProperty = () => {
   const [newImages, setNewImages] = useState([]);
   const [imagesToDelete, setImagesToDelete] = useState([]);
   
-  const [ownerId, setOwnerId] = useState(null);
-  const [originalProperty, setOriginalProperty] = useState(null);
+  const [, setOwnerId] = useState(null);
+  const [, setOriginalProperty] = useState(null);
 
   const token = localStorage.getItem('token');
   let role = null;
-  let currentUserId = null;
   if (token) {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       role = payload.role;
-      currentUserId = payload.id;
     } catch (e) {
       // ignore
     }
   }
   const isAdmin = role === 'admin' || role === 'superadmin';
-  const isOwnerLocal = ownerId && currentUserId && ownerId === currentUserId;
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -131,6 +127,7 @@ const UpdateProperty = () => {
       }
     };
     fetchProperty();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleRemoveCurrentImage = (index) => {

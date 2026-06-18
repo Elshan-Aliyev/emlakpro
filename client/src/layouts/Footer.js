@@ -84,16 +84,16 @@ const Footer = () => {
             © {currentYear} Əmlak Pro. All rights reserved.
           </p>
           <div className="footer-socials">
-            <a href="#" className="footer-social-btn" aria-label="Facebook">
+            <a href="https://facebook.com" className="footer-social-btn" aria-label="Facebook" target="_blank" rel="noopener noreferrer">
               <SocialFacebook />
             </a>
-            <a href="#" className="footer-social-btn" aria-label="Instagram">
+            <a href="https://instagram.com" className="footer-social-btn" aria-label="Instagram" target="_blank" rel="noopener noreferrer">
               <SocialInstagram />
             </a>
-            <a href="#" className="footer-social-btn" aria-label="X (Twitter)">
+            <a href="https://x.com" className="footer-social-btn" aria-label="X (Twitter)" target="_blank" rel="noopener noreferrer">
               <SocialX />
             </a>
-            <a href="#" className="footer-social-btn" aria-label="LinkedIn">
+            <a href="https://linkedin.com" className="footer-social-btn" aria-label="LinkedIn" target="_blank" rel="noopener noreferrer">
               <SocialLinkedIn />
             </a>
           </div>

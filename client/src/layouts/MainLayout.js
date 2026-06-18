@@ -15,6 +15,7 @@ const MainLayout = ({ children }) => {
   useLayoutEffect(() => {
     if (location.pathname.startsWith('/search')) return;
     window.scrollTo({ top: 0, behavior: 'instant' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // [] = run once on mount; MainLayout remounts on each route change
 
   return (

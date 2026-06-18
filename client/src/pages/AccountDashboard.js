@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Home, Eye, Heart, MessageSquare, Plus, List, Star, Settings,
-  Edit, MapPin, BedDouble, Bath, Maximize2, Shield, Check, AlertTriangle,
+  Edit, MapPin, BedDouble, Bath, Maximize2, Shield, Check,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getMyListings, getMyListingsHealth } from '../services/api';
@@ -25,7 +25,6 @@ const IconBath     = () => <Bath          size={13} strokeWidth={2}    aria-hidd
 const IconArea     = () => <Maximize2     size={13} strokeWidth={2}    aria-hidden="true" />;
 const IconShield   = () => <Shield        size={18} strokeWidth={1.75} aria-hidden="true" />;
 const IconCheck    = () => <Check         size={16} strokeWidth={2.5}  aria-hidden="true" />;
-const IconAlert    = () => <AlertTriangle size={18} strokeWidth={1.75} aria-hidden="true" />;
 
 // ── Dashboard skeleton ────────────────────────────────────────────────────────
 

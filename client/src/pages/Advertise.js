@@ -1,17 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Star, Monitor, Smartphone, Search, Volume2, Eye, Activity, BarChart2, DollarSign } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
-import Modal from '../components/Modal';
 import './Advertise.css';
 
 const Advertise = () => {
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('services');
-  const [showModal, setShowModal] = useState(false);
-  const [selectedService, setSelectedService] = useState(null);
-  const [myAds, setMyAds] = useState([]);
-  const [adStats, setAdStats] = useState({
+  const [, setShowModal] = useState(false);
+  const [myAds] = useState([]);
+  const [adStats] = useState({
     totalImpressions: 0,
     totalClicks: 0,
     activeAds: 0,
@@ -99,11 +95,6 @@ const Advertise = () => {
       color: '#10b981'
     }
   ];
-
-  const handleServiceClick = (service) => {
-    setSelectedService(service);
-    setShowModal(true);
-  };
 
   const handlePurchase = (service, pricing) => {
     setShowModal(false);

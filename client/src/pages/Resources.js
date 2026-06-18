@@ -25,6 +25,7 @@ const Resources = () => {
 
   useEffect(() => {
     fetchArticles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, page]);
 
   const fetchArticles = async () => {

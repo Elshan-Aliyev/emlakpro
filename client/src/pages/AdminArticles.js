@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { getAdminArticles, deleteArticle, createArticle, updateArticle, uploadArticleImage } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
@@ -11,8 +10,6 @@ import './AdminArticles.css';
 const AdminArticles = () => {
   const { token } = useAuth();
   const { success, error: showError } = useToast();
-  const navigate = useNavigate();
-  
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -46,6 +43,7 @@ const AdminArticles = () => {
 
   useEffect(() => {
     fetchArticles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchArticles = async () => {

@@ -13,6 +13,7 @@ const ArticleDetail = () => {
 
   useEffect(() => {
     fetchArticle();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   const fetchArticle = async () => {

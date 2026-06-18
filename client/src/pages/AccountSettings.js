@@ -15,7 +15,7 @@ const ACCOUNT_TYPE_LABELS = {
 };
 
 const AccountSettings = () => {
-  const { user, updateUser, logout } = useAuth();
+  const { user, updateUser } = useAuth();
   const { success, error: showError } = useToast();
 
   const [avatarLoading, setAvatarLoading] = useState(false);

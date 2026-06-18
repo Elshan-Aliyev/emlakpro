@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Building2, Check, Star } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { getRealtors, getRealtorReviews } from '../services/api';
 import { getAvatarUrl } from '../utils/imageUtils';
 import Button from '../components/Button';
@@ -9,7 +8,7 @@ import Input from '../components/Input';
 import './FindRealtor.css';
 
 const FindRealtor = () => {
-  const { user } = useAuth();
+
   const [realtors, setRealtors] = useState([]);
   const [filteredRealtors, setFilteredRealtors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +28,7 @@ const FindRealtor = () => {
 
   useEffect(() => {
     applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, realtors]);
 
   const fetchRealtors = async () => {

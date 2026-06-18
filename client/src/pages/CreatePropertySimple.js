@@ -17,7 +17,7 @@ const CreatePropertySimple = () => {
   const [city, setCity] = useState('Baku');
   const [address, setAddress] = useState('');
   const [price, setPrice] = useState('');
-  const [images, setImages] = useState([]);
+  const [, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
 
   // Helper function to check if current step is complete

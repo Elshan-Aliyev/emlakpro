@@ -120,7 +120,7 @@ export const getPropertyImages = (property, count = 5, size = 'thumbnail') => {
   return images;
 };
 
-export default {
+const imageUtils = {
   getImageUrl,
   getAvatarUrl,
   getPropertyImageUrl,
@@ -129,3 +129,4 @@ export default {
   DEFAULT_IMAGE,
   DEFAULT_AVATAR
 };
+export default imageUtils;

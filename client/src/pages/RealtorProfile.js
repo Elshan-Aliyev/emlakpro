@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getUserById, getRealtorReviews, getProperties, sendMessage, createReview } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-import { getImageUrl, getAvatarUrl, getPropertyImageUrl } from '../utils/imageUtils';
+import { getAvatarUrl, getPropertyImageUrl } from '../utils/imageUtils';
 import Button from '../components/Button';
 import Badge from '../components/Badge';
 import Card from '../components/Card';
@@ -31,13 +31,9 @@ const RealtorProfile = () => {
   const [reviewText, setReviewText] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  const getProfilePicture = (profilePicture) => {
-    if (!profilePicture) return '/assets/default-avatar.png';
-    return profilePicture;
-  };
-
   useEffect(() => {
     fetchRealtorData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchRealtorData = async () => {

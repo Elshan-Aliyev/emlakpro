@@ -4,7 +4,6 @@ import { useToast } from '../components/Toast';
 import { getUsers, updateUser, deleteUser } from '../services/api';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
-import Input from '../components/Input';
 import './Admin.css';
 
 const ACCOUNT_TYPE_PILL = {
@@ -50,10 +49,12 @@ const AdminUsers = () => {
 
   useEffect(() => {
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     filterUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [users, roleFilter, accountTypeFilter, searchTerm]);
 
   const fetchUsers = async () => {

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-import { getAllListingsAdmin, updateProperty, deleteProperty, bulkApproveProperties, bulkDeleteProperties, updatePropertyPromotion } from '../services/api';
+import { getAllListingsAdmin, updateProperty, deleteProperty, updatePropertyPromotion } from '../services/api';
 import { track } from '../services/analytics';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -142,10 +142,12 @@ const AdminListings = () => {
 
   useEffect(() => {
     fetchProperties();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortByPriority]);
 
   useEffect(() => {
     filterProperties();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [properties, statusFilter, approvalFilter, searchTerm, sortByPriority, sortByQuality, duplicatesOnly]);
 
   const fetchProperties = async () => {

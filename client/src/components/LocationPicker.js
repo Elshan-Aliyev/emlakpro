@@ -81,6 +81,7 @@ const LocationPicker = ({ initialCoords, onLocationChange, height = '400px' }) =
       await updateCoordinates(e.lngLat.lat, e.lngLat.lng);
     });
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update marker position when initialCoords change from parent (e.g., address selection)
@@ -105,6 +106,7 @@ const LocationPicker = ({ initialCoords, onLocationChange, height = '400px' }) =
         initializedRef.current = true;
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCoords?.lat, initialCoords?.lng]);
 
   return (
